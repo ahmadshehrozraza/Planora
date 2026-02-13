@@ -1,0 +1,59 @@
+"use server";
+
+import { Databases, Client, Query, Account } from "node-appwrite";
+import { cookies } from "next/headers";
+import { AUTH_COOKIE } from "@/features/auth/constants";
+import { DATABASE_ID, MEMBERS_ID, WORKSPACES_ID } from "@/config";
+
+export const getWorkspaces = async () => {
+    try {
+        const client = new Client()
+            .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+            .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!);
+
+        const session = cookies().get(AUTH_COOKIE);
+        if (!session) return { documents: [], total: 0, lastWorkspaceId: null };
+
+        client.setSession(session.value);
+
+        const databases = new Databases(client);
+        const account = new Account(client);
+        
+        const user = await account.get();
+        const lastWorkspaceId = user.prefs?.lastWorkspace || null;
+        
+
+        const members = await databases.listDocuments(
+            DATABASE_ID,
+            MEMBERS_ID,
+            [Query.equal("userId", user.$id)]
+        );
+
+        if (members.total === 0) {
+            return { documents: [], total: 0, lastWorkspaceId: null };
+        }
+
+        const workspaceIds = members.documents.map((m) => m.workspaceId);
+
+        const isValidLastWorkspace = lastWorkspaceId && workspaceIds.includes(lastWorkspaceId);
+        
+
+
+        const workspaces = await databases.listDocuments(
+            DATABASE_ID,
+            WORKSPACES_ID,
+            [
+                Query.equal("$id", workspaceIds), 
+            ],
+        );
+
+
+        return {
+            ...workspaces,
+            lastWorkspaceId: isValidLastWorkspace ? lastWorkspaceId : null
+        };
+
+    } catch (error) {
+        return { documents: [], total: 0, lastWorkspaceId: null };
+    }
+};
