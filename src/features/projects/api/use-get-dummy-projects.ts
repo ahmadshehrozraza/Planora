@@ -22,7 +22,7 @@ export const useGetDummyProjects = (workspaceId?: string) => {
     queryKey: ["dummy-projects", workspaceId],
     queryFn: async () => {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+
       
       // Filter projects by workspaceId if provided
       let filteredProjects = dummyProjects;
@@ -46,7 +46,7 @@ export const useGetDummyProject = (projectId?: string) => {
   return useQuery<DummyProjectResponse>({
     queryKey: ["dummy-project", projectId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       if (!projectId) {
         throw new Error("No projectId provided");

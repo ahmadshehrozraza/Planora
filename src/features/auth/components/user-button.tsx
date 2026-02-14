@@ -7,7 +7,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { useLogout } from "../api/use-logout";
+// import { useLogout } from "../api/use-logout";
 import { useCurrent } from "../api/use-current";
 import { Loader, LogOut, User } from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
@@ -20,7 +20,7 @@ interface UserButtonProps {
 }
 
 export const UserButton = ( { title } : UserButtonProps ) => {
-    const { mutate: logout } = useLogout();
+    // const { mutate: logout } = useLogout();
     // const { data: user, isLoading } = useCurrent();
 
      const handleLogout = () => {

@@ -76,29 +76,6 @@ export const Navigation = ({ collapsed = false }: NavigationProps) => {
       }
   ];
 
-  // if (isAdmin) {
-  //   routes.push(
-  //     { 
-  //       label: "Analytics", 
-  //       href: "/analytics", 
-  //       icon: HiOutlineChartBar, 
-  //       activeIcon: HiChartBar,
-  //     },
-  //     { 
-  //       label: "Members", 
-  //       href: "/members", 
-  //       icon: HiOutlineUsers, 
-  //       activeIcon: HiUsers,
-  //     },
-  //     { 
-  //       label: "Settings", 
-  //       href: "/settings", 
-  //       icon: HiOutlineCog, 
-  //       activeIcon: HiCog,
-  //     }
-  //   );
-  // }
-
   const handleNavigationClick = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       const event = new Event('close-sidebar');
@@ -132,6 +109,7 @@ export const Navigation = ({ collapsed = false }: NavigationProps) => {
                 href={fullHref} 
                 className="flex items-center gap-2 w-full" 
                 onClick={handleNavigationClick}
+                prefetch
               >
                 <Icon className={cn(
                   "h-4 w-4 flex-shrink-0", 

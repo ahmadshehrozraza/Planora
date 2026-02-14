@@ -96,7 +96,7 @@ export const EditTaskForm = ({
   const loadTasksForProject = (projectId: string) => {
     setIsLoadingTasks(true);
 
-    setTimeout(() => {
+     out(() => {
       // Dummy tasks for edit form
       const dummyTasks = [
         { id: "task-1", name: "Design Homepage", status: TaskStatus.IN_PROGRESS },

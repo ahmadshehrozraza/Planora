@@ -11,7 +11,6 @@ export const useGetUser = (userId: string) => {
   return useQuery({
     queryKey: ["user", userId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
       
       const user = dummyUsers.find(u => u.userId === userId);
       
@@ -29,7 +28,6 @@ export const useGetUsers = (options?: UseGetUsersOptions) => {
   return useQuery({
     queryKey: ["users", options],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
       
       let filteredUsers = [...dummyUsers];
       
@@ -72,7 +70,6 @@ export const useGetActiveUsers = () => {
   return useQuery({
     queryKey: ["active-users"],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
       
       const activeUsers = dummyUsers.filter(u => u.isActive);
       
@@ -88,7 +85,6 @@ export const useSearchUsers = (query: string) => {
   return useQuery({
     queryKey: ["search-users", query],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
       
       if (!query.trim()) {
         return {
@@ -116,7 +112,6 @@ export const useGetUserByIds = (userIds: string[]) => {
   return useQuery({
     queryKey: ["users-by-ids", userIds],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
       
       const users = dummyUsers.filter(u => userIds.includes(u.userId));
       

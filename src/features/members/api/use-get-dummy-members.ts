@@ -13,7 +13,7 @@ export const useGetMember = (memberId: string) => {
   return useQuery({
     queryKey: ["member", memberId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
+
       
       const member = dummyMembers.find(m => m.id === memberId);
       
@@ -31,7 +31,6 @@ export const useGetMembers = (options?: UseGetMembersOptions) => {
   return useQuery({
     queryKey: ["members", options],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
       
       let filteredMembers = [...dummyMembers];
       
@@ -77,7 +76,7 @@ export const useGetWorkspaceMembers = (workspaceId: string) => {
   return useQuery({
     queryKey: ["workspace-members", workspaceId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       const workspaceMembers = dummyMembers.filter(
         m => m.workspaceId === workspaceId
@@ -96,7 +95,7 @@ export const useGetProjectMembers = (projectId: string) => {
   return useQuery({
     queryKey: ["project-members", projectId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       const projectMembers = dummyMembers.filter(
         m => m.projectId === projectId && m.hasAccess

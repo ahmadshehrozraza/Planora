@@ -112,7 +112,7 @@ export const CreateTaskForm = ({
     const loadSegmentsForProject = (projectId: string) => {
         setIsLoadingSegments(true);
 
-        setTimeout(() => {
+         out(() => {
             const projectSegments = dummySegments.filter(
                 segment => segment.projectId === projectId
             );
@@ -134,7 +134,7 @@ export const CreateTaskForm = ({
     const loadTasksForProject = (projectId: string) => {
         setIsLoadingTasks(true);
 
-        setTimeout(() => {
+         out(() => {
             if (tasks && tasks.length > 0) {
                 const filteredTasks = tasks
                     .filter(task => task.projectId === projectId)

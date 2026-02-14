@@ -7,12 +7,16 @@ import { QueryProviders } from "@/components/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({subsets: ["latin"]});
+const inter = Inter({
+    subsets: ["latin"],
+    display: "swap",
+    preload: true,
+  });
 
 export const metadata: Metadata = {
   title: "Planora",
   description: "A Software Project Management Tool",
-  icons: "/Planora_Logo_shadow.png"
+  // icons: "/Planora_Logo_shadow.png"
 };
 
 export default function RootLayout({
@@ -23,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={cn(inter.className, "antialias ed min-h-screen")}
+        className={cn(inter.className, "antialiased min-h-screen")}
       >
         <ThemeProvider
           attribute="class"

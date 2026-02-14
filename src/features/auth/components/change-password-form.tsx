@@ -76,7 +76,7 @@ export const ChangePasswordForm = ({
             console.log("Verifying password:", values);
             
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             
             // If password is correct
             setVerifiedPassword(true);
@@ -97,7 +97,7 @@ export const ChangePasswordForm = ({
             console.log("Changing password:", values);
             
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             
             toast.success("Password changed successfully");
             resetForms();

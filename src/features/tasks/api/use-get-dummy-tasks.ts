@@ -16,7 +16,7 @@ export const useGetTask = (taskId: string) => {
   return useQuery({
     queryKey: ["task", taskId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 600));
+
       
       const task = dummyTasks.find(t => t.id === taskId);
       
@@ -33,7 +33,6 @@ export const useGetTasks = (options?: UseGetTasksOptions) => {
   return useQuery({
     queryKey: ["tasks", options],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
       
       let filteredTasks = [...dummyTasks];
       
@@ -96,7 +95,7 @@ export const useGetTasksByAssignee = (assigneeId: string) => {
   return useQuery({
     queryKey: ["tasks-by-assignee", assigneeId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       const assignedTasks = dummyTasks.filter(t => t.assigneeId === assigneeId);
       
@@ -113,7 +112,7 @@ export const useGetTasksByProject = (projectId: string) => {
   return useQuery({
     queryKey: ["tasks-by-project", projectId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       const projectTasks = dummyTasks.filter(t => t.projectId === projectId);
       
@@ -130,7 +129,7 @@ export const useGetTasksBySegment = (segmentId: string) => {
   return useQuery({
     queryKey: ["tasks-by-segment", segmentId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       const segmentTasks = dummyTasks.filter(t => t.segmentId === segmentId);
       

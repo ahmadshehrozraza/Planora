@@ -79,6 +79,7 @@ export const ProjectsSidebar = ({ collapsed = false }: ProjectsProps) => {
           className="h-8"
         >
           <Link
+            prefetch
             href={`/workspaces/${workspaceId}/projects`}
             className={cn(
               "flex items-center justify-center",
@@ -168,6 +169,7 @@ export const ProjectsSidebar = ({ collapsed = false }: ProjectsProps) => {
                       >
                         <Link
                           href={projectHref}
+                          prefetch
                           className="flex items-center gap-1.5 w-full"
                         >
                           <ProjectAvatar

@@ -27,7 +27,7 @@ export const CreateTaskFormWrapper = ({ onCancel }: CreateTaskFormWrapperProps) 
     }
 
     // Simulate loading
-    const timer = setTimeout(() => {
+    const timer =  out(() => {
       // Filter projects by workspace
       const filteredProjects = dummyProjects.filter(project => project.workspaceId === workspaceId);
       

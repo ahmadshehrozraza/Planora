@@ -10,7 +10,7 @@ export const useGetDummySegmentsByProject = (projectId?: string) => {
   return useQuery({
     queryKey: ["dummy-segments-by-project", projectId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
+
       
       if (!projectId) {
         throw new Error("No projectId provided");
@@ -35,7 +35,7 @@ export const useGetDummySegment = (segmentId?: string) => {
   return useQuery({
     queryKey: ["dummy-segment", segmentId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
       
       if (!segmentId) {
         throw new Error("No segmentId provided");

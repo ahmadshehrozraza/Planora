@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/form";
 import Link from "next/link";
 import { loginSchema } from "../schemas";
-import { useLogin } from "../api/use-login";
+// import { useLogin } from "../api/use-login";
 import { redirect } from "next/dist/server/api-utils";
 
 export const SignInCard = () => {
 
-    const { mutate, isPending } = useLogin();
+    // const { mutate, isPending } = useLogin();
 
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -85,7 +85,7 @@ export const SignInCard = () => {
                         />
                         <Button
                             size="lg"
-                            disabled={isPending}
+                            // disabled={isPending}
                             className="w-full"
                         >
                             Login
@@ -100,7 +100,7 @@ export const SignInCard = () => {
                         <Button
                             // onClick={() => signUpWithGoogle()}
                             size="lg"
-                            disabled={isPending}
+                            // disabled={isPending}
                             className="w-full"
                             variant="secondary"
                         >
@@ -111,7 +111,7 @@ export const SignInCard = () => {
                         <Button
                             // onClick={() => signUpWithGithub()}
                             size="lg"
-                            disabled={isPending}
+                            // disabled={isPending}
                             className="w-full"
                             variant="secondary"
                         >

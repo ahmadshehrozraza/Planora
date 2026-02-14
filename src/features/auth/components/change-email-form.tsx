@@ -89,7 +89,7 @@ export const ChangeEmailForm = ({
             console.log("Verifying password:", values);
             
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             
             // If password is correct
             setVerifiedPassword(true);
@@ -110,7 +110,7 @@ export const ChangeEmailForm = ({
             console.log("Sending OTP to:", values.newEmail);
             
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+           
             
             setNewEmail(values.newEmail);
             setCurrentStep('otp');
@@ -130,7 +130,7 @@ export const ChangeEmailForm = ({
             console.log("Verifying OTP and changing email:", { newEmail, otp: values.otp });
             
             // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             
             toast.success("Email changed successfully");
             resetForms();

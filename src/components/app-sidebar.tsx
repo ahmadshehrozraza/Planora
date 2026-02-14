@@ -115,7 +115,7 @@ export function AppSidebar() {
             </div>
           ) : (
             <div className="">
-              <Link href="/" className="flex items-center gap-2">
+              {/* <Link href="/" className="flex items-center gap-2">
                 <Image 
                   src="/PlanoraLog.png" 
                   alt="Planora Logo" 
@@ -123,7 +123,7 @@ export function AppSidebar() {
                   height={40}
                   className="object-contain"
                 />
-              </Link>
+              </Link> */}
               
               <Separator className="my-2" />
               <WorkspaceSwitcher />

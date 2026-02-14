@@ -151,14 +151,12 @@ const CalendarPage = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 h-[calc(100vh-120px)] min-h-[600px]">
         
-        {/* --- MAIN CALENDAR (Left Side) --- */}
         <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border p-4 h-full flex flex-col">
             <div className="flex-1 min-h-0">
                 <DataCalendar data={dummyEvents} />
             </div>
         </div>
 
-        {/* --- SIDEBAR (Right Side) --- */}
         <div className="lg:col-span-1 h-full min-w-[270px]">
             <Card className="h-full flex flex-col border-none shadow-sm bg-white">
                 <CardHeader className="pb-3 bg-slate-50/50 border-b flex flex-row items-center justify-between space-y-0 p-4">

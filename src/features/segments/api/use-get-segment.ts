@@ -11,7 +11,6 @@ export const useGetSegment = (segmentId: string) => {
     queryKey: ["segment", segmentId],
     queryFn: async () => {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Find segment by ID
       const segment = dummySegments.find(seg => seg.id === segmentId);
@@ -30,8 +29,6 @@ export const useGetSegments = (projectId?: string, options?: UseGetSegmentsOptio
   return useQuery({
     queryKey: ["segments", projectId, options],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
       
       let filteredSegments = [...dummySegments];
       

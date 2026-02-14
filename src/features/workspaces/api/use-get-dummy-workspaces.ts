@@ -22,7 +22,7 @@ export const useGetDummyWorkspaces = () => {
   return useQuery<DummyWorkspacesResponse>({
     queryKey: ["dummy-workspaces"],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
+
 
       return {
         documents: dummyWorkspaces,
@@ -44,7 +44,7 @@ export const useGetDummyWorkspace = (workspaceId?: string) => {
   return useQuery<ApiResponse<DummyWorkspace>>({
     queryKey: ["dummy-workspace", workspaceId],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
+       //
 
       if (!workspaceId) {
         throw new Error("No workspaceId provided");

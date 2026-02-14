@@ -127,6 +127,10 @@ export const WorkspaceIdClient = () => {
       </div>
     </div>
 
+    <div className="bg-indigo-500 text-center">
+      yes here I am
+    </div>
+
     </div>
   );
 };
