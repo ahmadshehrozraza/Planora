@@ -1,0 +1,203 @@
+"use client";
+
+import React, { useState, useMemo, useCallback } from "react";
+import { format } from "date-fns";
+import {
+  CalendarIcon,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  Layers,
+  Plus,
+  Loader,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { DataCalendar } from "@/features/events/components/data-calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { useCreateEventModal } from "@/features/events/hooks/use-create-event-modal";
+import { CreateEventModal } from "@/features/events/components/create-event-modal";
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { PageError } from "@/components/page-error";
+import { useGetEvents } from "@/features/events/api/use-get-events";
+import { EventFilters } from "@/features/events/components/event-filters";
+import { useEventFilters } from "@/features/events/hooks/use-event-filters";
+import { EventsCard } from "@/features/events/components/events-card";
+
+const EventsClientPage = () => {
+  const { open } = useCreateEventModal();
+  const router = useRouter();
+  const workspaceId = useWorkspaceId();
+
+  const [{ projectId, date }] = useEventFilters();
+
+  const {
+    data: events,
+    isLoading,
+    isError,
+  } = useGetEvents({
+    workspaceId,
+    projectId,
+    date,
+  });
+
+  const [view, setView] = useState<"TODAY" | "ALL">("TODAY");
+
+  const toggleView = useCallback(() => {
+    setView((prev) => (prev === "TODAY" ? "ALL" : "TODAY"));
+  }, []);
+
+  const displayedEvents = useMemo(() => {
+    if (!events) return [];
+
+    const targetDate = date || new Date();
+
+    if (view === "TODAY") {
+      return events.filter((event) => {
+        const eventDate = new Date(event.date);
+        return (
+          eventDate.getDate() === targetDate.getDate() &&
+          eventDate.getMonth() === targetDate.getMonth() &&
+          eventDate.getFullYear() === targetDate.getFullYear()
+        );
+      });
+    }
+
+    return [...events].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [events, view, date]);
+
+  if (isError) return <PageError message="Failed to load events" />;
+
+  return (
+    <div className="flex flex-col h-full w-full space-y-4 p-4 overflow-hidden bg-slate-50/30">
+      <CreateEventModal />
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shrink-0">
+        <div className="w-full lg:w-auto">
+          <EventFilters />
+        </div>
+        <Button
+          onClick={open}
+          className="bg-blue-600 hover:bg-blue-700 text-white w-full lg:w-auto shadow-sm"
+          size="sm"
+        >
+          <Plus className="size-4 mr-2" />
+          New Event
+        </Button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-h-0 overflow-hidden relative">
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader className="size-8 animate-spin text-slate-300" />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+              <DataCalendar data={events || []} />
+            </div>
+          )}
+        </div>
+
+        <div className="lg:w-[340px] shrink-0 flex flex-col h-full min-h-0">
+          <Card className="h-full flex flex-col border border-slate-200 shadow-sm bg-white overflow-hidden">
+            <CardHeader className="pb-3 bg-slate-50 border-b border-slate-100 flex flex-row items-center justify-between space-y-0 p-4 shrink-0 h-[68px]">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                  {view === "TODAY" ? (
+                    <>
+                      <CalendarIcon className="size-4 text-blue-600" />{" "}
+                      {date ? "Selected Date" : "Today"}
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="size-4 text-purple-600" /> All Events
+                    </>
+                  )}
+                </CardTitle>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
+                  {view === "TODAY"
+                    ? format(date || new Date(), "EEEE, MMM do")
+                    : `${events?.length || 0} Events Total`}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleView}
+                className="h-7 w-7 hover:bg-slate-200/50"
+              >
+                {view === "TODAY" ? (
+                  <ArrowRight className="size-4 text-slate-500" />
+                ) : (
+                  <ArrowLeft className="size-4 text-slate-500" />
+                )}
+              </Button>
+            </CardHeader>
+
+            <CardContent className="flex-1 p-0 min-h-0 overflow-hidden bg-slate-50/30">
+              <ScrollArea className="h-full">
+                <div className="p-3 space-y-3">
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-24 w-full bg-slate-100 animate-pulse rounded-lg"
+                      />
+                    ))
+                  ) : displayedEvents.length > 0 ? (
+                    displayedEvents.map((event) => (
+                      <EventsCard
+                        key={event.$id}
+                        id={event.$id}
+                        title={event.title}
+                        date={event.date}
+                        time={event.time}
+                        description={event.description}
+                        project={event.project}
+                        segment={event.segment}
+                        eventCreator={event.eventCreator}
+                        opened={event.opened}
+                        variant="default"
+                      />
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-60 text-center space-y-3 px-4">
+                      <div className="p-4 rounded-full bg-slate-100 ring-1 ring-slate-200">
+                        <CalendarIcon className="size-6 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">
+                          No events found
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
+                          {view === "TODAY"
+                            ? "Looks like you have a free day! Enjoy your time."
+                            : "No upcoming events scheduled."}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={open}
+                        className="mt-2 h-8 text-xs"
+                      >
+                        Create one now
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EventsClientPage;

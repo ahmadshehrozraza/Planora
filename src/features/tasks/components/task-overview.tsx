@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { OverviewProperty } from "./overview-property";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { TaskDate } from "./task-date";
+import { TaskDate } from "../../../components/date-indicator";
 import { snakeCaseToTitleCase } from "@/lib/utils";
 import { useEditTaskModal } from "../hooks/use-edit-task-modal";
 import { ProgressBar } from "@/components/Progress-bar";
@@ -33,13 +33,13 @@ export const TaskOverview = ({
                 {/* --- Header Section --- */}
                 <div className="flex items-center justify-between">
                     <p className="text-lg font-semibold flex items-center gap-2">
-                        Overview
+                        {task.name}
                     </p>
                     <div className="flex items-center gap-2">
                         <Button
                             onClick={() => open(task.id)}
                             size="sm"
-                            variant="secondry"
+                            variant="outline"
                             className="h-8"
                         >
                             <PencilIcon className="size-4 mr-2" />
@@ -59,15 +59,13 @@ export const TaskOverview = ({
                 
                 <Separator className="my-4" />
 
-                {/* --- Details Grid (Perfectly Balanced 7 vs 7 Items) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    {/* LEFT COLUMN: Identity, People & Timeline Context (7 Items) */}
                     <div className="flex flex-col gap-y-4 w-full">
                         
-                        <OverviewProperty label="Task Name">
+                        {/* <OverviewProperty label="Task Name">
                             <p className="text-sm font-medium text-foreground">{task.name}</p>
-                        </OverviewProperty>
+                        </OverviewProperty> */}
 
                         <OverviewProperty label="Assignee">
                             <div className="flex items-center gap-2">
@@ -93,6 +91,19 @@ export const TaskOverview = ({
                         <OverviewProperty label="Segment">
                             <p className="text-sm font-medium">{task.segmentId || "N/A"}</p>
                         </OverviewProperty>
+
+                        <OverviewProperty label="Blocked By">
+                                {task.blockedBy ? (
+                                    <div className="flex items-center gap-1.5 text-red-600">
+                                        <LockKeyhole className="size-3.5" />
+                                        <span className="text-sm font-medium truncate max-w-[100px]" title={task.blockedBy}>
+                                            {task.blockedBy}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                            </OverviewProperty>
 
                         <OverviewProperty label="Start Date">
                             <TaskDate className="text-sm font-medium" value={task.startDate} />
@@ -131,22 +142,7 @@ export const TaskOverview = ({
                             </p>
                         </OverviewProperty>
 
-                        {/* Dependencies Group (Counts as 1 Visual Row to match Left side) */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <OverviewProperty label="Blocked By">
-                                {task.blockedBy ? (
-                                    <div className="flex items-center gap-1.5 text-red-600">
-                                        <LockKeyhole className="size-3.5" />
-                                        <span className="text-sm font-medium truncate max-w-[100px]" title={task.blockedBy}>
-                                            {task.blockedBy}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <span className="text-sm text-muted-foreground">-</span>
-                                )}
-                            </OverviewProperty>
-
-                            <OverviewProperty label="Blocking">
+                        <OverviewProperty label="Blocking">
                                 {task.blockingTo ? (
                                     <div className="flex items-center gap-1.5 text-amber-600">
                                         <ArrowRightCircle className="size-3.5" />
@@ -157,8 +153,8 @@ export const TaskOverview = ({
                                 ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
                                 )}
-                            </OverviewProperty>
-                        </div>
+                        </OverviewProperty>
+
 
                         <OverviewProperty label="Due Date">
                             <TaskDate className="text-sm font-medium" value={task.endDate} />

@@ -1,16 +1,22 @@
 
 import { redirect } from "next/navigation";
-import { WorkspaceIdClient } from "./client";
+import { DashboardClient } from "./client";
+import { Navbar } from "@/components/navbar";
 
 
-const WorkspaceIdPage = async ( ) => {
+const Dashboard = async ( ) => {
 
     // const user = await getCurrent();
     // if(!user) redirect("/sign-in");
     
     
-    return <WorkspaceIdClient />
+    return (
+        <div className="flex flex-col">
+            <Navbar title="Dashboard" description="Manage all your works herre" />
+            <DashboardClient />
+        </div>
+    )
     
 }
  
-export default WorkspaceIdPage;
+export default Dashboard;

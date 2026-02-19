@@ -11,51 +11,23 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import { WorkspaceSwitcher } from "./workspace-switcher";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import Image from "next/image";
 import Link from "next/link";
 import { Navigation } from "./navigation";
 import { ProjectsSidebar } from "./projects-sidebar";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
-import { NotificationButton } from "@/app/(dashboard)/workspaces/[workspaceId]/notifications/page";
+import { NotificationButton } from "@/components/notifications";
 import { ThemeToggle } from "./theme-toggle";
+import { PlanoraLogo } from "@/features/dashboard/components/planora-logo";
 
 export function AppSidebar() {
-  const { state, isMobile, openMobile, setOpenMobile, toggleSidebar } = useSidebar();
-  const isExpanded = state === "expanded";
-
-  useEffect(() => {
-    const handleLinkClick = () => {
-      if (isMobile && openMobile) {
-        setOpenMobile(false);
-      }
-    };
-
-    const handleCloseSidebar = () => {
-      if (isMobile && openMobile) {
-        setOpenMobile(false);
-      }
-    };
-
-    const sidebarLinks = document.querySelectorAll('[data-sidebar="menu-button"] a');
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', handleLinkClick);
-    });
-
-    window.addEventListener('close-sidebar', handleCloseSidebar);
-
-    return () => {
-      sidebarLinks.forEach(link => {
-        link.removeEventListener('click', handleLinkClick);
-      });
-      window.removeEventListener('close-sidebar', handleCloseSidebar);
-    };
-  }, [isMobile, openMobile, setOpenMobile]);
+  const { isMobile, toggleSidebar, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
     <>
-      {!isMobile && isExpanded && (
+      {!isMobile && (
         <button
           onClick={toggleSidebar}
           className={cn(
@@ -63,33 +35,34 @@ export function AppSidebar() {
             "h-10 w-5 rounded-r-xl",
             "bg-sidebar border-2 border-l-0 border-sidebar-border",
             "shadow-lg flex items-center justify-center",
-            "transition-all duration-300",
+            "transition-all duration-300 ease-in-out",
             "hover:bg-sidebar-accent hover:w-9 hover:shadow-xl",
             "text-sidebar-foreground",
             "group/toggle"
           )}
-          style={{
-            left: "calc(16rem - 2px)",
+          style={{ 
+            left: isCollapsed ? "calc(3rem - 2px)" : "calc(16rem - 2px)" 
           }}
-          aria-label="Collapse sidebar"
+          aria-label="Toggle sidebar"
         >
-          <ChevronLeft className="h-5 w-5 transition-all group-hover/toggle:scale-110" />
+          {isCollapsed ? (
+             <ChevronRight className="h-5 w-5 transition-transform" />
+          ) : (
+             <ChevronLeft className="h-5 w-5 transition-transform" />
+          )}
         </button>
       )}
 
-      {isMobile && !openMobile && (
+      {isMobile && (
         <button
           onClick={toggleSidebar}
           className={cn(
-            "fixed top-4 left-4 z-50",
-            "h-7 w-7 rounded-lg",
+            "fixed top-4 left-4 z-50 h-8 w-8 rounded-lg",
             "bg-sidebar border-2 border-sidebar-border",
             "shadow-lg flex items-center justify-center",
-            "transition-all duration-300",
-            "hover:bg-sidebar-accent hover:shadow-xl",
+            "transition-all hover:bg-sidebar-accent",
             "text-sidebar-foreground"
           )}
-          aria-label="Open sidebar"
         >
           <Menu className="h-4 w-4" />
         </button>
@@ -98,54 +71,49 @@ export function AppSidebar() {
       <Sidebar 
         collapsible="icon" 
         variant="sidebar" 
-        className="border-r bg-sidebar"
+        className="border-r bg-sidebar h-screen overflow-hidden flex flex-col"
       >
-        <SidebarHeader className="p-4">
-          {!isExpanded ? (
-            <div className="flex flex-col items-center space-y-3">
-              {!isMobile && (
-                <button
-                  onClick={toggleSidebar}
-                  className="h-8 w-8 rounded-xl flex items-center justify-center bg-sidebar-accent hover:bg-sidebar-accent/80 transition-colors shadow-sm"
-                  aria-label="Expand sidebar"
-                >
-                  <ChevronRight className="h-6 w-6 text-sidebar-foreground" />
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="">
-              {/* <Link href="/" className="flex items-center gap-2">
+        
+        <SidebarHeader className="p-2 shrink-0 transition-all">
+          <div className="group-data-[collapsible=icon]:hidden transition-all duration-300 w-full overflow-hidden">
+             <Link href="/" className="flex items-center gap-2 mb-1">
                 <Image 
                   src="/PlanoraLog.png" 
                   alt="Planora Logo" 
-                  width={150}
-                  height={40}
-                  className="object-contain"
+                  width={200} 
+                  height={40} 
+                  className="object-contain min-w-[150px]" 
+                  priority 
                 />
-              </Link> */}
-              
-              <Separator className="my-2" />
-              <WorkspaceSwitcher />
-            </div>
-          )}
+             </Link>
+             <Separator className="mb-2" />
+          </div>
+
+          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+             <PlanoraLogo duration="5s" size={50} handWidth={2} />
+          </div>
+
+          <WorkspaceSwitcher />
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent 
+          className={cn(
+            "flex-1 min-h-0", 
+            "!overflow-y-auto !overflow-x-hidden", 
+            "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          )}
+        >
           <SidebarGroup>
             <SidebarGroupContent>
-              <div>
-                  <Navigation collapsed={!isExpanded} />
-                  <ProjectsSidebar collapsed={!isExpanded} />
-              </div>
-              
+              <Navigation />
+              <ProjectsSidebar />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-2 border-t space-y-1">
-          <NotificationButton collapsed={!isExpanded} />
-          <ThemeToggle collapsed={!isExpanded} />
+        <SidebarFooter className=" shrink-0">
+          <NotificationButton />
+          <ThemeToggle />
         </SidebarFooter>
       </Sidebar>
     </>

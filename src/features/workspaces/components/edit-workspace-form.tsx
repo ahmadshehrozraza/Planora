@@ -33,7 +33,7 @@ import { useResetInviteCode } from "../api/use-reset-invite-code";
 
 interface EditWorkspaceFormProps {
     onCancel?: () => void;
-    initialValues: DummyWorkspace;
+    initialValues?: DummyWorkspace;
 };
 
 export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceFormProps) => {
@@ -68,7 +68,7 @@ export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceForm
         resolver: zodResolver(updateWorkspaceSchema),
         defaultValues: {
             ...initialValues,
-            imageUrl: initialValues.imageUrl ?? "",
+            imageUrl: initialValues?.imageUrl ?? "",
         },
     });
 
@@ -130,7 +130,7 @@ export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceForm
 
 
 
-    const fullInviteLink = `${window.location.origin}/workspaces/${initialValues.id}/join/123456`;
+    const fullInviteLink = `${window.location.origin}/workspaces/${initialValues?.id}/join/123456`;
 
     const handleCopyInviteLink = () => {
         navigator.clipboard.writeText(fullInviteLink)

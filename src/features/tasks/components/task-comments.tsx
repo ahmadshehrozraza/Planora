@@ -19,7 +19,7 @@ import { Separator } from "@radix-ui/react-separator";
 import { useUpdateTask } from "../api/use-update-task";
 import { Card, CardContent } from "@/components/ui/card";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskDate } from "./task-date";
+import { TaskDate } from "../../../components/date-indicator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";

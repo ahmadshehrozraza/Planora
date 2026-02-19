@@ -1,201 +1,183 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Folder, Plus, FolderOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { Folder, Plus, ChevronRight, FolderOpen, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useCreateProjectModal } from "@/features/projects/hooks/use-create-project-modal";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { useCurrentMember } from "@/features/members/hooks/current-user-role";
-import { Button } from "@/components/ui/button";
+import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { PageLoader } from "./page-loader";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
 
-interface ProjectsProps {
-  collapsed?: boolean;
-}
-
-export const ProjectsSidebar = ({ collapsed = false }: ProjectsProps) => {
+export const ProjectsSidebar = () => {
   const workspaceId = useWorkspaceId();
   const pathname = usePathname();
   const { open } = useCreateProjectModal();
-  // const { isAdmin } = useCurrentMember();
-  const { isMobile } = useSidebar();
-
-  const [showProjectsDropdown, setShowProjectsDropdown] = useState(false);
-  const [expandedProjects, setExpandedProjects] = useState<string[]>([]);
-
-  // const { data, isLoading } = useGetProjects({ workspaceId });
+  
+  const [isOpen, setIsOpen] = useState(true);
 
   const { data, isLoading } = useGetDummyProjects(workspaceId);
 
-  const toggleProject = (projectId: string) => {
-    setExpandedProjects(prev =>
-      prev.includes(projectId)
-        ? prev.filter(id => id !== projectId)
-        : [...prev, projectId]
-    );
-  };
+  const toggleOpen = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
 
-  const toggleProjectsDropdown = () => {
-    setShowProjectsDropdown(!showProjectsDropdown);
-  };
+  const handleCreate = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    open();
+  }, [open]);
 
-  const isProjectExpanded = (projectId: string) =>
-    expandedProjects.includes(projectId);
-
-  if (isLoading) {
-    return (
-      <div className="flex place-content-center px-2">
-        <PageLoader />
-      </div>
-    );
+  if (isLoading || !data) {
+     return null; 
   }
 
-  if (!data) return null;
-
-  const shouldShowText = !collapsed || isMobile;
-
-  if (collapsed && !isMobile) {
-    const isProjectsPageActive = pathname === `/workspaces/${workspaceId}/projects`;
-
-    return (
-      <div className="flex flex-col items-center px-1">
-        <SidebarMenuButton
-          asChild
-          tooltip="Projects"
-          className="h-8"
-        >
-          <Link
-            prefetch
-            href={`/workspaces/${workspaceId}/projects`}
-            className={cn(
-              "flex items-center justify-center",
-              isProjectsPageActive && "text-primary"
-            )}
-          >
-            {isProjectsPageActive ? (
-              <FolderOpen className="h-4 w-4 fill-primary" />
-            ) : (
-              <Folder className="h-4 w-4" />
-            )}
-          </Link>
-        </SidebarMenuButton>
-      </div>
-    );
-  }
-
-  const isOnProjectsPage = pathname === `/workspaces/${workspaceId}/projects`;
-
-  const hasProjects = data.documents.length > 0;
+  const projectsHref = `/workspaces/${workspaceId}/projects`;
+  const isProjectsPageActive = pathname === projectsHref;
 
   return (
-    <SidebarGroup className="mt-[-5px]">
-      <div className="flex items-center justify-between">
-        <SidebarGroupLabel className="text-sm text-neutral-500 px-0">
-          <Link
-            href={`/workspaces/${workspaceId}/projects`}
-            className="flex items-center gap-1 hover:text-primary transition-colors"
-          >
-            {isOnProjectsPage ? (
-              <FolderOpen className="h-4 w-4 fill-primary" />
-            ) : (
-              <Folder className="h-4 w-4" />
-            )}
-            <span className={cn(
-              "ml-2",
-              isOnProjectsPage && "text-primary font-medium"
-            )}>
-              Projects
-            </span>
-          </Link>
-        </SidebarGroupLabel>
+    <SidebarMenu className="">
+        <SidebarMenuItem>
+            <div className="flex w-full items-center gap-0.5 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-y-0.5 group-data-[collapsible=icon]:py-1">
 
-        {/* {isAdmin && ( */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5"
-          onClick={hasProjects ? toggleProjectsDropdown : open}
-          title={hasProjects ? (showProjectsDropdown ? "Hide projects" : "Show projects") : "Add Project"}
-        >
-          {hasProjects ? (
-            showProjectsDropdown ? (
-              <ChevronUp className="h-2.5 w-2.5" />
-            ) : (
-              <ChevronDown className="h-2.5 w-2.5" />
-            )
-          ) : (
-            <Plus className="h-2.5 w-2.5" />
-          )}
-          <span className="sr-only">
-            {hasProjects
-              ? (showProjectsDropdown ? "Hide projects" : "Show projects")
-              : "Add Project"
-            }
-          </span>
-        </Button>
-        {/* )} */}
-      </div>
+                <div 
+                    role="button"
+                    onClick={handleCreate}
+                    className="
+                        hidden group-data-[collapsible=icon]:flex 
+                        cursor-pointer text-muted-foreground hover:text-primary transition-colors
+                        items-center justify-center
+                    "
+                    title="Create Project"
+                >
+                    <Plus className="size-3.5" />
+                </div>
 
-      {hasProjects && showProjectsDropdown && (
-        <SidebarGroupContent className="mt-1">
-          <SidebarMenu className="space-y-0.5">
-            {data.documents.map((project) => {
-              const projectHref = `/workspaces/${workspaceId}/projects/${project.id}`;
-              const isProjectActive = pathname === projectHref || pathname.startsWith(projectHref + '/');
-              const isExpanded = isProjectExpanded(project.id);
+                {/* --- 2. MAIN BUTTON (SHARED) --- */}
+                <SidebarMenuButton 
+                    asChild
+                    tooltip="Projects"
+                    isActive={isProjectsPageActive}
+                    className="group/nav-item h-8 cursor-pointer w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:p-0" 
+                >
+                    <div className="flex items-center w-full">
+                        <Link 
+                            href={projectsHref} 
+                            className="flex items-center gap-2 flex-1 overflow-hidden group-data-[collapsible=icon]:justify-center"
+                        >
+                            {isProjectsPageActive ? (
+                                <FolderOpen className="size-4 shrink-0 text-primary transition-colors group-data-[collapsible=icon]:size-4" />
+                            ) : (
+                                <Folder className="size-4 shrink-0 text-muted-foreground group-hover/nav-item:text-primary transition-colors group-data-[collapsible=icon]:size-4" />
+                            )}
+                            
+                            <span className="truncate font-medium text-sm group-data-[collapsible=icon]:hidden">
+                                Projects
+                            </span>
+                        </Link>
 
-              return (
-                <div key={project.id} className="group">
-                  <SidebarMenuItem className="mb-0">
-                    <div className="flex items-center w-full pl-0">
-                      <SidebarMenuButton
+                        <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+                            <div 
+                                role="button"
+                                onClick={handleCreate}
+                                className="
+                                    flex items-center justify-center size-5 rounded hover:bg-neutral-200 
+                                    cursor-pointer text-muted-foreground hover:text-primary 
+                                    opacity-0 group-hover/nav-item:opacity-100 transition-opacity
+                                "
+                                title="Create Project"
+                            >
+                                <Plus className="size-4" />
+                            </div>
+
+                            <div 
+                                role="button" 
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleOpen();
+                                }}
+                                className="flex items-center justify-center size-5 rounded hover:bg-neutral-200 cursor-pointer text-muted-foreground hover:text-primary"
+                            >
+                                <ChevronRight className={cn(
+                                    "size-4 transition-transform duration-200",
+                                    isOpen && "rotate-90"
+                                )} />
+                            </div>
+                        </div>
+                    </div>
+                </SidebarMenuButton>
+
+                <div 
+                    role="button"
+                    onClick={toggleOpen}
+                    className="
+                        hidden group-data-[collapsible=icon]:flex
+                        cursor-pointer text-muted-foreground hover:text-primary transition-colors
+                        items-center justify-center
+                    "
+                    title="Toggle Projects"
+                >
+                    <ChevronDown className={cn(
+                        "size-3.5 transition-transform duration-200",
+                        isOpen ? "rotate-180" : "rotate-0"
+                    )} />
+                </div>
+
+            </div>
+        </SidebarMenuItem>
+
+        {isOpen && data.documents.map((project) => {
+            const projectHref = `/workspaces/${workspaceId}/projects/${project.id}`;
+            const isProjectActive = pathname === projectHref || pathname.startsWith(projectHref + '/');
+
+            return (
+                <SidebarMenuItem key={project.id}>
+                    <SidebarMenuButton
                         asChild
                         isActive={isProjectActive}
-                        className="flex-1 h-8 px-2"
-                      >
-                        <Link
-                          href={projectHref}
-                          prefetch
-                          className="flex items-center gap-1.5 w-full"
+                        tooltip={project.name}
+                        className="group/nav-item h-8 justify-start ml-2 group-data-[collapsible=icon]:ml-[-2.5px]"
+                    >
+                        <Link 
+                            href={projectHref} 
+                            className="flex items-center gap-2 w-full"
                         >
-                          <ProjectAvatar
-                            image={project.imageUrl}
-                            name={project.name}
-                            className={cn(
-                              "size-5",
-                              isProjectActive && "ring-1 ring-primary"
-                            )}
-                          />
-                          <span className={cn(
-                            "truncate text-sm px-1",
-                            isProjectActive && "text-primary font-medium"
-                          )}>
-                            {project.name}
-                          </span>
+                            <ProjectAvatar
+                                image={project.imageUrl}
+                                name={project.name}
+                                className={cn(
+                                    "size-5 shrink-0", 
+                                    isProjectActive ? "ring-1 ring-primary" : "opacity-80 group-hover/nav-item:opacity-100"
+                                )}
+                                fallbackClassName="text-[10px] font-bold" 
+                            />
+                            <span className={cn(
+                                "truncate font-medium text-sm transition-colors group-data-[collapsible=icon]:hidden",
+                                isProjectActive ? "text-primary" : "text-muted-foreground group-hover/nav-item:text-primary"
+                            )}>
+                                {project.name}
+                            </span>
                         </Link>
-                      </SidebarMenuButton>
-                    </div>
-                  </SidebarMenuItem>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            );
+        })}
+
+        {isOpen && data.documents.length === 0 && (
+             <SidebarMenuItem>
+                <div className="px-2 py-1 text-xs text-muted-foreground italic group-data-[collapsible=icon]:hidden">
+                    No projects found
                 </div>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      )}
-    </SidebarGroup>
+             </SidebarMenuItem>
+        )}
+
+    </SidebarMenu>
   );
 };

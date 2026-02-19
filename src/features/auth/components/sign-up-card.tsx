@@ -43,7 +43,7 @@ export const SignUpCard = () => {
     })
 
     const onSubmit = (values: z.infer<typeof registerSchema>) => {
-        mutate({ json: values });
+        // mutate({ json: values });
     }
 
     return (
@@ -58,7 +58,7 @@ export const SignUpCard = () => {
                         <span className="text-blue-700">Privacy Policy</span>
                     </Link>
                     and{" "}
-                    <Link href="/terms">
+                    <Link href="/terms" prefetch>
                         <span className="text-blue-700">Terms of Services</span>
                     </Link>
                 </CardDescription>

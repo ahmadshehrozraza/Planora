@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { QueryProviders } from "@/components/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { WebVitals } from "@/components/WebVitals";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         >
         <QueryProviders>
           <Toaster />
+          <WebVitals />
         {children}
         </QueryProviders>
         </ThemeProvider>

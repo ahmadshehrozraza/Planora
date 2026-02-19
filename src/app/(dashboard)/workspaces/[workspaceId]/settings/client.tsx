@@ -1,33 +1,29 @@
 "use client";
 
 import { EditWorkspaceForm } from "@/features/workspaces/components/edit-workspace-form";
-import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
-import { useGetDummyWorkspace } from "@/features/workspaces/api/use-get-dummy-workspaces";
+import { useGetWorkspace } from "@/features/workspaces/api/use-get-workspace";
 import { PageLoader } from "@/components/page-loader";
 import { PageError } from "@/components/page-error";
 
-
-const WorkspaceIdSettingsClient = () => {
-
-    const workspaceId = useWorkspaceId();
-
-    const { data: initialValues, isLoading } = useGetDummyWorkspace( workspaceId );
-
-    if(isLoading){
-        return <PageLoader />
-    }
-
-    if(!initialValues){
-        return <PageError message="No workspace found" />
-    }
-
-    return ( 
-        
-        <div className="w-full lg:max-w-xl">
-            <EditWorkspaceForm initialValues={initialValues} 
-            />
-        </div>
-     );
+interface WorkspaceSettingsClientProps {
+  workspaceId: string;
 }
- 
-export default WorkspaceIdSettingsClient;
+
+export const WorkspaceSettingsClient = ({ workspaceId }: WorkspaceSettingsClientProps) => {
+
+  const { data: initialValues, isLoading } = useGetWorkspace({ workspaceId });
+
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center"><PageLoader /></div>;
+  }
+
+  if (!initialValues) {
+    return <PageError message="Workspace not found or you don't have access." />;
+  }
+
+  return (
+    <div className="w-full flex flex-col gap-y-6">
+      <EditWorkspaceForm initialValues={initialValues} />
+    </div>
+  );
+};

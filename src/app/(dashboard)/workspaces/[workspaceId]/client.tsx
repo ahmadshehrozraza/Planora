@@ -30,8 +30,9 @@ import { ProjectStatus } from "@/features/projects/types";
 import { SegmentStatus } from "@/features/segments/types";
 import { snakeCaseToTitleCase } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
+import { PlanoraLogo } from "@/features/dashboard/components/planora-logo";
 
-export const WorkspaceIdClient = () => {
+export const DashboardClient = () => {
 
   const workspaceId = useWorkspaceId();
   if (!workspaceId) return null;
@@ -127,9 +128,16 @@ export const WorkspaceIdClient = () => {
       </div>
     </div>
 
-    <div className="bg-indigo-500 text-center">
-      yes here I am
-    </div>
+    <PlanoraLogo size={70}  />
+
+        <PlanoraLogo
+          size={300}            // Bada size
+          color="bg-emerald-500" // Green color
+          handWidth={4}         // Patlay hands
+          handHeight={60}       // Hands ki lambayi
+          duration="30s"        // Bohot slow (30 second main aik chakkar)
+      />
+   
 
     </div>
   );

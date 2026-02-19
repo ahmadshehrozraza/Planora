@@ -1,9 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ListTodo, Loader, Plus, Download, Loader2 } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { Plus, Download, Loader2, LayoutTemplate } from "lucide-react";
+import dynamic from "next/dynamic";
 
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
@@ -12,14 +11,14 @@ import { useCreateSegmentModal } from "@/features/segments/hooks/use-create-segm
 import { PageLoader } from "@/components/page-loader";
 import { PageError } from "@/components/page-error";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { EditProjectForm } from "@/features/projects/components/edit-project-form";
+
+import { SegmentsPage } from "./segments/page";
 import { CreateSegmentModal } from "@/features/segments/components/create-segment-modal";
 
-import ProjectAnalytics from "@/features/projects/components/project-analytics";
-import ProjectMembers from "@/features/projects/components/project-members";
-import { SegmentsPage } from "./segments/page";
+const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
+const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
+const ProjectMembers = dynamic(() => import("@/features/projects/components/project-members"), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
 
 export const ProjectIdClient = () => {
     const projectId = useProjectId();
@@ -35,6 +34,9 @@ export const ProjectIdClient = () => {
         setIsExporting(true);
         
         try {
+            const html2canvas = (await import("html2canvas")).default;
+            const jsPDF = (await import("jspdf")).default;
+
             const element = printRef.current;
             const canvas = await html2canvas(element, {
                 scale: 2,
@@ -73,94 +75,76 @@ export const ProjectIdClient = () => {
         }
     };
 
-    if (isLoadingProject) {
-        return <PageLoader />
-    }
-
-    if (!project) {
-        return <PageError message="Project not found" />
-    }
+    if (isLoadingProject) return <div className="h-[60vh] flex items-center justify-center"><PageLoader /></div>;
+    if (!project) return <PageError message="Project not found" />;
 
     return (
-        <div className="w-full h-full flex flex-col">
+        <div className="w-full flex flex-col min-h-screen bg-slate-50/30">
             <CreateSegmentModal />
-            
-            <Tabs defaultValue="segments" className="w-full flex flex-col h-full">
-
-                <div className="flex flex-col lg:flex-row justify-between items-center px-4 py-3 gap-4 bg-white border-b sticky top-0 z-10">
-                    <div className="flex items-center overflow-x-auto max-w-full">
-                        <TabsList className="h-9 w-full lg:w-auto">
-                            <TabsTrigger value="segments" className="px-4">
-                                Segments
-                            </TabsTrigger>
-                            <TabsTrigger value="projectAnalytics" className="px-4">
-                                Analytics
-                            </TabsTrigger>
-                            <TabsTrigger value="projectMembers" className="px-4">
-                                Members
-                            </TabsTrigger>
-                            <TabsTrigger value="projectSettings" className="px-4">
-                                Settings
-                            </TabsTrigger>
-                        </TabsList>
+            <Tabs defaultValue="segments" className="w-full flex flex-col flex-1">
+                
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                    <div className="flex items-center gap-3">
+                         <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 hidden sm:block">
+                             <LayoutTemplate className="size-5 text-blue-600" />
+                         </div>
+                         <div>
+                             <h1 className="font-bold text-lg text-slate-900 leading-none">{project.name}</h1>
+                             <p className="text-xs text-slate-500 mt-1 font-medium">Project Workspace</p>
+                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <Button
-                            onClick={open}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                        >
+                    <div className="flex items-center justify-between w-full lg:w-auto gap-4">
+                        <TabsList className="h-10 bg-slate-100/80 p-1 w-full lg:w-auto overflow-x-auto justify-start border border-slate-200/60">
+                            <TabsTrigger value="segments" className="px-5 text-sm data-[state=active]:shadow-sm">Segments</TabsTrigger>
+                            <TabsTrigger value="projectAnalytics" className="px-5 text-sm data-[state=active]:shadow-sm">Analytics</TabsTrigger>
+                            <TabsTrigger value="projectMembers" className="px-5 text-sm data-[state=active]:shadow-sm">Members</TabsTrigger>
+                            <TabsTrigger value="projectSettings" className="px-5 text-sm data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                        </TabsList>
+
+                        <Button onClick={open} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0">
                             <Plus className="size-4 mr-2" />
                             New Segment
                         </Button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50">
-                    
-                    <TabsContent value="segments" className="m-0 h-full">
+                {/* Tab Contents */}
+                <div className="flex-1 w-full relative">
+                    <TabsContent value="segments" className="m-0 border-none outline-none h-full">
                         <SegmentsPage />
                     </TabsContent>
 
-                    <TabsContent value="projectAnalytics" className="m-0">
-                        <div className="space-y-4 max-w-7xl mx-auto">
+                    <TabsContent value="projectAnalytics" className="m-0 p-6">
+                        <div className="max-w-7xl mx-auto space-y-4">
                             <div className="flex justify-end">
                                 <Button 
                                     onClick={handleExportPDF} 
                                     disabled={isExporting}
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white"
+                                    className="bg-white hover:bg-slate-50 border-slate-200 shadow-sm text-slate-700 font-medium"
                                 >
-                                    {isExporting ? (
-                                        <>
-                                            <Loader2 className="size-4 mr-2 animate-spin" /> Generating PDF...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download className="size-4 mr-2" /> Download Report
-                                        </>
-                                    )}
+                                    {isExporting ? <><Loader2 className="size-4 mr-2 animate-spin" /> Generating PDF...</> : <><Download className="size-4 mr-2" /> Export Report</>}
                                 </Button>
                             </div>
-
-                            <div ref={printRef} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
- 
+                            <div ref={printRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print-container">
                                 <ProjectAnalytics projectId={projectId} />
                             </div>
                         </div>
                     </TabsContent>
 
-                    <TabsContent value="projectMembers" className="m-0 max-w-7xl mx-auto">
-                        <ProjectMembers project={project} />
+                    <TabsContent value="projectMembers" className="m-0 p-6">
+                        <div className="max-w-7xl mx-auto">
+                           <ProjectMembers project={project} />
+                        </div>
                     </TabsContent>
 
-                    <TabsContent value="projectSettings">
+                    <TabsContent value="projectSettings" className="m-0 p-6">
+                         <div className="max-w-3xl mx-auto">
                             <EditProjectForm initialValues={project} />
-
+                         </div>
                     </TabsContent>
-
                 </div>
             </Tabs>
         </div>

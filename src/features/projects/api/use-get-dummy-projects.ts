@@ -1,68 +1,60 @@
-"use client";
-
 import { useQuery } from "@tanstack/react-query";
-import {  dummyProjects } from "../dummyProjects";
-import { DummyProject } from "../types";
+import { getProjects, getProject } from "@/features/projects/server/get-projects";
+import { DummyProject } from "@/features/projects/types";
 
-// Type for API response
-interface DummyProjectsResponse {
+// Types
+interface ProjectsResponse {
   documents: DummyProject[];
   total: number;
-  success: boolean;
 }
 
-interface DummyProjectResponse {
+interface SingleProjectResponse {
   document: DummyProject;
-  success: boolean;
 }
 
-// Get all projects or filter by workspaceId
+// ------------------------------------------------------------------
+// HOOK 1: Get Projects (Handles both "All" and "By Workspace")
+// ------------------------------------------------------------------
 export const useGetDummyProjects = (workspaceId?: string) => {
-  return useQuery<DummyProjectsResponse>({
-    queryKey: ["dummy-projects", workspaceId],
+  return useQuery<ProjectsResponse>({
+    // Cache Key: Agar workspaceId hai to alag cache, nahi hai to 'all' cache
+    queryKey: ["dummy-projects", workspaceId || "all"],
+    
     queryFn: async () => {
-      // Simulate API delay
+      // Server Action call (workspaceId optional hai)
+      const data = await getProjects({ workspaceId });
 
-      
-      // Filter projects by workspaceId if provided
-      let filteredProjects = dummyProjects;
-      if (workspaceId) {
-        filteredProjects = dummyProjects.filter(project => project.workspaceId === workspaceId);
-      }
-      
       return {
-        documents: filteredProjects,
-        total: filteredProjects.length,
-        success: true
+        documents: data,
+        total: data.length,
       };
     },
-    // Keep data fresh for 5 minutes
     staleTime: 5 * 60 * 1000,
   });
 };
 
-// Get single project by ID
+// ------------------------------------------------------------------
+// HOOK 2: Get Single Project by ID
+// ------------------------------------------------------------------
 export const useGetDummyProject = (projectId?: string) => {
-  return useQuery<DummyProjectResponse>({
+  return useQuery<SingleProjectResponse>({
     queryKey: ["dummy-project", projectId],
+    
     queryFn: async () => {
-       //
-      
-      if (!projectId) {
-        throw new Error("No projectId provided");
-      }
+      if (!projectId) throw new Error("ProjectId is required");
 
-      const project = dummyProjects.find(p => p.id === projectId);
-      
-      if (!project) {
+      // Server Action call for SINGLE item
+      const data = await getProject({ projectId });
+
+      if (!data) {
         throw new Error("Project not found");
       }
 
       return {
-        document: project,
-        success: true
+        document: data,
       };
     },
-    enabled: !!projectId,
+    enabled: !!projectId, // Jab tak ID na mile, query mat chalao
+    staleTime: 5 * 60 * 1000,
   });
 };

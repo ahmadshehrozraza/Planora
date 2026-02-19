@@ -1,9 +1,15 @@
+import { Navbar } from "@/components/navbar";
+import { WorkspaceSettingsClient } from "./client";
 
-import WorkspaceIdSettingsClient from "./client";
-
-const WorkspaceIdSettingsPage = async () => {
-
-    return <WorkspaceIdSettingsClient />
+export default async function WorkspaceSettingsPage({
+  params,
+}: {
+  params: { workspaceId: string };
+}) {
+  return (
+    <div className="flex flex-col">
+        <Navbar title="Workspace Settings" description="Manage & view workspace here" />
+      <WorkspaceSettingsClient workspaceId={params.workspaceId} />
+    </div>
+  );
 }
- 
-export default WorkspaceIdSettingsPage;

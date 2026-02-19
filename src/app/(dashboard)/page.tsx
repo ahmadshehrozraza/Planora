@@ -1,26 +1,12 @@
-"use client";
-
-import { useGetDummyWorkspaces } from "@/features/workspaces/api/use-get-dummy-workspaces";
 import { redirect } from "next/navigation";
-import { useEffect } from "react";
+import { getWorkspaces } from "@/features/workspaces/server/useGetWorkspace";
 
-export default function WorkspacesPage() {
-  const { data: workspacesData, isLoading } = useGetDummyWorkspaces();
+export default async function Home() {
+  const workspacesData = await getWorkspaces();
 
-  useEffect(() => {
-    if (!isLoading && workspacesData?.documents && workspacesData.documents.length > 0) {
-      const firstWorkspaceId = workspacesData.documents[0].id;
-      redirect(`/workspaces/${firstWorkspaceId}`);
-    }
-  }, [workspacesData, isLoading]);
-
-  if (isLoading) {
-    return <div>Loading workspaces...</div>;
-  }
-
-  if (!isLoading && (!workspacesData?.documents || workspacesData.documents.length === 0)) {
+  if (workspacesData.documents.length === 0) {
     redirect("/workspaces/create");
+  } else {
+    redirect(`/workspaces/${workspacesData.documents[0].id}`);
   }
-
-  return <div>Redirecting to your workspace...</div>;
 }

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { cn } from "@/lib/utils";
-import { useCurrentMember } from "@/features/members/hooks/current-user-role";
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -27,101 +26,86 @@ import {
   HiChartBar,
 } from "react-icons/hi";
 
-interface NavigationProps {
-  collapsed?: boolean;
-}
+const routes = [
+  { 
+    label: "Dashboard", 
+    href: "", 
+    icon: HiOutlineHome, 
+    activeIcon: HiHome,
+  },
+  { 
+    label: "Tasks", 
+    href: "/tasks", 
+    icon: HiOutlineCheckCircle, 
+    activeIcon: HiCheckCircle,
+  },
+  { 
+    label: "Events", 
+    href: "/events", 
+    icon: HiOutlineCalendar, 
+    activeIcon: HiCalendar,
+  },
+  { 
+    label: "Analytics", 
+    href: "/analytics", 
+    icon: HiOutlineChartBar, 
+    activeIcon: HiChartBar,
+  },
+  { 
+    label: "Members", 
+    href: "/members", 
+    icon: HiOutlineUsers, 
+    activeIcon: HiUsers,
+  },
+  { 
+    label: "Settings", 
+    href: "/settings", 
+    icon: HiOutlineCog, 
+    activeIcon: HiCog,
+  }
+];
 
-export const Navigation = ({ collapsed = false }: NavigationProps) => {
+export const Navigation = () => {
   const workspaceId = useWorkspaceId();
   const pathname = usePathname();
-  const { isAdmin } = useCurrentMember();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar(); 
 
-  const routes = [
-    { 
-      label: "Dashboard", 
-      href: "", 
-      icon: HiOutlineHome, 
-      activeIcon: HiHome,
-    },
-    { 
-      label: "Tasks", 
-      href: "/tasks", 
-      icon: HiOutlineCheckCircle, 
-      activeIcon: HiCheckCircle,
-    },
-    { 
-      label: "Events", 
-      href: "/events", 
-      icon: HiOutlineCalendar, 
-      activeIcon: HiCalendar,
-    },
-    { 
-        label: "Analytics", 
-        href: "/analytics", 
-        icon: HiOutlineChartBar, 
-        activeIcon: HiChartBar,
-      },
-      { 
-        label: "Members", 
-        href: "/members", 
-        icon: HiOutlineUsers, 
-        activeIcon: HiUsers,
-      },
-      { 
-        label: "Settings", 
-        href: "/settings", 
-        icon: HiOutlineCog, 
-        activeIcon: HiCog,
-      }
-  ];
-
-  const handleNavigationClick = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      const event = new Event('close-sidebar');
-      window.dispatchEvent(event);
+  const onLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
     }
   };
-
-  const shouldShowText = !collapsed || isMobile;
 
   return (
     <SidebarMenu>
       {routes.map((item) => {
         const fullHref = `/workspaces/${workspaceId}${item.href}`;
-        const isActive =
-          item.href === ""
+        
+        const isActive = item.href === ""
             ? pathname === `/workspaces/${workspaceId}`
             : pathname.startsWith(fullHref);
+        
         const Icon = isActive ? item.activeIcon : item.icon;
 
         return (
-          <SidebarMenuItem key={item.href || "dashboard"} className="mb-0">
+          <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
-              tooltip={collapsed && !isMobile ? item.label : undefined}
               isActive={isActive}
-              onClick={handleNavigationClick}
-              size="sm" 
-              className="" 
+              tooltip={item.label}
+              className="group/nav-item h-8" 
             >
               <Link 
                 href={fullHref} 
+                onClick={onLinkClick}
                 className="flex items-center gap-2 w-full" 
-                onClick={handleNavigationClick}
-                prefetch
               >
                 <Icon className={cn(
-                  "h-4 w-4 flex-shrink-0", 
-                  isActive && "text-primary"
+                  "size-6 flex-shrink-0 transition-colors", 
+                  isActive ? "text-primary" : "text-muted-foreground group-hover/nav-item:text-primary"
                 )} />
                 
-                <span className={cn(
-                  "truncate text-sm font-medium transition-all duration-200",
-                  shouldShowText 
-                    ? "opacity-100 w-auto ml-1"
-                    : "opacity-0 w-0 ml-0"
-                )}>
+                <span className="truncate font-medium text-sm group-data-[collapsible=icon]:hidden">
                   {item.label}
                 </span>
               </Link>

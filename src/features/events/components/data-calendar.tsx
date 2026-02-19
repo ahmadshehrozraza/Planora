@@ -12,24 +12,19 @@ import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { enUS } from "date-fns/locale";
 import { useState } from "react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import "./data-calendar.css"; // Ensure this file exists for styling
+import "./data-calendar.css";
 import { EventsCard } from "./events-card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-// You might need to define an Event type in your types file if not exists
-// import { Event } from "../types"; 
-
-// Mock type for now
 interface EventType {
     $id: string;
     title: string;
-    date: string | Date; // Events usually have a specific date
+    date: string | Date;
     description?: string;
     projectId?: string;
     workspaceId?: string;
     segmentId?: string;
-    // You might need to fetch full objects for project/segment names to display them
     project?: { name: string, imageUrl?: string }; 
     segment?: { name: string };
 }
@@ -100,10 +95,10 @@ export const DataCalendar = ({
         id: event.$id,
         title: event.title,
         start: new Date(event.date),
-        end: new Date(event.date), // Assuming single-day events for now
+        end: new Date(event.date), 
         resource: {
             description: event.description,
-            project: event.project, // Pass full object if available
+            project: event.project, 
             segment: event.segment,
         }
     }));
@@ -137,9 +132,13 @@ export const DataCalendar = ({
                     <EventsCard
                         id={event.id}
                         title={event.title}
-                        description={event.resource?.description}
+                        date={event.start.toISOString()} 
+                        time={event.resource?.time}     
                         project={event.resource?.project}
+                        description={event.resource?.description}
                         segment={event.resource?.segment}
+                        opened={event.resource?.opened}
+                        variant="mini" 
                     />
                 ),
                 toolbar: () => (

@@ -1,25 +1,31 @@
 "use client";
 
+import { Navbar } from "@/components/navbar";
+import { PageError } from "@/components/page-error";
+import { PageLoader } from "@/components/page-loader";
+import { useGetEvent } from "@/features/events/api/use-get-events";
 import { EditEventForm } from "@/features/events/components/edit-event-form";
-import { useEventId } from "@/features/events/hooks/use-event-id"
+import { useEventId } from "@/features/events/hooks/use-event-id";
 
-export default function event() {
+export const Event = () => {
+  const eventId = useEventId();
 
-    const eventId = useEventId();
+  const { data: event, isLoading } = useGetEvent({ eventId });
 
-    const event = {
-        $id: eventId,
-        title: "Sprint Planning - Q1",
-        date: new Date().toISOString(),
-        description: "Discussing the roadmap for the first quarter including major feature releases.",
-        workspaceId: "ws_1", // Make sure IDs match your dropdown options
-        projectId: "pj_1",
-        segmentId: "sg_1",
-    };
-    
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  if (!event) {
+    return <PageError message="Event not found" />;
+  }
+
   return (
-    <div className="w-full">
-        <EditEventForm initialValues={event} />
+    <div className="flex flex-col">
+      <Navbar title={event.title} description="Edit & view task here" />
+      <EditEventForm initialValues={event} />
     </div>
-  )
+  );
 };
+
+export default Event;

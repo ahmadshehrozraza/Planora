@@ -6,7 +6,7 @@ import { Task } from "../types";
 import { Button } from "@/components/ui/button";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskDate } from "./task-date";
+import { TaskDate } from "../../../components/date-indicator";
 import { Badge } from "@/components/ui/badge";
 import { snakeCaseToTitleCase } from "@/lib/utils";
 import { TaskActions } from "./task-actions";

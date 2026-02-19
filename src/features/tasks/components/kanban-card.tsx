@@ -3,7 +3,7 @@ import { Task } from "../types";
 import { TaskActions } from "./task-actions";
 import { Separator } from "@radix-ui/react-separator";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskDate } from "./task-date";
+import { TaskDate } from "../../../components/date-indicator";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 
 
