@@ -1,7 +1,4 @@
-
-
 import { cn } from "@/lib/utils";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 
@@ -10,7 +7,7 @@ interface ProjectAvatarProps {
     name: string;
     className?: string;
     fallbackClassName?: string;
-};
+}
 
 export const ProjectAvatar = ({
     image,
@@ -21,17 +18,20 @@ export const ProjectAvatar = ({
     if(image) {
         return (
             <div className={cn(
-                "size-8 relative rounded-md overflow-hidden"
+                // ✨ FIXED: Added shrink-0, aspect-square aur missing 'className' prop
+                "size-8 relative rounded-md overflow-hidden shrink-0 aspect-square",
+                className
             )}>
                 <Image src={image} alt={name} fill className="object-cover" />
             </div>
         );
     }
     return (
-        <Avatar className={cn("size-8 rounded-md", className)}>
+        <Avatar className={cn("size-8 rounded-md shrink-0 aspect-square", className)}>
             <AvatarFallback className={cn(
-                "text-white rounded-md bg-blue-600 font-semibold text-md uppercase",
-            fallbackClassName,
+                // ✨ FIXED: Theme compatible background (bg-primary)
+                "text-primary-foreground rounded-md bg-primary font-semibold text-md uppercase",
+                fallbackClassName,
             )}>
                 {name[0]}
             </AvatarFallback>

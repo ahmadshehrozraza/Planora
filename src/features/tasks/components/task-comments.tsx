@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@radix-ui/react-separator";
+import { Separator } from "@/components/ui/separator";
 import { useUpdateTask } from "../api/use-update-task";
 import { Card, CardContent } from "@/components/ui/card";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskDate } from "../../../components/date-indicator";
+import { DateIndicator } from "../../../components/date-indicator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -33,9 +33,9 @@ interface Comment {
     avatarUrl?: string;
   };
   createdAt: string;
-  likes: string[]; // Array of user IDs who liked the comment
+  likes: string[]; 
   replies: Comment[];
-  parentId?: string; // For replies
+  parentId?: string; 
   isEditing?: boolean;
 }
 
@@ -43,7 +43,6 @@ interface TaskCommentsProps {
   task: Task;
 }
 
-// Initial threaded comments data
 const initialComments: Comment[] = [
   {
     id: "1",
@@ -141,7 +140,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
     setCommentText("");
     setIsAddingComment(false);
     
-    // Auto-expand new comment
     setExpandedComments(prev => new Set(prev).add(newComment.id));
   };
 
@@ -184,7 +182,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
     setReplyText("");
     setReplyingTo(null);
     
-    // Expand the parent comment if it's collapsed
     if (!expandedComments.has(commentId)) {
       setExpandedComments(prev => new Set(prev).add(commentId));
     }
@@ -263,20 +260,18 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
 
     return (
       <div key={comment.id} className="relative">
-        {/* Thread line for replies */}
         {depth > 0 && (
           <div 
-            className="absolute left-0 top-0 bottom-0 w-4 border-l-2 border-muted -ml-2"
+            className="absolute left-0 top-0 bottom-0 w-4 border-l-2 border-border -ml-2"
             style={{ left: `${depth * 24}px` }}
           />
         )}
         
         <Card className={cn(
-          "relative mb-3 transition-all hover:shadow-sm",
+          "relative mb-3 transition-all hover:shadow-sm border-border bg-card",
           depth > 0 && "ml-6"
         )}>
           <CardContent className="p-4">
-            {/* Comment Header */}
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <MemberAvatar
@@ -286,13 +281,13 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium truncate">
+                    <p className="text-sm font-medium truncate text-foreground">
                       {comment.author.name}
                       {isAuthor && (
                         <Badge variant="outline" className="ml-2 text-xs">You</Badge>
                       )}
                     </p>
-                    <TaskDate 
+                    <DateIndicator
                       className="text-xs text-muted-foreground"
                       value={comment.createdAt}
                     />
@@ -300,18 +295,17 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
                 </div>
               </div>
               
-              {/* Actions Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0 text-muted-foreground hover:text-foreground">
                     <MoreVertical className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="bg-popover border-border">
 
                     <DropdownMenuItem 
                       onClick={() => handleEditComment(comment.id, comment.text)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 cursor-pointer"
                     >
                       <Edit className="size-4" />
                       Edit
@@ -319,7 +313,7 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
 
                     <DropdownMenuItem 
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="flex items-center gap-2 text-destructive"
+                      className="flex items-center gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
                     >
                       <Trash2 className="size-4" />
                       Delete
@@ -329,14 +323,13 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
               </DropdownMenu>
             </div>
 
-            {/* Comment Text - Editable */}
             {isEditing ? (
               <div className="space-y-3 mb-3">
                 <Textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   rows={3}
-                  className="resize-none"
+                  className="resize-none bg-background border-border"
                 />
                 <div className="flex gap-2 justify-end">
                   <Button
@@ -361,18 +354,17 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
               </p>
             )}
 
-            {/* Comment Actions */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2"
+                  className={cn("h-8 px-2", isLiked ? "text-primary" : "text-muted-foreground")}
                   onClick={() => handleLikeComment(comment.id)}
                 >
                   <ThumbsUp className={cn(
                     "size-4 mr-1",
-                    isLiked && "fill-blue-500 text-blue-500"
+                    isLiked && "fill-primary"
                   )} />
                   <span className="text-xs">
                     {comment.likes.length > 0 ? comment.likes.length : ''} Like
@@ -382,7 +374,7 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2"
+                  className="h-8 px-2 text-muted-foreground"
                   onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                 >
                   <Reply className="size-4 mr-1" />
@@ -390,7 +382,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
                 </Button>
               </div>
               
-              {/* Replies count and expand/collapse */}
               {hasReplies && (
                 <Button
                   variant="ghost"
@@ -410,15 +401,14 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
               )}
             </div>
 
-            {/* Reply Input */}
             {replyingTo === comment.id && (
-              <div className="mt-4 ml-4 border-l-2 border-blue-200 pl-4">
+              <div className="mt-4 ml-4 border-l-2 border-primary/30 pl-4">
                 <Textarea
                   placeholder={`Reply to ${comment.author.name}...`}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   rows={2}
-                  className="resize-none mb-2"
+                  className="resize-none mb-2 bg-background border-border"
                   autoFocus
                 />
                 <div className="flex gap-2 justify-end">
@@ -445,7 +435,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
           </CardContent>
         </Card>
 
-        {/* Render Replies if expanded */}
         {hasReplies && isExpanded && (
           <div className="ml-6">
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
@@ -460,11 +449,11 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
   }, 0);
 
   return (
-    <div className="p-4 w-full border rounded-lg bg-background">
+    <div className="p-4 w-full border border-border rounded-lg bg-card">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="size-5" />
-          <p className="text-lg font-semibold">Comments</p>
+          <MessageSquare className="size-5 text-foreground" />
+          <p className="text-lg font-semibold text-foreground">Comments</p>
           <Badge variant="secondary" className="ml-2">
             {totalComments} {totalComments === 1 ? 'comment' : 'comments'}
           </Badge>
@@ -485,7 +474,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
       
       <Separator className="my-4" />
       
-      {/* Main Comment Input */}
       {isAddingComment && (
         <div className="flex flex-col gap-y-4 mb-6">
           <Textarea
@@ -494,7 +482,7 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
             rows={3}
             onChange={(e) => setCommentText(e.target.value)}
             disabled={isPending}
-            className="resize-none"
+            className="resize-none bg-background border-border"
             autoFocus
           />
           <div className="flex gap-2 justify-end">
@@ -512,6 +500,7 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
             <Button
               size="sm"
               onClick={handleAddComment}
+              variant={"primary"}
               disabled={isPending || !commentText.trim()}
             >
               {isPending ? "Posting..." : "Post Comment"}
@@ -520,7 +509,6 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
         </div>
       )}
 
-      {/* Comments List */}
       <div className="space-y-4">
         {comments.length > 0 ? (
           <div className="space-y-2">
@@ -529,7 +517,7 @@ export const TaskComments = ({ task }: TaskCommentsProps) => {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <MessageSquare className="size-12 mx-auto mb-3 opacity-50" />
-            <p className="text-lg font-medium">No comments yet</p>
+            <p className="text-lg font-medium text-foreground">No comments yet</p>
             <p className="text-sm mt-1">Start the conversation by adding the first comment</p>
             {!isAddingComment && (
               <Button

@@ -74,7 +74,7 @@ const EventsClientPage = () => {
   if (isError) return <PageError message="Failed to load events" />;
 
   return (
-    <div className="flex flex-col h-full w-full space-y-4 p-4 overflow-hidden bg-slate-50/30">
+    <div className="flex flex-col h-full w-full space-y-4 p-4 overflow-hidden bg-background">
       <CreateEventModal />
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 shrink-0">
         <div className="w-full lg:w-auto">
@@ -82,7 +82,7 @@ const EventsClientPage = () => {
         </div>
         <Button
           onClick={open}
-          className="bg-blue-600 hover:bg-blue-700 text-white w-full lg:w-auto shadow-sm"
+          className="w-full lg:w-auto shadow-sm"
           size="sm"
         >
           <Plus className="size-4 mr-2" />
@@ -91,10 +91,10 @@ const EventsClientPage = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-h-0 overflow-hidden relative">
+        <div className="flex-1 bg-card rounded-xl shadow-sm border border-border flex flex-col min-h-0 overflow-hidden relative">
           {isLoading ? (
             <div className="w-full h-full flex items-center justify-center">
-              <Loader className="size-8 animate-spin text-slate-300" />
+              <Loader className="size-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
@@ -104,18 +104,18 @@ const EventsClientPage = () => {
         </div>
 
         <div className="lg:w-[340px] shrink-0 flex flex-col h-full min-h-0">
-          <Card className="h-full flex flex-col border border-slate-200 shadow-sm bg-white overflow-hidden">
-            <CardHeader className="pb-3 bg-slate-50 border-b border-slate-100 flex flex-row items-center justify-between space-y-0 p-4 shrink-0 h-[68px]">
+          <Card className="h-full flex flex-col border border-border shadow-sm bg-card overflow-hidden">
+            <CardHeader className="pb-3 bg-muted/30 border-b border-border flex flex-row items-center justify-between space-y-0 p-4 shrink-0 h-[68px]">
               <div>
-                <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
                   {view === "TODAY" ? (
                     <>
-                      <CalendarIcon className="size-4 text-blue-600" />{" "}
+                      <CalendarIcon className="size-4 text-primary" />{" "}
                       {date ? "Selected Date" : "Today"}
                     </>
                   ) : (
                     <>
-                      <Layers className="size-4 text-purple-600" /> All Events
+                      <Layers className="size-4 text-purple-600 dark:text-purple-400" /> All Events
                     </>
                   )}
                 </CardTitle>
@@ -129,24 +129,24 @@ const EventsClientPage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={toggleView}
-                className="h-7 w-7 hover:bg-slate-200/50"
+                className="h-7 w-7 hover:bg-accent text-muted-foreground"
               >
                 {view === "TODAY" ? (
-                  <ArrowRight className="size-4 text-slate-500" />
+                  <ArrowRight className="size-4" />
                 ) : (
-                  <ArrowLeft className="size-4 text-slate-500" />
+                  <ArrowLeft className="size-4" />
                 )}
               </Button>
             </CardHeader>
 
-            <CardContent className="flex-1 p-0 min-h-0 overflow-hidden bg-slate-50/30">
+            <CardContent className="flex-1 p-0 min-h-0 overflow-hidden bg-background">
               <ScrollArea className="h-full">
                 <div className="p-3 space-y-3">
                   {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
                       <div
                         key={i}
-                        className="h-24 w-full bg-slate-100 animate-pulse rounded-lg"
+                        className="h-24 w-full bg-muted animate-pulse rounded-lg"
                       />
                     ))
                   ) : displayedEvents.length > 0 ? (
@@ -155,7 +155,7 @@ const EventsClientPage = () => {
                         key={event.$id}
                         id={event.$id}
                         title={event.title}
-                        date={event.date}
+                        date={event.date as string}
                         time={event.time}
                         description={event.description}
                         project={event.project}
@@ -167,11 +167,11 @@ const EventsClientPage = () => {
                     ))
                   ) : (
                     <div className="flex flex-col items-center justify-center h-60 text-center space-y-3 px-4">
-                      <div className="p-4 rounded-full bg-slate-100 ring-1 ring-slate-200">
-                        <CalendarIcon className="size-6 text-slate-400" />
+                      <div className="p-4 rounded-full bg-muted ring-1 ring-border">
+                        <CalendarIcon className="size-6 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-700">
+                        <p className="text-sm font-semibold text-foreground">
                           No events found
                         </p>
                         <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
@@ -184,7 +184,7 @@ const EventsClientPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={open}
-                        className="mt-2 h-8 text-xs"
+                        className="mt-2 h-8 text-xs bg-background border-border"
                       >
                         Create one now
                       </Button>

@@ -10,11 +10,11 @@ interface WorkspaceAvatarProps {
 };
 
 const sizeClasses = {
-    xs: "size-5",    // 20px
-    sm: "size-7",    // 28px
-    md: "size-10",   // 40px (default)
-    lg: "size-12",   // 48px
-    xl: "size-16",   // 64px
+    xs: "size-5",   
+    sm: "size-7",    
+    md: "size-10",   
+    lg: "size-12",   
+    xl: "size-16",   
 };
 
 const fontSizeClasses = {
@@ -59,8 +59,8 @@ export const WorkspaceAvatar = ({
             className
         )}>
             <AvatarFallback className={cn(
-                "rounded-md text-white font-semibold uppercase",
-                "bg-gradient-to-br from-blue-600 to-blue-700",
+                "rounded-md text-primary-foreground font-semibold uppercase",
+                "bg-gradient-to-br from-primary to-primary/80",
                 fontSizeClass 
             )}>
                 {name[0]}

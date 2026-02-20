@@ -12,14 +12,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import Image from "next/image";
 import Link from "next/link";
 import { Navigation } from "./navigation";
 import { ProjectsSidebar } from "./projects-sidebar";
 import { cn } from "@/lib/utils";
 import { NotificationButton } from "@/components/notifications";
 import { ThemeToggle } from "./theme-toggle";
-import { PlanoraLogo } from "@/features/dashboard/components/planora-logo";
+import { PlanoraLogo } from "./planora-logo";
 
 export function AppSidebar() {
   const { isMobile, toggleSidebar, state } = useSidebar();
@@ -71,26 +70,32 @@ export function AppSidebar() {
       <Sidebar 
         collapsible="icon" 
         variant="sidebar" 
-        className="border-r bg-sidebar h-screen overflow-hidden flex flex-col"
+        className="border-r bg-sidebar h-screen overflow-hidden flex flex-col transition-[width] duration-300 ease-in-out"
       >
         
-        <SidebarHeader className="p-2 shrink-0 transition-all">
-          <div className="group-data-[collapsible=icon]:hidden transition-all duration-300 w-full overflow-hidden">
-             <Link href="/" className="flex items-center gap-2 mb-1">
-                <Image 
-                  src="/PlanoraLog.png" 
-                  alt="Planora Logo" 
-                  width={200} 
-                  height={40} 
-                  className="object-contain min-w-[150px]" 
-                  priority 
-                />
-             </Link>
-             <Separator className="mb-2" />
-          </div>
-
-          <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
-             <PlanoraLogo duration="5s" size={50} handWidth={2} />
+        <SidebarHeader className="shrink-0 ">
+          
+          <Link 
+            href="/" 
+            className={cn("flex items-center justify-center transition-all duration-300", isCollapsed ? "" : "justify-start")}
+          >
+             <PlanoraLogo 
+               fontFamily="outfit"
+               fontWeight="font-medium"
+               wheelSize={isCollapsed ? 50 : 70} 
+               wheelHandWidth={isCollapsed ? 2 : 3} 
+               animateText={false}
+               size={50} 
+               wheelDuration="5s"
+               hideText={isCollapsed}
+             />
+          </Link>
+          
+          <div className={cn(
+              "transition-all duration-300 ease-in-out w-full",
+              isCollapsed ? "px-0" : "px-2"
+          )}>
+            <Separator className="mb-2 w-full" />
           </div>
 
           <WorkspaceSwitcher />
@@ -111,7 +116,7 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className=" shrink-0">
+        <SidebarFooter className="shrink-0">
           <NotificationButton />
           <ThemeToggle />
         </SidebarFooter>

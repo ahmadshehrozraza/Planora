@@ -1,18 +1,22 @@
-
-import Image from "next/image";
+import { ThemeToggle } from "@/components/theme-toggle";
+import PlanoraLogo from "@/components/planora-wheel";
 
 interface AuthLayoutProps {
     children: React.ReactNode;
-};
+}
 
-const AuthLayoutProps = ({ children }: AuthLayoutProps) => {
+const AuthLayout = ({ children }: AuthLayoutProps) => {
     return ( 
-        <main className="bg-neutral-100 min-h-screen">
-            <div className="mx-auto max-w-screen-2xl py-2 ">
-                <nav className="flex justify-between items-center px-2 ">
-                    <Image className="relative left-3 " src="/Planora_Logo_shadow.png" alt="logo" width={45} height={45} priority={true} />
+        <main className="min-h-screen bg-background"> 
+            <div className="mx-auto max-w-screen-2xl py-2">
+                <nav className="flex justify-between items-center px-2">
+                    <PlanoraLogo size={50} handWidth={3} duration="3s" />
+                    <div className="w-8">
+                        <ThemeToggle />
+                    </div>
+                    
                 </nav>
-                <div className="flex flex-col items-center justify-center pt-2 md:pt-5">
+                <div className="flex flex-col items-center justify-center">
                     {children}
                 </div>
             </div>
@@ -20,4 +24,4 @@ const AuthLayoutProps = ({ children }: AuthLayoutProps) => {
      );
 }
  
-export default AuthLayoutProps;
+export default AuthLayout;

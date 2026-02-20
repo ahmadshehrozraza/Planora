@@ -30,6 +30,7 @@ import {
   PauseCircle,
   List,
   Grid,
+  PlayCircle,
 } from "lucide-react";
 
 interface ProjectsClientProps {
@@ -61,7 +62,10 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
       const matchesSearch =
         searchQuery === "" ||
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        (project.description &&
+          project.description
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()));
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -74,7 +78,7 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-         <PageLoader />
+        <PageLoader />
       </div>
     );
   }
@@ -84,22 +88,22 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
   return (
     <>
       {!hasProjects ? (
-        <Card className="bg-white border shadow-sm m-6">
+        <Card className="bg-card border-border shadow-sm m-6">
           <CardContent className="p-12 text-center">
             <div className="max-w-md mx-auto">
-              <div className="h-20 w-20 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-                <ListTodo className="h-10 w-10 text-slate-400" />
+              <div className="h-20 w-20 mx-auto bg-gradient-to-br from-muted to-accent rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+                <ListTodo className="h-10 w-10 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 No projects yet
               </h3>
-              <p className="text-slate-500 mb-8">
+              <p className="text-muted-foreground mb-8">
                 Create your first project to get started with project management
               </p>
               <Button
                 onClick={open}
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700 shadow-md text-white transition-all"
+                className="shadow-md transition-all"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Create First Project
@@ -109,75 +113,113 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
         </Card>
       ) : (
         <div className="p-4 sm:p-6 space-y-4">
-          <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 shadow-sm rounded-xl border border-slate-200">
+          <div className="flex flex-wrap gap-4 items-center justify-between bg-card p-3 shadow-sm rounded-xl border border-border">
+            {/* Purani Line ko is se replace karein */}
             <div className="flex flex-col sm:flex-row gap-2 flex-1 overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
-              <StatCard icon={ListTodo} label="Total Projects" value={stats.total} color="blue" />
-              <StatCard icon={ListTodo} label="Active" value={stats.active} color="amber" />
-              <StatCard icon={PauseCircle} label="On Hold" value={stats.onHold} color="orange" />
-              <StatCard icon={AlertCircle} label="Overdue" value={stats.overdue} color="red" />
-              <StatCard icon={CheckCircle} label="Completed" value={stats.completed} color="green" />
+              <StatCard
+                icon={ListTodo}
+                label="Total"
+                value={stats.total}
+                variant="default"
+              />
+              <StatCard
+                icon={PlayCircle}
+                label="Active"
+                value={stats.active}
+                variant="primary"
+              />
+              <StatCard
+                icon={PauseCircle}
+                label="On Hold"
+                value={stats.onHold}
+                variant="warning"
+              />
+              <StatCard
+                icon={AlertCircle}
+                label="Overdue"
+                value={stats.overdue}
+                variant="destructive"
+              />
+              <StatCard
+                icon={CheckCircle}
+                label="Completed"
+                value={stats.completed}
+                variant="success"
+              />
             </div>
             <div className="flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-              <Button onClick={open} size="sm" className="w-full bg-blue-600 hover:bg-blue-700 shadow-sm text-white">
+              <Button onClick={open} size="sm" className="w-full shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
                 New Project
               </Button>
             </div>
           </div>
 
-          <Card className="bg-white border-slate-200 shadow-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardContent className="p-3">
               <div className="flex flex-col md:flex-row gap-3 items-center">
                 <div className="flex-1 w-full relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-10 bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                    className="pl-9 h-10 bg-background border-border focus:bg-background transition-colors"
                   />
                 </div>
-                
+
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                  <div className="flex gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                  <div className="flex gap-1 bg-muted p-1 rounded-lg border border-border">
                     <Button
                       variant={view === "grid" ? "secondary" : "ghost"}
                       size="icon"
-                      className={`h-8 w-8 ${view === "grid" ? "bg-white shadow-sm" : "hover:bg-slate-200"}`}
+                      className={`h-8 w-8 ${view === "grid" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`}
                       onClick={() => setView("grid")}
                     >
-                      <Grid className="size-4 text-slate-700" />
+                      <Grid className="size-4" />
                     </Button>
                     <Button
                       variant={view === "list" ? "secondary" : "ghost"}
                       size="icon"
-                      className={`h-8 w-8 ${view === "list" ? "bg-white shadow-sm" : "hover:bg-slate-200"}`}
+                      className={`h-8 w-8 ${view === "list" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`}
                       onClick={() => setView("list")}
                     >
-                      <List className="size-4 text-slate-700" />
+                      <List className="size-4" />
                     </Button>
                   </div>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="h-10 w-full md:w-auto border-slate-200 bg-slate-50 hover:bg-slate-100">
-                        <Filter className="h-4 w-4 mr-2 text-slate-500" />
-                        Status:{" "}
-                        <span className="font-semibold ml-1 text-slate-700">
-                            {statusFilter === "all" ? "All" : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                      <Button
+                        variant="outline"
+                        className="h-10 w-full md:w-auto border-border bg-background hover:bg-accent"
+                      >
+                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-muted-foreground">Status:</span>{" "}
+                        <span className="font-semibold ml-1 text-foreground">
+                          {statusFilter === "all"
+                            ? "All"
+                            : statusFilter.charAt(0).toUpperCase() +
+                              statusFilter.slice(1)}
                         </span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-lg">
-                      {["all", "active", "completed", "on-hold", "overdue"].map((status) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => setStatusFilter(status)}
-                          className="cursor-pointer font-medium text-slate-700"
-                        >
-                          {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
-                        </DropdownMenuItem>
-                      ))}
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-48 rounded-xl shadow-lg"
+                    >
+                      {["all", "active", "completed", "on-hold", "overdue"].map(
+                        (status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => setStatusFilter(status)}
+                            className="cursor-pointer font-medium text-foreground"
+                          >
+                            {status.charAt(0).toUpperCase() +
+                              status.slice(1).replace("-", " ")}
+                          </DropdownMenuItem>
+                        ),
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -185,15 +227,17 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
             </CardContent>
 
             {view === "list" ? (
-              <CardContent className="p-3 space-y-2 bg-slate-50/50 border-t border-slate-100">
+              <CardContent className="p-3 space-y-2 bg-muted/30 border-t border-border">
                 {filteredProjects.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500 font-medium">No projects match your search.</div>
+                  <div className="p-8 text-center text-muted-foreground font-medium">
+                    No projects match your search.
+                  </div>
                 ) : (
                   filteredProjects.map((project) => (
                     <Link
                       key={project.id}
-                      href={`/workspaces/${workspaceId}/projects/${project.id}`} 
-                      className="block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+                      href={`/workspaces/${workspaceId}/projects/${project.id}`}
+                      className="block focus:outline-none focus:ring-2 focus:ring-ring rounded-lg"
                     >
                       <ProjectCard project={project} view={view} />
                     </Link>
@@ -201,15 +245,17 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
                 )}
               </CardContent>
             ) : (
-              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 bg-slate-50/50 border-t border-slate-100">
+              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 bg-muted/30 border-t border-border">
                 {filteredProjects.length === 0 ? (
-                  <div className="col-span-full p-8 text-center text-slate-500 font-medium">No projects match your search.</div>
+                  <div className="col-span-full p-8 text-center text-muted-foreground font-medium">
+                    No projects match your search.
+                  </div>
                 ) : (
                   filteredProjects.map((project) => (
                     <Link
                       key={project.id}
                       href={`/workspaces/${workspaceId}/projects/${project.id}`}
-                      className="block h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl"
+                      className="block h-full focus:outline-none focus:ring-2 focus:ring-ring rounded-xl"
                     >
                       <ProjectCard project={project} view={view} />
                     </Link>

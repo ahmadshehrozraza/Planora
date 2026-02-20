@@ -39,7 +39,6 @@ export const WorkspaceSwitcher = () => {
     router.push(`/workspaces/${id}`);
   };
 
-  // Loading State (Sidebar Size Skeleton)
   if (isLoading) {
       return (
           <SidebarMenu>
@@ -57,7 +56,7 @@ export const WorkspaceSwitcher = () => {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-blue-100"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-border hover:bg-sidebar-accent"
             >
               {activeWorkspace ? (
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
@@ -68,11 +67,11 @@ export const WorkspaceSwitcher = () => {
                     />
                   </div>
               ) : (
-                  <div className="size-8 rounded-lg bg-neutral-200" />
+                  <div className="size-8 rounded-lg bg-muted" />
               )}
 
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
+                <span className="truncate font-semibold text-sidebar-foreground">
                   {activeWorkspace?.name || "Workspace"}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -83,12 +82,12 @@ export const WorkspaceSwitcher = () => {
                   })}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg bg-popover border-border"
             align="start"
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
@@ -101,9 +100,9 @@ export const WorkspaceSwitcher = () => {
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => onSelect(workspace.id)}
-                className="gap-2 p-2 cursor-pointer"
+                className="gap-2 p-2 cursor-pointer hover:bg-accent text-foreground"
               >
-                <div className="flex size-6 items-center justify-center rounded-sm border">
+                <div className="flex size-6 items-center justify-center rounded-sm border border-border">
                    <WorkspaceAvatar 
                       name={workspace.name} 
                       image={workspace.imageUrl} 
@@ -117,11 +116,11 @@ export const WorkspaceSwitcher = () => {
               </DropdownMenuItem>
             ))}
             
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border" />
             
-            <DropdownMenuItem className="gap-2 p-2 cursor-pointer" onClick={open}>
-              <div className="flex size-6 items-center justify-center rounded-md border bg-background">
-                <Plus className="size-4" />
+            <DropdownMenuItem className="gap-2 p-2 cursor-pointer hover:bg-accent" onClick={open}>
+              <div className="flex size-6 items-center justify-center rounded-md border border-border bg-background">
+                <Plus className="size-4 text-foreground" />
               </div>
               <div className="font-medium text-muted-foreground">Create Workspace</div>
             </DropdownMenuItem>

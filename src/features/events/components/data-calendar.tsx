@@ -27,6 +27,9 @@ interface EventType {
     segmentId?: string;
     project?: { name: string, imageUrl?: string }; 
     segment?: { name: string };
+    time?: string;
+    opened?: boolean;
+    eventCreator?: { name: string; avatar?: string };
 }
 
 const locales = {
@@ -54,21 +57,21 @@ const CustomToolbar = ({ date, onNavigate }: CustomToolbarProps) => (
     <div className="flex mb-4 gap-x-2 items-center w-full lg:w-auto justify-center lg:justify-start">
         <Button
             onClick={() => onNavigate("PREV")}
-            variant="secondry"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-foreground"
         >
             <ChevronLeftIcon className="size-4" />
         </Button>
         <div className="flex items-center border border-input rounded-md px-3 py-2 h-8 justify-center w-full lg:w-auto bg-background">
-            <CalendarIcon className="size-4 mr-2" />
-            <p className="text-sm font-medium">{format(date, "MMMM yyyy")}</p>
+            <CalendarIcon className="size-4 mr-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">{format(date, "MMMM yyyy")}</p>
         </div>
         <Button
             onClick={() => onNavigate("NEXT")}
-            variant="secondry"
+            variant="secondary"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-foreground"
         >
             <ChevronRightIcon className="size-4" />
         </Button>
@@ -76,7 +79,7 @@ const CustomToolbar = ({ date, onNavigate }: CustomToolbarProps) => (
             onClick={() => onNavigate("TODAY")}
             variant="outline"
             size="sm"
-            className="h-8 ml-2"
+            className="h-8 ml-2 bg-background border-border text-foreground"
         >
             Today
         </Button>
@@ -100,6 +103,9 @@ export const DataCalendar = ({
             description: event.description,
             project: event.project, 
             segment: event.segment,
+            time: event.time,
+            opened: event.opened,
+            eventCreator: event.eventCreator
         }
     }));
 
@@ -122,7 +128,7 @@ export const DataCalendar = ({
             defaultView="month"
             toolbar
             showAllEvents
-            className="h-full w-full"
+            className="h-full w-full bg-muted/40 text-foreground"
             max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
             formats={{
                 weekdayFormat: (date, culture, localizer) => localizer?.format(date, "EEE", culture) ?? ""
@@ -130,14 +136,15 @@ export const DataCalendar = ({
             components={{
                 eventWrapper: ({ event }) => (
                     <EventsCard
-                        id={event.id}
-                        title={event.title}
+                        id={event.id as string}
+                        title={event.title as string}
                         date={event.start.toISOString()} 
                         time={event.resource?.time}     
                         project={event.resource?.project}
                         description={event.resource?.description}
                         segment={event.resource?.segment}
                         opened={event.resource?.opened}
+                        eventCreator={event.resource?.eventCreator}
                         variant="mini" 
                     />
                 ),

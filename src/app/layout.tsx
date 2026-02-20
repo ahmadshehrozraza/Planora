@@ -17,7 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Planora",
   description: "A Software Project Management Tool",
-  // icons: "/Planora_Logo_shadow.png"
+  icons: "/Planora_Logo_shadow.png"
 };
 
 export default function RootLayout({

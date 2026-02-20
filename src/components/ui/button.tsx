@@ -20,12 +20,12 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         muted: "bg-muted text-muted-foreground hover:bg-muted/80",
-        tertiary: "bg-blue-100 text-blue-600 border-transparent hover:bg-blue-200 shadow-none dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-900/70",
-
-        // Backward compatibility (deprecated, maps to standard variants)
+        tertiary: 
+          "bg-blue-100 text-blue-700 hover:bg-blue-200/80 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-none border-transparent",
         primary: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        secondry: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80", // typo fix
-        teritrary: "bg-blue-100 text-blue-600 border-transparent hover:bg-blue-200 shadow-none", // typo fix
+        secondry: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        teritrary: 
+          "bg-blue-100 text-blue-700 hover:bg-blue-200/80 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 shadow-none border-transparent",
       },
       size: {
         default: "h-9 px-4 py-2",

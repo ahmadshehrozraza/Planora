@@ -3,14 +3,14 @@
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
-import { ImageIcon, AlertCircle, Divide } from "lucide-react";
+import { ImageIcon, AlertCircle, Divide, Trash2 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createProjectSchema } from "@/features/projects/schemas";
 import { CurrencySelector } from "@/components/currency-selector";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Form,
     FormControl,
@@ -228,6 +228,30 @@ export const EditSegmentForm = ({ onCancel, initialValues }: EditSegmentFormProp
                         </form>
                     </Form>
                 </CardContent>
+
+                <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
+                        <CardHeader>
+                          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-destructive/80  dark:text-red-600">
+                              Deleting a segment is irreversible and will remove all
+                              associated data.
+                            </p>
+                        </CardContent>
+                        <CardFooter className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            type="button"
+                            disabled={isPending}
+                            // onClick={handleDelete}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Segment
+                          </Button>
+                        </CardFooter>
+                      </Card>
             </Card>
     );
 };

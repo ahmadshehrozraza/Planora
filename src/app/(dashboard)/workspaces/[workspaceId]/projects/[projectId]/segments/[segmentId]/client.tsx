@@ -32,10 +32,10 @@ const TaskViewSwitcher = dynamic(
   {
     loading: () => (
       <div className="h-[400px] flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-400 size-8" />
+        <Loader2 className="animate-spin text-muted-foreground size-8" />
       </div>
     ),
-  },
+  }
 );
 
 const EditSegmentForm = dynamic(
@@ -46,10 +46,10 @@ const EditSegmentForm = dynamic(
   {
     loading: () => (
       <div className="h-[400px] flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-400 size-8" />
+        <Loader2 className="animate-spin text-muted-foreground size-8" />
       </div>
     ),
-  },
+  }
 );
 
 interface SegmentIdClientProps {
@@ -87,7 +87,7 @@ export const SegmentIdClient = ({
             <BreadcrumbItem>
               <BreadcrumbLink
                 href={`/workspaces/${workspaceId}/projects`}
-                className="hover:text-blue-600 transition-colors"
+                className="hover:text-primary transition-colors text-muted-foreground"
               >
                 Projects
               </BreadcrumbLink>
@@ -96,15 +96,15 @@ export const SegmentIdClient = ({
             <BreadcrumbItem>
               <BreadcrumbLink
                 href={`/workspaces/${workspaceId}/projects/${projectId}`}
-                className="hover:text-blue-600 transition-colors"
+                className="hover:text-primary transition-colors text-muted-foreground"
               >
                 Project Overview
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-slate-800 font-bold flex items-center gap-2">
-                <LayoutTemplate className="size-4 text-indigo-500" />
+              <BreadcrumbPage className="text-foreground font-bold flex items-center gap-2">
+                <LayoutTemplate className="size-4 text-primary" />
                 {segment.name}
               </BreadcrumbPage>
             </BreadcrumbItem>
@@ -113,23 +113,23 @@ export const SegmentIdClient = ({
       </div>
 
       <Tabs defaultValue="tasks" className="flex flex-col flex-1 h-full w-full">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 border-b mb-5 sticky top-0 z-20 ">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 border-b border-border bg-card mb-5 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 hidden sm:block">
-              <LayoutTemplate className="size-5 text-blue-600" />
+            <div className="bg-primary/10 p-2 rounded-lg border border-primary/20 hidden sm:block">
+              <LayoutTemplate className="size-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-slate-900 leading-none">
+              <h1 className="font-bold text-lg text-foreground leading-none">
                 {segment.name}
               </h1>
-              <p className="text-xs text-slate-500 mt-1 font-medium">
+              <p className="text-xs text-muted-foreground mt-1 font-medium">
                 Segment Details
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between w-full lg:w-auto gap-4">
-            <TabsList className="h-10  p-1 w-full lg:w-auto overflow-x-auto justify-start border">
+            <TabsList className="h-10 bg-muted/80 p-1 w-full lg:w-auto overflow-x-auto justify-start border border-border">
               <TabsTrigger
                 value="tasks"
                 className="px-5 text-sm data-[state=active]:shadow-sm"
@@ -152,7 +152,7 @@ export const SegmentIdClient = ({
           </div>
         </div>
 
-        <div className="flex-1 w-full  rounded-xl shadow-sm border overflow-hidden min-h-[500px]">
+        <div className="flex-1 w-full rounded-xl shadow-sm border border-border bg-card overflow-hidden min-h-[500px]">
           <TabsContent
             value="tasks"
             className="m-0 p-0 h-full border-none focus-visible:outline-none"
@@ -164,11 +164,10 @@ export const SegmentIdClient = ({
             value="files"
             className="m-0 p-6 focus-visible:outline-none"
           >
-            <div className="flex flex-col items-center justify-center h-[300px] text-slate-500">
+            <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
               <SegmentFiles />
             </div>
           </TabsContent>
-
 
           <TabsContent
             value="settings"

@@ -1,3 +1,5 @@
+"use client";
+
 import { Task } from "../types";
 import {
     format,
@@ -30,7 +32,6 @@ const localizer = dateFnsLocalizer({
     locales,
 });
 
-
 interface DataCalendarProps {
     data: Task[];
 }
@@ -43,22 +44,32 @@ interface CustomToolbarProps {
 const CustomToolbar = ({ date, onNavigate }: CustomToolbarProps) => (
     <div className="flex mb-4 gap-x-2 items-center w-full lg:w-auto justify-center lg:justify-start">
         <Button
-        onClick={() => onNavigate("PREV")}
-        variant="secondry"
-        size="icon"
+            onClick={() => onNavigate("PREV")}
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8 text-foreground"
         >
             <ChevronLeftIcon className="size-4" />
         </Button>
-        <div className="flex items-center border border-input rounded-md px-3 py-2 h-8 justify-center w-full lg:w-auto">
-            <CalendarIcon className="size-4 mr-2" />
-            <p className="text-sm">{format(date, "MMMM yyyy")}</p>
+        <div className="flex items-center border border-input rounded-md px-3 py-2 h-8 justify-center w-full lg:w-auto bg-background">
+            <CalendarIcon className="size-4 mr-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">{format(date, "MMMM yyyy")}</p>
         </div>
         <Button
-        onClick={() => onNavigate("NEXT")}
-        variant="secondry"
-        size="icon"
+            onClick={() => onNavigate("NEXT")}
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8 text-foreground"
         >
             <ChevronRightIcon className="size-4" />
+        </Button>
+        <Button
+            onClick={() => onNavigate("TODAY")}
+            variant="outline"
+            size="sm"
+            className="h-8 ml-2 bg-background border-border text-foreground"
+        >
+            Today
         </Button>
     </div>
 )
@@ -68,17 +79,17 @@ export const DataCalendar = ({
 }: DataCalendarProps) => {
 
     const [ value, setValue ] = useState(
-        data.length > 0 ? new Date(data[0].dueDate) : new Date()
+        data.length > 0 ? new Date(data[0].endDate) : new Date()
     );
 
     const events = data.map((task) => ({
-        start: new Date(task.dueDate),
-        end: new Date(task.dueDate),
+        start: new Date(task.startDate),
+        end: new Date(task.endDate),
         title: task.name,
-        project: task.project,
-        assignee: task.assignee,
-        status: task.status,
-        id: task.$id,
+        project: task.projectId,
+        assignee: task.assigneeId,
+        status: task.taskStatus,
+        id: task.id,
     }));
 
     const handleNavigate = (action: "PREV" | "NEXT" | "TODAY" ) => {
@@ -91,36 +102,46 @@ export const DataCalendar = ({
         }
     };
 
+    const eventPropGetter = () => {
+        return {
+            style: {
+                backgroundColor: 'transparent',
+                border: 'none',
+                padding: 0,
+                outline: 'none'
+            }
+        };
+    };
 
     return(
         <Calendar
-        localizer={localizer}
-        date={value}
-        events={events}
-        views={["month"]}
-        defaultView="month"
-        toolbar
-        showAllEvents
-        className="h-full"
-        max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
-        formats={{
-            weekdayFormat: (date, culture, localizer) => localizer?.format(date, "EEE", culture) ?? ""
-        }}
-        components={{
-            eventWrapper: ({ event }) => (
-                <EventCard
-                    id={event.id}
-                    title={event.title}
-                    assignee={event.assignee}
-                    project={event.project}
-                    status={event.status}
-                />
-            ),
-            toolbar: () => (
-                <CustomToolbar date={value} onNavigate={handleNavigate} />
-            )
-        }}
+            localizer={localizer}
+            date={value}
+            events={events}
+            views={["month"]}
+            defaultView="month"
+            toolbar
+            showAllEvents
+            className="h-full w-full bg-muted/40 text-foreground"
+            max={new Date(new Date().setFullYear(new Date().getFullYear() + 1))}
+            formats={{
+                weekdayFormat: (date, culture, localizer) => localizer?.format(date, "EEE", culture) ?? ""
+            }}
+            eventPropGetter={eventPropGetter}
+            components={{
+                event: ({ event }) => (
+                    <EventCard
+                        id={event.id as string}
+                        title={event.title as string}
+                        assignee={event.assignee}
+                        project={event.project}
+                        status={event.status as any}
+                    />
+                ),
+                toolbar: () => (
+                    <CustomToolbar date={value} onNavigate={handleNavigate} />
+                )
+            }}
          />
     )
-
 }

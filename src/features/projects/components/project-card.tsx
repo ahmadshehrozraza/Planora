@@ -50,13 +50,13 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
 
   if (view === "list") {
       return (
-          <Card className={cn("flex flex-col sm:flex-row items-center justify-between p-4 gap-4 hover:bg-slate-50 transition-colors border-slate-200 shadow-sm hover:shadow-md", className)}>
+          <Card className={cn("flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-card hover:bg-accent/50 transition-colors border-border shadow-sm hover:shadow-md", className)}>
               
               <div className="flex items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
                   <ProjectAvatar name={project.name} className="size-10 shrink-0 shadow-sm" />
                   <div className="min-w-0">
-                      <h2 className="truncate font-semibold text-slate-900">{project.name}</h2>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 truncate">
+                      <h2 className="truncate font-semibold text-foreground">{project.name}</h2>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 truncate">
                           <span>{formattedStartDate}</span>
                           <span>—</span>
                           <DateIndicator value={project.dueDate} />
@@ -66,18 +66,18 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
 
               <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto shrink-0">
                   <div className="flex flex-col gap-1 text-xs">
-                      <span className="text-slate-500">
-                          Tasks: <span className="font-semibold text-slate-700">{project.completedTasks || 0} / {project.totalTasks}</span>
+                      <span className="text-muted-foreground">
+                          Tasks: <span className="font-semibold text-foreground">{project.completedTasks || 0} / {project.totalTasks}</span>
                       </span>
-                      <span className="text-slate-500">
-                          Segments: <span className="font-semibold text-slate-700">{project.completedSegments || 0} / {project.totalSegments}</span>
+                      <span className="text-muted-foreground">
+                          Segments: <span className="font-semibold text-foreground">{project.completedSegments || 0} / {project.totalSegments}</span>
                       </span>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <Badge variant={project.projectStatus as any}>{statusLabel}</Badge>
                       {remainingText && (
-                          <span className={cn("text-[10px] font-medium", project.projectStatus === 'OVER_DUE' ? 'text-red-600' : 'text-slate-500')}>
+                          <span className={cn("text-[10px] font-medium", project.projectStatus === 'OVER_DUE' ? 'text-destructive' : 'text-muted-foreground')}>
                               {remainingText}
                           </span>
                       )}
@@ -92,12 +92,12 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
   }
 
   return (
-    <Card className={cn("flex flex-col justify-between bg-white hover:shadow-md transition-shadow border-slate-200 overflow-hidden", className)}>
+    <Card className={cn("flex flex-col justify-between bg-card hover:bg-accent/10 transition-colors border-border overflow-hidden", className)}>
 
-      <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex-row items-start justify-between space-y-0 shrink-0">
+      <CardHeader className="p-4 bg-muted/30 border-b border-border flex-row items-start justify-between space-y-0 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <ProjectAvatar name={project.name} className="size-8 shadow-sm" />
-          <h2 className="truncate font-semibold text-slate-800 text-sm">{project.name}</h2>
+          <h2 className="truncate font-semibold text-foreground text-sm">{project.name}</h2>
         </div>
         <Badge variant={project.projectStatus as any} className="shrink-0 ml-2">
           {statusLabel}
@@ -107,17 +107,17 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
       <CardContent className="p-4 flex-1 flex flex-col justify-center gap-4">
         <div className="space-y-3">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">Start Date</span>
+            <span className="text-muted-foreground font-medium">Start Date</span>
             <div className="flex items-center gap-2">
-               <span className="text-slate-700 font-medium">{formattedStartDate}</span>
-               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-normal bg-slate-100 text-slate-600 border-none">{daysSince}</Badge>
+               <span className="text-foreground font-medium">{formattedStartDate}</span>
+               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-normal bg-secondary text-secondary-foreground border-none">{daysSince}</Badge>
             </div>
           </div>
 
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">End Date</span>
+            <span className="text-muted-foreground font-medium">End Date</span>
             <div className="flex items-center gap-2">
-               <DateIndicator value={project.dueDate} className="text-slate-700 font-medium" />
+               <DateIndicator value={project.dueDate} className="text-foreground font-medium" />
                {remainingText && (
                  <Badge variant={remainingVariant as any} showIcon={false} className="text-[9px] px-1.5 py-0 font-normal border-none">
                    {remainingText}
@@ -127,19 +127,19 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2.5 border-t border-dashed border-slate-100 mt-auto">
+        <div className="space-y-2.5 border-t border-dashed border-border mt-auto pt-3">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">Tasks</span>
-            <span className="font-semibold text-slate-700">{project.completedTasks || 0} / {project.totalTasks}</span>
+            <span className="text-muted-foreground font-medium">Tasks</span>
+            <span className="font-semibold text-foreground">{project.completedTasks || 0} / {project.totalTasks}</span>
           </div>
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">Segments</span>
-            <span className="font-semibold text-slate-700">{project.completedSegments || 0} / {project.totalSegments}</span>
+            <span className="text-muted-foreground font-medium">Segments</span>
+            <span className="font-semibold text-foreground">{project.completedSegments || 0} / {project.totalSegments}</span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className=" shrink-0">
+      <CardFooter className=" shrink-0 p-4 pt-0 pb-10">
         <ProgressBar value={project.progress} className="w-full h-1.5" />
       </CardFooter>
     </Card>

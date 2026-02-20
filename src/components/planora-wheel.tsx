@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-interface PlanoraLogoProps {
+interface PlanoraWheelProps {
   className?: string;
   color?: string;
   size?: number;
@@ -10,7 +10,7 @@ interface PlanoraLogoProps {
   duration?: string;
 }
 
-export const PlanoraLogo: React.FC<PlanoraLogoProps> = ({ 
+export const PlanoraWheel: React.FC<PlanoraWheelProps> = ({ 
   className,
   color = "bg-blue-600",
   size = 200,
@@ -57,5 +57,4 @@ export const PlanoraLogo: React.FC<PlanoraLogoProps> = ({
     </div>
   );
 };
-
-export default PlanoraLogo;
+export default PlanoraWheel;

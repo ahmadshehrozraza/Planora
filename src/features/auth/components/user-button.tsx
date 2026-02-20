@@ -7,7 +7,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// import { useLogout } from "../api/use-logout";
 import { useCurrent } from "../api/use-current";
 import { Loader, LogOut, User } from "lucide-react";
 import { Separator } from "@radix-ui/react-dropdown-menu";
@@ -20,24 +19,8 @@ interface UserButtonProps {
 }
 
 export const UserButton = ( { title } : UserButtonProps ) => {
-    // const { mutate: logout } = useLogout();
-    // const { data: user, isLoading } = useCurrent();
-
      const handleLogout = () => {
-        // logout({ workspaceId });
     };
-
-    // if (isLoading) {
-    //     return (
-    //         <div className="size-10 rounded-full flex items-center justify-center bg-neutral-200 border border-neutral-300">
-    //             <Loader className="size-4 animate-spin text-muted-foreground" />
-    //         </div>
-    //     );
-    // }
-
-    // if (!user) {
-    //     return null;
-    // }
 
     const workspaceId = useWorkspaceId();
 
@@ -45,15 +28,12 @@ export const UserButton = ( { title } : UserButtonProps ) => {
         workspaceId === "";
     }
 
-    // const { name, email, prefs } = user;
-
     return (
         <DropdownMenu modal={false}>
             <DropdownMenuTrigger className="outline-none relative">
                 <MemberAvatar
                     name={"Admin"}
-                    // src={prefs?.avatar}
-                    className="size-10 hover:opacity-75 transition border-2 border-neutral-300"
+                    className="size-10 hover:opacity-75 transition border-2 border-border"
                     fallbackClassname="text-sm font-medium"
                 />
             </DropdownMenuTrigger>
@@ -61,24 +41,23 @@ export const UserButton = ( { title } : UserButtonProps ) => {
                 <div className="flex flex-col items-center justify-center gap-2 px-2.5 py-4">
                     <MemberAvatar
                         name={"Admin"}
-                        // src={prefs?.avatar}
-                        className="size-[52px] border-2 border-neutral-300"
+                        className="size-[52px] border-2 border-border"
                         fallbackClassname="text-xl font-medium"
                     />
                     <div className="flex flex-col items-center justify-center">
-                        <p className="text-sm font-medium text-neutral-900">
+                        <p className="text-sm font-medium text-foreground">
                             Admin
                         </p>
-                        <p className="text-xs text-neutral-500">admin@mail.com</p>
+                        <p className="text-xs text-muted-foreground">admin@mail.com</p>
                     </div>
                 </div>
 
-                <Separator className="mb-1" />
+                <Separator className="mb-1 h-px bg-border" />
 
                 {title !== "Profile Settings" ? (
 
                 <DropdownMenuItem
-                    className="h-10 flex items-center justify-center text-gray-600 font-medium cursor-pointer"
+                    className="h-10 flex items-center justify-center text-foreground font-medium cursor-pointer focus:bg-accent focus:text-accent-foreground"
                 >
                     <User className="size-4 mr-2" />
                     <Link href={`/profile`}>
@@ -88,11 +67,11 @@ export const UserButton = ( { title } : UserButtonProps ) => {
 
                 ) : ( null )}
 
-                <Separator className="mb-1" />
+                <Separator className="mb-1 h-px bg-border" />
 
                 <DropdownMenuItem 
                     onClick={handleLogout} 
-                    className="h-10 flex items-center justify-center text-amber-500 font-medium cursor-pointer"
+                    className="h-10 flex items-center justify-center text-amber-600 dark:text-amber-500 font-medium cursor-pointer focus:text-amber-600 dark:focus:text-amber-500 focus:bg-amber-500/10"
                 >
                     <LogOut className="size-4 mr-2" />
                     Log out 

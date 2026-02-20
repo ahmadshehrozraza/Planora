@@ -7,11 +7,10 @@ import { useGetWorkspaces } from "@/features/workspaces/api/use-get-workspaces";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
 
-
 interface EventCardProps{
     title: string;
     assignee: any;
-    project: Project;
+    project: any;
     status: TaskStatus;
     id: string;
 }
@@ -39,27 +38,29 @@ export const EventCard = ({
         e: React.MouseEvent<HTMLDivElement> 
     ) => {
         e.stopPropagation();
-
         router.push(`/workspaces/${workspaceId}/tasks/${id}`);
     }
 
     return (
-        <div className="px-2">
+        <div className="max-w-36  h-full overflow-hidden">
             <div onClick={onClick} className={cn(
-                "p-1.5 text-xs bg-white text-primary border rounded-md border-l-4 flex flex-col gap-y-1.5 cursor-pointer hover:opacity-75 transition",
+                "p-1.5 w-full h-full text-xs  bg-card text-card-foreground border border-border rounded-md border-l-[4px] flex flex-col gap-y-1.5 cursor-pointer  transition-colors shadow-sm",
                 statusColorMap[status]
             )}>
-                <p>{title}</p>
-                <div className="flex items-center gap-x-1">
+                <p className="font-semibold truncate w-full" title={title}>{title}</p>
+                <div className="flex items-center gap-x-1.5 min-w-0 mt-auto">
                     <MemberAvatar
-                        name={assignee?.name}
-
+                        name={assignee?.name || assignee || "Assignee"}
+                        className="size-4 shrink-0"
+                        fallbackClassname="text-[8px]"
                     />
-                    <div className="size-1 rounded-full bg-neutral-300" />
+                    
+                    <div className="size-1 rounded-full bg-border shrink-0" />
 
                     <ProjectAvatar
-                        name={project?.name}
-                        image={project?.imageUrl}
+                        name={project?.name || project || "Project"}
+                        className="size-4 shrink-0"
+                        fallbackClassName="text-[8px]"
                     />
                 </div>
             </div>

@@ -38,11 +38,10 @@ import { MemberRole } from "@/features/members/types";
 import { useConfirm } from "@/hooks/use-confirm";
 import { PageLoader } from "@/components/page-loader";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
+import { cn } from "@/lib/utils";
 
-// 🚀 OPTIMIZATION 1: Separate MemberCard Component
-// Isay alag component banaya aur React.memo use kiya taake ek member update ho to baaki re-render na hon.
 interface MemberCardProps {
-    member: any; // Replace 'any' with your actual Member type
+    member: any; 
     isLastAdmin: boolean;
     isUpdating: boolean;
     isDeleting: boolean;
@@ -59,7 +58,7 @@ const MemberCard = React.memo(({
     onDelete 
 }: MemberCardProps) => {
     return (
-        <div className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 hover:border-slate-300 flex flex-col items-center p-6 text-center">
+        <div className="group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/30 flex flex-col items-center p-6 text-center">
             
             <div className="absolute top-3 right-3">
                 <DropdownMenu>
@@ -67,16 +66,16 @@ const MemberCard = React.memo(({
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors"
                         >
                             <MoreVertical className="size-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-slate-200">
-                        <DropdownMenuLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border bg-popover">
+                        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                             Change Role
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-border" />
                         <DropdownMenuRadioGroup 
                             value={member.role} 
                             onValueChange={(val) => onUpdateRole(member.id, val as MemberRole)}
@@ -84,30 +83,30 @@ const MemberCard = React.memo(({
                             <DropdownMenuRadioItem 
                                 value={MemberRole.ADMIN}
                                 disabled={isUpdating || isLastAdmin}
-                                className="cursor-pointer font-medium"
+                                className="cursor-pointer font-medium focus:bg-accent focus:text-accent-foreground"
                             >
                                 Administrator
                             </DropdownMenuRadioItem>
                             <DropdownMenuRadioItem 
                                 value={MemberRole.PROJECT_MANAGER}
                                 disabled={isUpdating}
-                                className="cursor-pointer font-medium"
+                                className="cursor-pointer font-medium focus:bg-accent focus:text-accent-foreground"
                             >
                                 Project Manager
                             </DropdownMenuRadioItem>
                             <DropdownMenuRadioItem 
                                 value={MemberRole.MEMBER}
                                 disabled={isUpdating || isLastAdmin}
-                                className="cursor-pointer font-medium"
+                                className="cursor-pointer font-medium focus:bg-accent focus:text-accent-foreground"
                             >
                                 Member
                             </DropdownMenuRadioItem>
                         </DropdownMenuRadioGroup>
 
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-border" />
 
                         <DropdownMenuItem 
-                            className={`text-red-600 font-medium focus:text-red-700 focus:bg-red-50 cursor-pointer ${isLastAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`text-destructive font-medium focus:text-destructive focus:bg-destructive/10 cursor-pointer ${isLastAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onClick={() => !isLastAdmin && onDelete(member.id, member.memberId)}
                             disabled={isDeleting || isLastAdmin}
                         >
@@ -121,23 +120,23 @@ const MemberCard = React.memo(({
             <div className="mb-4 relative">
                 <MemberAvatar 
                     name={member.memberId}
-                    className="size-20 text-2xl border-4 border-white shadow-sm ring-1 ring-slate-100"
-                    fallbackClassname="bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 font-semibold"
+                    className="size-20 text-2xl border-4 border-background shadow-sm ring-1 ring-border"
+                    // fallbackClassname="bg-gradient-to-br from-primary/10 to-primary/30 text-primary-foreground font-semibold"
                     isActive={member.hasAccess}
                 />
                 {member.role === MemberRole.ADMIN && (
-                    <div className="absolute -bottom-1 -right-1 bg-white p-1.5 rounded-full border border-slate-100 shadow-sm" title="Workspace Admin">
-                        <Crown className="size-4 text-amber-500 fill-amber-100" />
+                    <div className="absolute -bottom-1 -right-1 bg-background p-1.5 rounded-full border border-border shadow-sm" title="Workspace Admin">
+                        <Crown className="size-4 text-purple-500 fill-purple-100 dark:fill-purple-900/50" />
                     </div>
                 )}
             </div>
 
             <div className="w-full mb-4">
-                <h3 className="font-bold text-slate-900 text-lg truncate px-2">
+                <h3 className="font-bold text-foreground text-lg truncate px-2">
                     {member.memberId}
                 </h3>
-                <div className="flex items-center justify-center gap-1.5 mt-1 text-slate-500 text-xs">
-                    <Mail className="size-3.5 text-slate-400" />
+                <div className="flex items-center justify-center gap-1.5 mt-1 text-muted-foreground text-xs">
+                    <Mail className="size-3.5" />
                     <span className="truncate max-w-[150px] font-medium">{member.memberId}@example.com</span>
                 </div>
             </div>
@@ -148,14 +147,14 @@ const MemberCard = React.memo(({
                 </Badge>
             </div>
 
-            <div className="w-full pt-4 border-t border-slate-100 mt-auto flex items-center justify-between text-xs text-slate-500">
+            <div className="w-full pt-4 border-t border-border mt-auto flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5 font-medium">
-                    <Calendar className="size-3.5 text-slate-400" />
+                    <Calendar className="size-3.5" />
                     <span>Joined: {format(new Date(member.joinedDate), 'MMM yyyy')}</span>
                 </div>
                 
                 {!member.hasAccess && (
-                    <div className="flex items-center gap-1.5 text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100">
+                    <div className="flex items-center gap-1.5 text-destructive bg-destructive/10 px-2 py-1 rounded-full border border-destructive/20">
                         <ShieldAlert className="size-3.5" />
                         <span className="font-semibold">Revoked</span>
                     </div>
@@ -164,10 +163,10 @@ const MemberCard = React.memo(({
         </div>
     );
 });
+
 MemberCard.displayName = "MemberCard";
 
 
-// --- MAIN COMPONENT ---
 export const MembersList = () => {
     const workspaceId = useWorkspaceId();
     const [ConfirmDialog, confirm] = useConfirm(
@@ -176,50 +175,41 @@ export const MembersList = () => {
         "destructive"
     );
 
-    // This state seems unused in your original code, removing it for cleanliness unless needed.
-    // const [memberToDelete, setMemberToDelete] = useState<{id: string, name: string} | null>(null);
-
     const { data, isLoading } = useGetWorkspaceMembers(workspaceId);
     const { mutate: updateMember, isPending: isUpdatingMember } = useUpdateMember();
     const { mutate: deleteMember, isPending: isDeletingMember } = useDeleteMember();
 
-    // 🚀 OPTIMIZATION 2: useCallback for handlers
     const handleUpdateMember = useCallback((memberId: string, role: MemberRole) => {
         console.log(`Updating ${memberId} to ${role}`);
-        // updateMember({ id: memberId, role }); 
-    }, [/* add updateMember if it's stable, or keep empty if from react-query */]);
+    }, []);
 
     const handleDeleteMember = useCallback(async (memberId: string, memberName: string) => {
         const ok = await confirm();
         if (!ok) return;
         
         console.log(`Deleting member: ${memberId}`);
-        // deleteMember({ id: memberId });
     }, [confirm]);
 
-    // 🚀 OPTIMIZATION 3: useMemo for derived state
     const adminCount = useMemo(() => {
         return data?.documents?.filter(m => m.role === MemberRole.ADMIN).length || 0;
     }, [data?.documents]);
     
-    // Memoize the check function or keep it simple
     const isOnlyAdmin = useCallback((memberRole: MemberRole) => {
         return memberRole === MemberRole.ADMIN && adminCount === 1;
     }, [adminCount]);
-
 
     if (!workspaceId) return null;
     if (isLoading) return <div className="h-64 flex items-center justify-center"><PageLoader /></div>;
 
     if (!data?.documents?.length) {
         return (
-            <Card className="w-full border border-dashed shadow-sm bg-slate-50/50">
+            <Card className="w-full border border-dashed border-border shadow-sm bg-muted/30">
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                    <div className="size-16 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-5 shadow-sm">
-                        <User className="size-8 text-slate-400" />
+                    <div className="size-16 rounded-full bg-background border border-border flex items-center justify-center mb-5 shadow-sm">
+                        <User className="size-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800">Your team is empty</h3>
-                    <p className="text-sm text-slate-500 max-w-md mt-2 leading-relaxed">
+                    <h3 className="text-xl font-bold text-foreground">Your team is empty</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mt-2 leading-relaxed">
                         Add members to your workspace to start collaborating on projects, assigning tasks, and tracking progress.
                     </p>
                 </CardContent>
@@ -233,17 +223,17 @@ export const MembersList = () => {
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">Workspace Members</h2>
-                    <p className="text-sm text-slate-500 mt-1">Manage roles and access for everyone in this workspace.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">Workspace Members</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Manage roles and access for everyone in this workspace.</p>
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm font-medium bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
-                    <div className="px-3 py-1.5 rounded-md bg-amber-50 text-amber-700 flex items-center gap-1.5 border border-amber-100">
+                <div className="flex items-center gap-2 text-sm font-medium bg-card p-1.5 rounded-lg border border-border shadow-sm">
+                    <div className="px-3 py-1.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 flex items-center gap-1.5 border border-purple-200 dark:border-purple-500/20">
                         <Crown className="size-3.5" />
                         {adminCount} {adminCount === 1 ? 'Admin' : 'Admins'}
                     </div>
-                    <Separator orientation="vertical" className="h-5" />
-                    <div className="px-3 py-1.5 text-slate-600 flex items-center gap-1.5">
+                    <Separator orientation="vertical" className="h-5 bg-border" />
+                    <div className="px-3 py-1.5 text-muted-foreground flex items-center gap-1.5">
                         <User className="size-3.5" />
                         {data.total} Total Members
                     </div>

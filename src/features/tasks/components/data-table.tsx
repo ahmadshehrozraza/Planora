@@ -57,7 +57,6 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = React.useState({})
 
-  // --- CUSTOM VISIBILITY LOGIC ---
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
     const initialVisibility: VisibilityState = {};
 
@@ -76,7 +75,6 @@ export function DataTable<TData, TValue>({
 
     return initialVisibility;
   });
-  // -----------------------------
 
   const table = useReactTable({
     data,
@@ -191,7 +189,6 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-3">
         <div className="text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} of{" "}

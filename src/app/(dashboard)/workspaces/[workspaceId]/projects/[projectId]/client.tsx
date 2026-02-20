@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import { SegmentsPage } from "./segments/page";
 import { CreateSegmentModal } from "@/features/segments/components/create-segment-modal";
 
-const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
-const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
-const ProjectMembers = dynamic(() => import("@/features/projects/components/project-members"), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div> });
+const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
+const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
+const ProjectMembers = dynamic(() => import("@/features/projects/components/project-members"), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
 
 export const ProjectIdClient = () => {
     const projectId = useProjectId();
@@ -79,37 +79,36 @@ export const ProjectIdClient = () => {
     if (!project) return <PageError message="Project not found" />;
 
     return (
-        <div className="w-full flex flex-col min-h-screen bg-slate-50/30">
+        <div className="w-full flex flex-col min-h-screen bg-background">
             <CreateSegmentModal />
             <Tabs defaultValue="segments" className="w-full flex flex-col flex-1">
                 
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 bg-card border-b border-border sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
-                         <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 hidden sm:block">
-                             <LayoutTemplate className="size-5 text-blue-600" />
+                         <div className="bg-primary/10 p-2 rounded-lg border border-primary/20 hidden sm:block">
+                             <LayoutTemplate className="size-5 text-primary" />
                          </div>
                          <div>
-                             <h1 className="font-bold text-lg text-slate-900 leading-none">{project.name}</h1>
-                             <p className="text-xs text-slate-500 mt-1 font-medium">Project Workspace</p>
+                             <h1 className="font-bold text-lg text-foreground leading-none">{project.name}</h1>
+                             <p className="text-xs text-muted-foreground mt-1 font-medium">Project Workspace</p>
                          </div>
                     </div>
 
                     <div className="flex items-center justify-between w-full lg:w-auto gap-4">
-                        <TabsList className="h-10 bg-slate-100/80 p-1 w-full lg:w-auto overflow-x-auto justify-start border border-slate-200/60">
+                        <TabsList className="h-10 bg-muted/80 p-1 w-full lg:w-auto overflow-x-auto justify-start border border-border">
                             <TabsTrigger value="segments" className="px-5 text-sm data-[state=active]:shadow-sm">Segments</TabsTrigger>
                             <TabsTrigger value="projectAnalytics" className="px-5 text-sm data-[state=active]:shadow-sm">Analytics</TabsTrigger>
                             <TabsTrigger value="projectMembers" className="px-5 text-sm data-[state=active]:shadow-sm">Members</TabsTrigger>
                             <TabsTrigger value="projectSettings" className="px-5 text-sm data-[state=active]:shadow-sm">Settings</TabsTrigger>
                         </TabsList>
 
-                        <Button onClick={open} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0">
+                        <Button onClick={open} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shrink-0">
                             <Plus className="size-4 mr-2" />
                             New Segment
                         </Button>
                     </div>
                 </div>
 
-                {/* Tab Contents */}
                 <div className="flex-1 w-full relative">
                     <TabsContent value="segments" className="m-0 border-none outline-none h-full">
                         <SegmentsPage />
@@ -123,25 +122,25 @@ export const ProjectIdClient = () => {
                                     disabled={isExporting}
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white hover:bg-slate-50 border-slate-200 shadow-sm text-slate-700 font-medium"
+                                    className="bg-background hover:bg-accent border-border shadow-sm text-foreground font-medium"
                                 >
                                     {isExporting ? <><Loader2 className="size-4 mr-2 animate-spin" /> Generating PDF...</> : <><Download className="size-4 mr-2" /> Export Report</>}
                                 </Button>
                             </div>
-                            <div ref={printRef} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print-container">
+                            <div ref={printRef} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden print-container">
                                 <ProjectAnalytics projectId={projectId} />
                             </div>
                         </div>
                     </TabsContent>
 
                     <TabsContent value="projectMembers" className="m-0 p-6">
-                        <div className="max-w-7xl mx-auto">
+                        <div className=" ">
                            <ProjectMembers project={project} />
                         </div>
                     </TabsContent>
 
                     <TabsContent value="projectSettings" className="m-0 p-6">
-                         <div className="max-w-3xl mx-auto">
+                         <div className="">
                             <EditProjectForm initialValues={project} />
                          </div>
                     </TabsContent>

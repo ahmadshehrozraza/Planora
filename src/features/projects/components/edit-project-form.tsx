@@ -397,33 +397,29 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                 </CardContent>
             </Card>
 
-
-            <Card className="m-7 border-none shadow-none border border-red-200 rounded-lg bg-red-50">
-                <CardHeader>
-                        <h3 className="font-bold text-red-600">Danger Zone</h3>
-                </CardHeader>
-                <CardContent className="">
-                    <div className="flex flex-col">
-                        
-                        <p className="text-md text-red-600 text-muted-foreground">
-                            Deleting a project is irreversible and will remove all associated data.
-                        </p>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button
-                            className=""
-                            size="sm"
-                            variant="destructive"
-                            type="button"
-                            disabled={isPending}
-                            onClick={handleDelete}
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Project
-                        </Button>
-                </CardFooter>
-            </Card>
+<Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
+        <CardHeader>
+          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-destructive/80  dark:text-red-600">
+              Deleting a project is irreversible and will remove all
+              associated data.
+            </p>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button
+            size="sm"
+            variant="destructive"
+            type="button"
+            disabled={isPending}
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete project
+          </Button>
+        </CardFooter>
+      </Card>
         </div>
     )
 };

@@ -13,27 +13,22 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/date-picker";
 import { useEventFilters } from "../hooks/use-event-filters";
 import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
-import { useGetDummySegmentsByProject } from "@/features/segments/api/use-get-dummy-segments"; // 👈 Import Segment Hook
+import { useGetDummySegmentsByProject } from "@/features/segments/api/use-get-dummy-segments"; 
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
 export const EventFilters = () => {
   const workspaceId = useWorkspaceId();
   
-  // 1. Hook se filters (ab segmentId bhi include hai)
   const [{ projectId, segmentId, date }, setFilters] = useEventFilters();
 
-  // 2. Fetch Projects
   const { data: projects, isLoading: isLoadingProjects } = useGetDummyProjects(workspaceId);
 
-  // 3. Fetch Segments (Based on selected Project)
-  // Agar projectId null hai, to undefined pass karein taake hook call na ho ya empty return kare
   const { data: segments, isLoading: isLoadingSegments } = useGetDummySegmentsByProject(
     projectId || undefined
   );
 
   const isLoading = isLoadingProjects || isLoadingSegments;
 
-  // Options Mapping
   const projectOptions = projects?.documents?.map((project) => ({
     value: project.id,
     label: project.name,
@@ -44,12 +39,10 @@ export const EventFilters = () => {
     label: segment.name,
   })) || [];
 
-  // --- HANDLERS ---
-
   const onProjectChange = (value: string) => {
     setFilters({ 
         projectId: value === "all" ? null : value,
-        segmentId: null // ⚡ Project change hone par segment reset karein
+        segmentId: null 
     });
   };
 
@@ -72,46 +65,44 @@ export const EventFilters = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
       
-      {/* --- PROJECT FILTER --- */}
       <Select
         value={projectId || "all"}
         onValueChange={onProjectChange}
       >
-        <SelectTrigger className="w-full lg:w-[180px] h-8 bg-white">
+        <SelectTrigger className="w-full lg:w-[180px] h-8 bg-background border-border">
           <div className="flex items-center pr-2 truncate">
             <FolderIcon className="size-4 mr-2 text-muted-foreground shrink-0" />
             <SelectValue placeholder="All Projects" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Projects</SelectItem>
-          <SelectSeparator />
+        <SelectContent className="bg-popover border-border">
+          <SelectItem value="all" className="cursor-pointer focus:bg-accent focus:text-accent-foreground">All Projects</SelectItem>
+          <SelectSeparator className="bg-border" />
           {projectOptions.map((project) => (
-            <SelectItem key={project.value} value={project.value}>
+            <SelectItem key={project.value} value={project.value} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
               {project.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {/* --- SEGMENT FILTER (New) --- */}
       <Select
         value={segmentId || "all"}
         onValueChange={onSegmentChange}
-        disabled={!projectId} // ⚡ Agar Project select nahi hai to disable rahega
+        disabled={!projectId} 
       >
-        <SelectTrigger className="w-full lg:w-[180px] h-8 bg-white disabled:opacity-50 disabled:cursor-not-allowed">
+        <SelectTrigger className="w-full lg:w-[180px] h-8 bg-background border-border disabled:opacity-50 disabled:cursor-not-allowed">
           <div className="flex items-center pr-2 truncate">
             <Layers className="size-4 mr-2 text-muted-foreground shrink-0" />
             <SelectValue placeholder="All Segments" />
           </div>
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Segments</SelectItem>
-          <SelectSeparator />
+        <SelectContent className="bg-popover border-border">
+          <SelectItem value="all" className="cursor-pointer focus:bg-accent focus:text-accent-foreground">All Segments</SelectItem>
+          <SelectSeparator className="bg-border" />
           {segmentOptions.length > 0 ? (
               segmentOptions.map((segment) => (
-                <SelectItem key={segment.value} value={segment.value}>
+                <SelectItem key={segment.value} value={segment.value} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
                   {segment.label}
                 </SelectItem>
               ))
@@ -123,23 +114,21 @@ export const EventFilters = () => {
         </SelectContent>
       </Select>
 
-      {/* --- DATE FILTER --- */}
       <div className="h-8 w-full lg:w-auto">
           <DatePicker
             placeholder="Filter by Date"
-            className="h-8 w-full lg:w-[180px] bg-white"
+            className="h-8 w-full lg:w-[180px] bg-background border-border"
             value={date || undefined}
             onChange={onDateChange}
           />
       </div>
 
-      {/* --- RESET BUTTON --- */}
       {isAnyFilterActive && (
         <Button
           variant="ghost"
           size="sm"
           onClick={resetFilters}
-          className="h-8 px-2 text-muted-foreground hover:text-foreground"
+          className="h-8 px-2 text-muted-foreground hover:text-foreground hover:bg-accent"
         >
           <X className="size-4 mr-2" />
           Reset

@@ -48,12 +48,11 @@ export const EventsCard = ({
     let borderColorClass = "border-l-emerald-500"; 
 
     if (diffInDays < 0) {
-        borderColorClass = "border-l-rose-600";
+        borderColorClass = "border-l-rose-600 dark:border-l-rose-500";
     } else if (diffInDays <= 3) {
-        borderColorClass = "border-l-red-500";  
-        borderColorClass = "border-l-orange-500"; 
+        borderColorClass = "border-l-orange-500 dark:border-l-orange-400"; 
     } else if (diffInDays <= 14) {
-        borderColorClass = "border-l-yellow-500"; 
+        borderColorClass = "border-l-amber-500 dark:border-l-amber-400"; 
     }
 
     const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -66,11 +65,10 @@ export const EventsCard = ({
             <div
                 onClick={onClick}
                 className={cn(
-                    "bg-white text-primary border rounded-md shadow-sm flex flex-col cursor-pointer transition-all group overflow-hidden relative",
+                    "bg-card text-card-foreground border-border border rounded-md shadow-sm flex flex-col cursor-pointer transition-all group overflow-hidden relative",
                     isMini
-                        ? "p-2 gap-y-1.5 text-[10px]"
-                        : "p-3 gap-y-2 text-xs hover:shadow-md",
-
+                        ? "p-2 gap-y-1.5 text-[10px] hover:bg-accent/50"
+                        : "p-3 gap-y-2 text-xs hover:shadow-md hover:bg-accent/10",
                     "border-l-[3px]", 
                     borderColorClass
                 )}
@@ -78,14 +76,14 @@ export const EventsCard = ({
                 <div className="flex items-start justify-between gap-1">
                     <p className={cn(
                         "font-semibold truncate w-full leading-tight",
-                        isNew ? "text-slate-900 font-bold" : "text-slate-700",
+                        isNew ? "text-foreground font-bold" : "text-muted-foreground",
                         isMini ? "text-[11px]" : "text-sm"
                     )} title={title}>
                         {title}
                     </p>
                     {isNew && (
                         <div className={cn(
-                            "rounded-full shrink-0 bg-blue-600 animate-pulse",
+                            "rounded-full shrink-0 bg-primary animate-pulse",
                             isMini ? "size-1.5 mt-1" : "size-2 mt-1"
                         )} title="New Event" />
                     )}
@@ -94,16 +92,16 @@ export const EventsCard = ({
                 <div className="flex items-center gap-1.5 text-muted-foreground w-full overflow-hidden">
                     
                     {time && (
-                        <div className="flex items-center gap-0.5 shrink-0 bg-slate-50 px-1 py-0.5 rounded-sm border border-slate-100/50">
-                            <Clock className={cn("shrink-0 text-slate-400", isMini ? "size-2.5" : "size-3")} />
-                            <span className={cn("font-medium text-slate-600", isMini ? "text-[9px]" : "")}>{time}</span>
+                        <div className="flex items-center gap-0.5 shrink-0 bg-muted/50 px-1 py-0.5 rounded-sm border border-border">
+                            <Clock className={cn("shrink-0 text-muted-foreground", isMini ? "size-2.5" : "size-3")} />
+                            <span className={cn("font-medium text-foreground", isMini ? "text-[9px]" : "")}>{time}</span>
                         </div>
                     )}
 
                     {segment && (
                         <div className="flex items-center gap-0.5 min-w-0">
-                             {!isMini && <span className="text-slate-300">•</span>}
-                             <span className="truncate text-[9px] text-slate-500 opacity-80 max-w-[60px]">
+                             {!isMini && <span className="text-muted-foreground/50">•</span>}
+                             <span className="truncate text-[9px] text-muted-foreground opacity-80 max-w-[60px]">
                                 {segment.name}
                              </span>
                         </div>
@@ -118,7 +116,7 @@ export const EventsCard = ({
 
                 <div className={cn(
                     "flex items-center justify-between pt-1 mt-0.5",
-                    !isMini && "border-t border-dashed border-gray-100 mt-2"
+                    !isMini && "border-t border-dashed border-border mt-2"
                 )}>
                     <div className="flex items-center -space-x-1.5 pl-0.5">
                         {project && (
@@ -126,8 +124,8 @@ export const EventsCard = ({
                                 <ProjectAvatar
                                     name={project.name}
                                     image={project.imageUrl}
-                                    className={cn("border border-white bg-white", isMini ? "size-4" : "size-5")}
-                                    fallbackClassName="text-[6px] font-bold text-slate-600"
+                                    className={cn("border border-background bg-background", isMini ? "size-4" : "size-5")}
+                                    fallbackClassName="text-[6px] font-bold text-foreground"
                                 />
                             </div>
                         )}
@@ -137,8 +135,8 @@ export const EventsCard = ({
                                 <MemberAvatar
                                     name={eventCreator.name}
                                     avatar={eventCreator.avatar}
-                                    className={cn("border border-white", isMini ? "size-4" : "size-5")}
-                                    fallbackClassname="text-[6px] bg-emerald-500 text-white"
+                                    className={cn("border border-background", isMini ? "size-4" : "size-5")}
+                                    fallbackClassname="text-[6px] bg-primary text-primary-foreground"
                                 />
                             </div>
                         )}

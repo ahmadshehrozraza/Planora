@@ -30,7 +30,9 @@ import { ProjectStatus } from "@/features/projects/types";
 import { SegmentStatus } from "@/features/segments/types";
 import { snakeCaseToTitleCase } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
-import { PlanoraLogo } from "@/features/dashboard/components/planora-logo";
+import { PlanoraLogo } from "@/components/planora-logo";
+import LandingPage from "@/features/dashboard/components/landing-page";
+import PlanoraWheel from "@/components/planora-wheel";
 
 export const DashboardClient = () => {
 
@@ -84,7 +86,40 @@ export const DashboardClient = () => {
 
             </div> */}
 
-    <div className="space-y-4 p-4">
+           <PlanoraLogo 
+              fontFamily="outfit"
+              wheelSize={70}
+              wheelHandWidth={4}
+              animateText={false}
+              size={48}
+              />
+
+              <PlanoraLogo 
+  fontFamily="outfit"
+  fontWeight="font-medium"
+  wheelSize={70}
+  wheelHandWidth={4}
+  animateText={false}
+  size={48}
+  wheelDuration="5s"
+/>
+
+          <PlanoraWheel duration="5s" size={50} handWidth={2} />
+          <PlanoraLogo 
+                  fontFamily="outfit"
+                  fontWeight="font-medium"
+                  wheelSize={70}
+                  wheelHandWidth={4}
+                  animateText={false}
+                  size={48}
+                  wheelDuration="5s"
+                />
+
+
+
+            {/* <LandingPage /> */}
+
+    {/* <div className="space-y-4 p-4">
 
       <div className="flex flex-wrap gap-2">
         <Badge variant={TaskStatus.TODO}>Todo</Badge>
@@ -126,18 +161,7 @@ export const DashboardClient = () => {
         <Badge variant={ProjectStatus.COMPLETED}>Project Completed</Badge>
         <Badge variant={ProjectStatus.OVER_DUE}>Project Overdue</Badge>
       </div>
-    </div>
-
-    <PlanoraLogo size={70}  />
-
-        <PlanoraLogo
-          size={300}            // Bada size
-          color="bg-emerald-500" // Green color
-          handWidth={4}         // Patlay hands
-          handHeight={60}       // Hands ki lambayi
-          duration="30s"        // Bohot slow (30 second main aik chakkar)
-      />
-   
+    </div> */}
 
     </div>
   );
@@ -234,7 +258,7 @@ export const ProjectList = ({
 
   return (
     <div className="flex flex-col gap-y-4 col-span-1">
-      <div className="bg-white border rounded-lg p-4">
+      <div className="bg-background border rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">
             Projects ({total})
@@ -296,7 +320,7 @@ export const MembersList = ({
   return (
 
     <div className="flex flex-col gap-y-4 col-span-1">
-      <div className="bg-white border rounded-lg p-4">
+      <div className="bg-background border rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">
             Members ({total})

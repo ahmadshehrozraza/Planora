@@ -6,7 +6,7 @@ import { Task } from "../types";
 import { Button } from "@/components/ui/button";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskDate } from "../../../components/date-indicator";
+import { DateIndicator } from "../../../components/date-indicator";
 import { Badge } from "@/components/ui/badge";
 import { snakeCaseToTitleCase } from "@/lib/utils";
 import { TaskActions } from "./task-actions";
@@ -263,7 +263,7 @@ export const columns: ColumnDef<Task>[] = [
       const dueDate = row.original.endDate;
       return (
         <div className=" w-[100px] ml-16 flex items-center justify-center">
-          <TaskDate value={dueDate} />
+          <DateIndicator value={dueDate} />
         </div>
       )
     }

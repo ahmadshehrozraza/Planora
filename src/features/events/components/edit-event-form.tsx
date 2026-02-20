@@ -56,26 +56,23 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
 
     const onSubmit = (values: z.infer<typeof createEventSchema>) => {
         console.log("Updated Values:", values);
-        // Call Update API here
     };
 
     const handleDelete = () => {
         const confirm = window.confirm("Are you sure you want to delete this event? This action cannot be undone.");
         if (confirm) {
             console.log("Deleting event...");
-            // Call Delete API here
-            // router.push("/events");
         }
     };
 
     return (
-        <Card className="w-full border-none shadow-sm bg-white">
+        <Card className="w-full border-none shadow-sm bg-card">
             <CardHeader className="flex flex-row items-center justify-end space-y-0">
                 <Button 
                     variant="destructive" 
                     size="sm" 
                     onClick={handleDelete}
-                    className="bg-red-50 flex-end text-red-600 hover:bg-red-100 border border-red-200 shadow-none"
+                    // className="flex-end bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 shadow-none"
                 >
                     <TrashIcon className="size-4 mr-2" />
                     Delete
@@ -92,12 +89,12 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                 name="title"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Event Title</FormLabel>
+                                        <FormLabel className="text-foreground">Event Title</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 {...field} 
                                                 placeholder="e.g. Sprint Planning" 
-                                                className="h-10 bg-slate-50/50 border-slate-200 focus:bg-white transition-colors"
+                                                className="h-10 bg-background border-border focus:bg-background transition-colors"
                                                 disabled={isPending} 
                                             />
                                         </FormControl>
@@ -112,9 +109,9 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                             name="date"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel className="text-slate-700">Date & Time</FormLabel>
+                                    <FormLabel className="text-foreground">Date & Time</FormLabel>
                                     <div className="flex flex-col sm:flex-row gap-4">
-                                        {/* Date Picker */}
+                                        
                                         <div className="flex-1">
                                             <FormControl>
                                                 <DatePicker
@@ -129,18 +126,18 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                                     }}
                                                     disabled={isPending}
                                                     placeholder="Select date"
-                                                    className="w-full h-10 px-3 bg-slate-50/50 border-slate-200 focus:bg-white"
+                                                    className="w-full h-10 px-3 bg-background border-border focus:bg-background"
                                                 />
                                             </FormControl>
                                         </div>
 
-                                        {/* Time Picker */}
+                                        
                                         <div className="flex-shrink-0 w-full sm:w-[160px]">
                                             <FormControl>
                                                 <ScrollTimePicker
                                                     date={field.value}
                                                     setDate={field.onChange}
-                                                    className="h-10 px-3 bg-slate-50/50 border-slate-200 focus:bg-white"
+                                                    className="h-10 px-3 bg-background border-border focus:bg-background"
                                                 />
                                             </FormControl>
                                         </div>
@@ -156,7 +153,7 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                 name="workspaceId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Workspace</FormLabel>
+                                        <FormLabel className="text-foreground">Workspace</FormLabel>
                                         <Select
                                             onValueChange={(val) => {
                                                 field.onChange(val);
@@ -167,13 +164,13 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                             disabled={isPending}
                                         >
                                             <FormControl>
-                                                <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus:bg-white">
+                                                <SelectTrigger className="h-10 bg-background border-border focus:bg-background">
                                                     <SelectValue placeholder="Select workspace" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent className="bg-popover border-border">
                                                 {WORKSPACES.map((ws) => (
-                                                    <SelectItem key={ws.$id} value={ws.$id}>{ws.name}</SelectItem>
+                                                    <SelectItem key={ws.$id} value={ws.$id} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">{ws.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -187,7 +184,7 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                 name="projectId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Project</FormLabel>
+                                        <FormLabel className="text-foreground">Project</FormLabel>
                                         <Select
                                             onValueChange={(val) => {
                                                 field.onChange(val);
@@ -197,13 +194,13 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                             disabled={isPending || !selectedWorkspaceId}
                                         >
                                             <FormControl>
-                                                <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus:bg-white">
+                                                <SelectTrigger className="h-10 bg-background border-border focus:bg-background disabled:opacity-50">
                                                     <SelectValue placeholder="Select project" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent className="bg-popover border-border">
                                                 {PROJECTS.map((pj) => (
-                                                    <SelectItem key={pj.$id} value={pj.$id}>{pj.name}</SelectItem>
+                                                    <SelectItem key={pj.$id} value={pj.$id} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">{pj.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -217,20 +214,20 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                                 name="segmentId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-slate-700">Segment</FormLabel>
+                                        <FormLabel className="text-foreground">Segment</FormLabel>
                                         <Select
                                             onValueChange={field.onChange}
                                             defaultValue={field.value}
                                             disabled={isPending || !selectedProjectId}
                                         >
                                             <FormControl>
-                                                <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus:bg-white">
+                                                <SelectTrigger className="h-10 bg-background border-border focus:bg-background disabled:opacity-50">
                                                     <SelectValue placeholder="Select segment" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent className="bg-popover border-border">
                                                 {SEGMENTS.map((sg) => (
-                                                    <SelectItem key={sg.$id} value={sg.$id}>{sg.name}</SelectItem>
+                                                    <SelectItem key={sg.$id} value={sg.$id} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">{sg.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -244,12 +241,12 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-slate-700">Description</FormLabel>
+                                    <FormLabel className="text-foreground">Description</FormLabel>
                                     <FormControl>
                                         <Textarea
                                             {...field}
                                             placeholder="Add details about this event..."
-                                            className="min-h-[140px] resize-none bg-slate-50/50 border-slate-200 focus:bg-white leading-relaxed"
+                                            className="min-h-[140px] resize-none bg-background border-border focus:bg-background leading-relaxed"
                                             disabled={isPending}
                                         />
                                     </FormControl>
@@ -263,7 +260,7 @@ export const EditEventForm = ({ initialValues, onCancel }: EditEventFormProps) =
                             <Button 
                                 type="submit" 
                                 disabled={isPending} 
-                                className="w-32 bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all hover:scale-[1.02]"
+                                className="w-32 shadow-md transition-all hover:scale-[1.02]"
                             >
                                 {isPending ? "Saving..." : "Save Changes"}
                             </Button>

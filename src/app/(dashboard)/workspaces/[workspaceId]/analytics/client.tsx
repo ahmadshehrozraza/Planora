@@ -107,7 +107,7 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="w-full sm:w-[300px]">
           <Select value={activeProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-full bg-white border-slate-200 h-10 shadow-sm focus:ring-blue-500">
+            <SelectTrigger className="w-full h-10 shadow-sm">
               <SelectValue placeholder="Select a project" />
             </SelectTrigger>
             <SelectContent>

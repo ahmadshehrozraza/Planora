@@ -23,10 +23,11 @@ export const MemberAvatar = ({
 
     return (
         <div className={cn(
-            "relative rounded-full border flex items-center justify-center overflow-hidden", 
+            // ✨ FIXED: Added shrink-0 and aspect-square to enforce a perfect circle
+            "relative rounded-full border flex items-center justify-center overflow-hidden shrink-0 aspect-square", 
             isActive 
-                ? "border-neutral-200 bg-neutral-100"  
-                : "border-red-200 bg-red-50", 
+                ? "border-border bg-secondary text-secondary-foreground"  
+                : "border-destructive/30 bg-destructive/10 text-destructive", 
             className
         )}>
             <div className={cn(
@@ -48,14 +49,13 @@ export const MemberAvatar = ({
                         {name!.charAt(0)}
                     </div>
                 ) : (
-                    <UserX className="size-1/2 text-neutral-400" />
+                    <UserX className="size-1/2 text-muted-foreground" />
                 )}
             </div>
 
             {!isActive && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
-                    {/* <div className="w-[120%] h-[10%] bg-red-600 rotate-45 absolute" /> */}
-                    <div className="absolute inset-0 border-2 border-red-600 rounded-full" />
+                    <div className="absolute inset-0 border-2 border-destructive rounded-full" />
                 </div>
             )}
         </div>

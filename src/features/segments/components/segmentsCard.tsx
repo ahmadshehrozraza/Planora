@@ -50,14 +50,14 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
 
   if (view === "list") {
       return (
-          <Card className={cn("flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-white hover:bg-slate-50 transition-colors border-slate-200 shadow-sm hover:shadow-md", className)}>
+          <Card className={cn("flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-card hover:bg-accent/50 transition-colors border-border shadow-sm hover:shadow-md", className)}>
               <div className="flex items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
-                  <div className="size-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                      <Layers className="size-5 text-indigo-500" />
+                  <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <Layers className="size-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                      <h2 className="truncate font-bold text-slate-900">{segment.name}</h2>
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 truncate font-medium">
+                      <h2 className="truncate font-bold text-foreground">{segment.name}</h2>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 truncate font-medium">
                           <span>{formattedStartDate}</span>
                           <span>—</span>
                           <DateIndicator value={segment.endingDate} />
@@ -67,15 +67,15 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
 
               <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto shrink-0">
                   <div className="flex flex-col gap-1 text-xs">
-                      <span className="text-slate-500 font-medium">
-                          Tasks: <span className="font-bold text-slate-700">{segment.completedTasks || 0} / {segment.totalTasks}</span>
+                      <span className="text-muted-foreground font-medium">
+                          Tasks: <span className="font-bold text-foreground">{segment.completedTasks || 0} / {segment.totalTasks}</span>
                       </span>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <Badge variant={segment.segmentStatus as any}>{statusLabel}</Badge>
                       {remainingText && (
-                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", segment.segmentStatus === 'OVER_DUE' ? 'text-red-600' : 'text-slate-500')}>
+                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", segment.segmentStatus === 'OVER_DUE' ? 'text-destructive' : 'text-muted-foreground')}>
                               {remainingText}
                           </span>
                       )}
@@ -90,11 +90,11 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
   }
 
   return (
-    <Card className={cn("flex flex-col min-h-[190px] justify-between bg-white hover:shadow-md transition-shadow border-slate-200 overflow-hidden", className)}>
-      <CardHeader className="p-4 bg-slate-50/50 border-b border-slate-100 flex-row items-center justify-between space-y-0 shrink-0">
+    <Card className={cn("flex flex-col min-h-[190px] justify-between bg-card hover:bg-accent/10 transition-shadow border-border overflow-hidden", className)}>
+      <CardHeader className="p-4 bg-muted/30 border-b border-border flex-row items-center justify-between space-y-0 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <Layers className="size-4 text-indigo-500 shrink-0" />
-          <h2 className="truncate font-bold text-slate-800 text-[15px]">{segment.name}</h2>
+          <Layers className="size-4 text-primary shrink-0" />
+          <h2 className="truncate font-bold text-foreground text-[15px]">{segment.name}</h2>
         </div>
         <Badge variant={segment.segmentStatus as any} className="shrink-0 ml-2">
           {statusLabel}
@@ -104,17 +104,17 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
       <CardContent className="p-4 flex-1 flex flex-col justify-center gap-4">
         <div className="space-y-2.5">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">Start Date</span>
+            <span className="text-muted-foreground font-medium">Start Date</span>
             <div className="flex items-center gap-2">
-               <span className="text-slate-700 font-semibold">{formattedStartDate}</span>
-               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold bg-slate-100 text-slate-600 border-none">{daysSince}</Badge>
+               <span className="text-foreground font-semibold">{formattedStartDate}</span>
+               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold bg-secondary text-secondary-foreground border-none">{daysSince}</Badge>
             </div>
           </div>
 
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">End Date</span>
+            <span className="text-muted-foreground font-medium">End Date</span>
             <div className="flex items-center gap-2">
-               <DateIndicator value={segment.endingDate} className="text-slate-700 font-semibold" />
+               <DateIndicator value={segment.endingDate} className="text-foreground font-semibold" />
                {remainingText && (
                  <Badge variant={remainingVariant as any} showIcon={false} className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider border-none">
                    {remainingText}
@@ -124,17 +124,17 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
           </div>
         </div>
 
-        <div className="pt-3 border-t border-dashed border-slate-200 mt-auto">
+        <div className="pt-3 border-t border-dashed border-border mt-auto">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-500 font-medium">Task Progress</span>
-            <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md">
+            <span className="text-muted-foreground font-medium">Task Progress</span>
+            <span className="font-bold text-foreground bg-secondary px-2 py-0.5 rounded-md">
                 {segment.completedTasks || 0} / {segment.totalTasks}
             </span>
           </div>
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 pb-5 shrink-0">
+      <CardFooter className="p-4 pt-0 pb-10 shrink-0">
         <ProgressBar value={segment.progress} className="w-full h-1.5" />
       </CardFooter>
     </Card>

@@ -52,21 +52,20 @@ export const ProjectsSidebar = () => {
                     className="
                         hidden group-data-[collapsible=icon]:flex 
                         cursor-pointer text-muted-foreground hover:text-primary transition-colors
-                        items-center justify-center
+                        items-center justify-center size-5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800
                     "
                     title="Create Project"
                 >
                     <Plus className="size-3.5" />
                 </div>
 
-                {/* --- 2. MAIN BUTTON (SHARED) --- */}
                 <SidebarMenuButton 
                     asChild
                     tooltip="Projects"
                     isActive={isProjectsPageActive}
                     className="group/nav-item h-8 cursor-pointer w-full justify-start group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:p-0" 
                 >
-                    <div className="flex items-center w-full">
+                    <div className="flex items-center mt-1 w-full">
                         <Link 
                             href={projectsHref} 
                             className="flex items-center gap-2 flex-1 overflow-hidden group-data-[collapsible=icon]:justify-center"
@@ -87,9 +86,9 @@ export const ProjectsSidebar = () => {
                                 role="button"
                                 onClick={handleCreate}
                                 className="
-                                    flex items-center justify-center size-5 rounded hover:bg-neutral-200 
+                                    flex items-center justify-center size-5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-600 
                                     cursor-pointer text-muted-foreground hover:text-primary 
-                                    opacity-0 group-hover/nav-item:opacity-100 transition-opacity
+                                    group-hover/nav-item:opacity-100 transition-all
                                 "
                                 title="Create Project"
                             >
@@ -103,7 +102,7 @@ export const ProjectsSidebar = () => {
                                     e.stopPropagation();
                                     toggleOpen();
                                 }}
-                                className="flex items-center justify-center size-5 rounded hover:bg-neutral-200 cursor-pointer text-muted-foreground hover:text-primary"
+                                className="flex items-center justify-center size-5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-600 cursor-pointer text-muted-foreground hover:text-primary transition-all"
                             >
                                 <ChevronRight className={cn(
                                     "size-4 transition-transform duration-200",
@@ -120,7 +119,7 @@ export const ProjectsSidebar = () => {
                     className="
                         hidden group-data-[collapsible=icon]:flex
                         cursor-pointer text-muted-foreground hover:text-primary transition-colors
-                        items-center justify-center
+                        items-center justify-center size-5 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800
                     "
                     title="Toggle Projects"
                 >
@@ -143,7 +142,7 @@ export const ProjectsSidebar = () => {
                         asChild
                         isActive={isProjectActive}
                         tooltip={project.name}
-                        className="group/nav-item h-8 justify-start ml-2 group-data-[collapsible=icon]:ml-[-2.5px]"
+                        className="group/nav-item h-8 justify-start ml-4 group-data-[collapsible=icon]:ml-[-2.5px]"
                     >
                         <Link 
                             href={projectHref} 
