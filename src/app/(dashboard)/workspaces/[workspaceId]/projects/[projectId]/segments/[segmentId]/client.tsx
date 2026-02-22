@@ -152,7 +152,7 @@ export const SegmentIdClient = ({
           </div>
         </div>
 
-        <div className="flex-1 w-full rounded-xl shadow-sm border border-border bg-card overflow-hidden min-h-[500px]">
+        <div className="flex-1 w-full rounded-xl shadow-sm border-none bg-card overflow-hidden min-h-[500px]">
           <TabsContent
             value="tasks"
             className="m-0 p-0 h-full border-none focus-visible:outline-none"

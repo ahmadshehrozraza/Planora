@@ -8,7 +8,7 @@ export const PageLoader = () => {
             <PlanoraWheel 
                 duration="3s" 
                 color="bg-primary dark:bg-primary/80"
-                size={32}
+                size={50}
                 handWidth={3}
             />
         </div>

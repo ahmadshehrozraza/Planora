@@ -6,7 +6,7 @@ export const useTaskFilters = () => {
         projectId: parseAsString.withDefault("all"),
         segmentId: parseAsString.withDefault("all"),
         status: parseAsString.withDefault("all"),
-        assigneeId: parseAsString.withDefault("all-tasks"), // ✅ "all-tasks" as default
+        assigneeId: parseAsString.withDefault("all-tasks"),
         search: parseAsString.withDefault(""),
         dueDate: parseAsString.withDefault(""),
     });

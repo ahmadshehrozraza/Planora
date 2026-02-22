@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import Router from "next/router";
 
 
 
@@ -15,11 +16,9 @@ const ErrorPage = () => {
             </p>
             <Button
                 variant="secondry"
+                onClick={Router.back}
                 size="sm">
-                <Link
-                    href="/">
-                    Back to Home
-                </Link>
+                    Back
             </Button>
         </div>
     );

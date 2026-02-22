@@ -142,11 +142,13 @@ export const ProjectsSidebar = () => {
                         asChild
                         isActive={isProjectActive}
                         tooltip={project.name}
-                        className="group/nav-item h-8 justify-start ml-4 group-data-[collapsible=icon]:ml-[-2.5px]"
+                        // FIX: Negative margin removed (-ml-2.5px) and justify-center added for collapsed state
+                        className="group/nav-item h-8 justify-start group-data-[collapsible=icon]:justify-center"
                     >
+                        {/* FIX: w-full se collapsed state mein offset ka issue ho sakta tha, ab group-data mein w-auto kar diya aur justify center kar diya */}
                         <Link 
                             href={projectHref} 
-                            className="flex items-center gap-2 w-full"
+                            className="flex items-center gap-2 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto"
                         >
                             <ProjectAvatar
                                 image={project.imageUrl}

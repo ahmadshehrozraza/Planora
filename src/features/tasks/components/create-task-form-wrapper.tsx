@@ -16,60 +16,37 @@ interface CreateTaskFormWrapperProps {
 export const CreateTaskFormWrapper = ({ onCancel }: CreateTaskFormWrapperProps) => {
   const workspaceId = useWorkspaceId();
   const [isLoading, setIsLoading] = useState(true);
-  const [projectOptions, setProjectOptions] = useState<{id: string, name: string, imageUrl: string}[]>([]);
-  const [memberOptions, setMemberOptions] = useState<{id: string, name: string, userId: string}[]>([]);
-  const [currentUser, setCurrentUser] = useState<{userId: string, name: string}>({ userId: 'user_001', name: 'Ahmed Raza' });
+  const [data, setData] = useState({
+    projects: [] as { id: string; name: string; imageUrl: string }[],
+    members: [] as { id: string; name: string; userId: string }[],
+    user: { userId: 'user_001', name: 'Ahmed Raza' }
+  });
 
   useEffect(() => {
-    if (!workspaceId) {
-      console.log("workspace id is null in create-task-form-wrapper");
-      return;
-    }
+    if (!workspaceId) return;
 
-    // Simulate loading
-    const timer =  out(() => {
-      // Filter projects by workspace
-      const filteredProjects = dummyProjects.filter(project => project.workspaceId === workspaceId);
-      
-      // Get project options
-      const projects = filteredProjects.map(project => ({
-        id: project.id,
-        name: project.name,
-        imageUrl: project.imageUrl || '',
-      }));
+    const timer = setTimeout(() => {
+      const filteredProjects = dummyProjects
+        .filter(p => p.workspaceId === workspaceId)
+        .map(p => ({ id: p.id, name: p.name, imageUrl: p.imageUrl || '' }));
 
-      // Filter members by workspace
-      const filteredMembers = dummyMembers.filter(member => 
-        member.workspaceId === workspaceId && member.hasAccess
-      );
+      const filteredMembers = dummyMembers
+        .filter(m => m.workspaceId === workspaceId && m.hasAccess)
+        .map(m => {
+          const user = dummyUsers.find(u => u.userId === m.memberId);
+          return { id: m.memberId, name: user?.name || `User ${m.memberId}`, userId: m.memberId };
+        });
 
-      // Create member options with user names
-      const members = filteredMembers.map(member => {
-        const user = dummyUsers.find(u => u.userId === member.memberId);
-        return {
-          id: member.memberId,
-          name: user?.name || `User ${member.memberId}`,
-          userId: member.memberId,
-        };
-      });
+      const user = dummyUsers.find(u => u.userId === 'user_001') || data.user;
 
-      // Get current user
-      const user = dummyUsers.find(u => u.userId === 'user_001');
-
-      setProjectOptions(projects);
-      setMemberOptions(members);
-      if (user) {
-        setCurrentUser({ userId: user.userId, name: user.name });
-      }
+      setData({ projects: filteredProjects, members: filteredMembers, user });
       setIsLoading(false);
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [workspaceId]);
 
-  if (!workspaceId) {
-    return null;
-  }
+  if (!workspaceId) return null;
 
   if (isLoading) {
     return (
@@ -84,9 +61,9 @@ export const CreateTaskFormWrapper = ({ onCancel }: CreateTaskFormWrapperProps) 
   return (
     <CreateTaskForm 
       onCancel={onCancel}
-      projectOptions={projectOptions}
-      memberOptions={memberOptions}
-      currentUser={currentUser}
+      projectOptions={data.projects}
+      memberOptions={data.members}
+      currentUser={data.user}
     />
   );
 };

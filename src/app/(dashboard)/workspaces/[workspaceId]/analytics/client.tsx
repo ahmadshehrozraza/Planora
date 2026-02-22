@@ -14,19 +14,20 @@ import {
 } from "@/components/ui/select";
 import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
+import { PageLoader } from "@/components/page-loader";
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+
 const ProjectAnalytics = dynamic(
   () => import("@/features/projects/components/project-analytics"),
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-[400px] flex flex-col items-center justify-center space-y-3 bg-slate-50 rounded-xl">
+      <div className="w-full h-[400px] flex flex-col items-center justify-center space-y-3 bg-card rounded-xl">
          <PageLoader />
       </div>
     )
   }
 );
-import { PageLoader } from "@/components/page-loader";
-import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
 interface AnalyticsClientProps {
   workspaceId: string;
@@ -63,7 +64,7 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff", 
         windowHeight: element.scrollHeight,
       });
 
@@ -103,11 +104,12 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full text-foreground">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        
         <div className="w-full sm:w-[300px]">
           <Select value={activeProjectId} onValueChange={setSelectedProjectId}>
-            <SelectTrigger className="w-full h-10 shadow-sm">
+            <SelectTrigger className="w-full h-10 shadow-sm border-border bg-card">
               <SelectValue placeholder="Select a project" />
             </SelectTrigger>
             <SelectContent>
@@ -115,13 +117,13 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
                 <SelectItem
                   key={project.id}
                   value={project.id}
-                  className="cursor-pointer"
+                  className="cursor-pointer hover:bg-accent/50 focus:bg-accent/50"
                 >
                   <div className="flex items-center gap-2 font-medium">
                     <ProjectAvatar
                       name={project.name}
                       image={project.imageUrl}
-                      className="size-6 border border-slate-100"
+                      className="size-6 border border-border"
                     />
                     <span className="truncate">{project.name}</span>
                   </div>
@@ -134,7 +136,7 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
         <Button
           onClick={handleExportPDF}
           disabled={isExporting || !activeProjectId}
-          className="w-full sm:w-auto bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition-all"
+          className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
         >
           {isExporting ? (
             <>
@@ -147,21 +149,15 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
           )}
         </Button>
       </div>
+
       <div
         ref={printRef}
-        className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+        className="rounded-xl shadow-sm border border-border bg-card overflow-hidden"
       >
         {activeProjectId ? (
           <ProjectAnalytics projectId={activeProjectId} />
         ) : (
-          <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
-            <div className="p-4 bg-slate-50 rounded-full">
-              <Loader2 className="size-6 text-slate-400 animate-spin" />
-            </div>
-            <p className="text-sm font-medium text-slate-500">
-              Loading analytics...
-            </p>
-          </div>
+          <PageLoader />
         )}
       </div>
     </div>

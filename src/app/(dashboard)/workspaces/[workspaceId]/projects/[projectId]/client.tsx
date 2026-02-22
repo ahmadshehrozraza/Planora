@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 
 import { SegmentsPage } from "./segments/page";
 import { CreateSegmentModal } from "@/features/segments/components/create-segment-modal";
+import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 
 const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
 const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
@@ -85,9 +86,9 @@ export const ProjectIdClient = () => {
                 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 bg-card border-b border-border sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
-                         <div className="bg-primary/10 p-2 rounded-lg border border-primary/20 hidden sm:block">
-                             <LayoutTemplate className="size-5 text-primary" />
-                         </div>
+                         
+                             <ProjectAvatar name={project.name} className="size-10" />
+
                          <div>
                              <h1 className="font-bold text-lg text-foreground leading-none">{project.name}</h1>
                              <p className="text-xs text-muted-foreground mt-1 font-medium">Project Workspace</p>

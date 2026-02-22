@@ -1,11 +1,5 @@
 
 
-export type Project = {
-    name: string;
-    imageUrl: string;
-    workspaceId: string;
-};
-
 export type DummyProject = {
     id: string;
     workspaceId: string;

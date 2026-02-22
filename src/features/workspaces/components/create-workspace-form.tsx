@@ -129,8 +129,8 @@ export const CreateWorkspaceForm = ({ onCancel}: CreateWorkspaceFormProps) => {
                                                 type="button"
                                                 disabled={isPending}
                                                 variant="destructive"
-                                                size="xs"
-                                                className="w-fit mt-2"
+                                                size="sm"
+                                                className=" mt-2"
                                                 onClick={() => {
                                                     field.onChange(null);
                                                     if (inputRef.current){
@@ -145,7 +145,7 @@ export const CreateWorkspaceForm = ({ onCancel}: CreateWorkspaceFormProps) => {
                                                 type="button"
                                                 disabled={isPending}
                                                 variant="teritrary"
-                                                size="xs"
+                                                size="sm"
                                                 className="w-fit mt-2"
                                                 onClick={() => inputRef.current?.click()}
                                                 >

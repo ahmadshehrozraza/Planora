@@ -26,18 +26,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { DatePicker } from "@/components/date-picker";
-import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { Task, TaskPriority, TaskStatus, TaskType } from "../types";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { useUpdateTask } from "../api/use-update-task";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencySelector } from "@/components/currency-selector";
-import { Loader } from "lucide-react";
-import { useState, useEffect } from "react";
-import { AlertCircle } from "lucide-react";
+import { Loader, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { dummySegments } from "@/features/segments/hooks/dummy-segments";
 
 interface EditTaskFormProps {
   onCancel?: () => void;
@@ -55,7 +52,7 @@ export const EditTaskForm = ({
   segmentOptions
 }: EditTaskFormProps) => {
   const workspaceId = useWorkspaceId();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialValues.projectId);
+  const prevProjectId = useRef<string>(initialValues.projectId);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [taskOptions, setTaskOptions] = useState<{ id: string, name: string, status: TaskStatus }[]>([]);
   const { mutate: updateTask, isPending } = useUpdateTask();
@@ -78,26 +75,20 @@ export const EditTaskForm = ({
     },
   });
 
-  // Watch for project changes
   const watchProjectId = form.watch("projectId");
   const watchBlockedBy = form.watch("blockedBy");
   const watchBlockingTo = form.watch("blockingTo");
 
   useEffect(() => {
-    if (watchProjectId && watchProjectId !== selectedProjectId) {
-      setSelectedProjectId(watchProjectId);
-      loadTasksForProject(watchProjectId);
-      // Reset segment when project changes
+    if (!watchProjectId) return;
+
+    if (watchProjectId !== prevProjectId.current) {
       form.setValue("segmentId", "");
+      prevProjectId.current = watchProjectId;
     }
-  }, [watchProjectId]);
 
-  // Load dummy tasks for dependencies
-  const loadTasksForProject = (projectId: string) => {
     setIsLoadingTasks(true);
-
-     out(() => {
-      // Dummy tasks for edit form
+    const timer = setTimeout(() => {
       const dummyTasks = [
         { id: "task-1", name: "Design Homepage", status: TaskStatus.IN_PROGRESS },
         { id: "task-2", name: "API Integration", status: TaskStatus.TODO },
@@ -105,21 +96,15 @@ export const EditTaskForm = ({
         { id: "task-4", name: "Testing", status: TaskStatus.IN_REVIEW },
         { id: "task-5", name: "User Authentication", status: TaskStatus.TODO },
         { id: "task-6", name: "Mobile Responsive", status: TaskStatus.IN_PROGRESS },
-      ].filter(task => task.id !== initialValues.id); // Exclude current task from blocking itself
+      ].filter(task => task.id !== initialValues.id);
 
       setTaskOptions(dummyTasks);
       setIsLoadingTasks(false);
     }, 300);
-  };
 
-  // Load tasks on initial render
-  useEffect(() => {
-    if (initialValues.projectId) {
-      loadTasksForProject(initialValues.projectId);
-    }
-  }, [initialValues.projectId]);
+    return () => clearTimeout(timer);
+  }, [watchProjectId, initialValues.id, form]);
 
-  // Validate circular dependency
   const validateCircularDependency = () => {
     const blockedBy = form.getValues("blockedBy");
     const blockingTo = form.getValues("blockingTo");
@@ -137,26 +122,12 @@ export const EditTaskForm = ({
   };
 
   const onSubmit = (values: z.infer<typeof editTaskSchema>) => {
-    if (!validateCircularDependency()) {
-      return;
-    }
+    if (!validateCircularDependency()) return;
 
     const payload = {
       ...values,
       workspaceId,
     };
-
-    // updateTask(
-    //   {
-    //     json: payload,
-    //     param: { taskId: initialValues.id },
-    //   },
-    //   {
-    //     onSuccess: () => {
-    //       onCancel?.();
-    //     },
-    //   }
-    // );
 
     console.log("Update task form values: ", payload);
     alert("Task updated successfully!");
@@ -178,7 +149,6 @@ export const EditTaskForm = ({
       <CardContent className="p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Task Name */}
             <FormField
               control={form.control}
               name="name"
@@ -193,7 +163,6 @@ export const EditTaskForm = ({
               )}
             />
 
-            {/* Project Selection */}
             <FormField
               control={form.control}
               name="projectId"
@@ -232,8 +201,7 @@ export const EditTaskForm = ({
               )}
             />
 
-            {/* Segment Selection */}
-            {selectedProjectId && (
+            {watchProjectId && (
               <FormField
                 control={form.control}
                 name="segmentId"
@@ -273,7 +241,6 @@ export const EditTaskForm = ({
               />
             )}
 
-            {/* Dates Section */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -304,7 +271,6 @@ export const EditTaskForm = ({
               />
             </div>
 
-            {/* Effort Points */}
             <FormField
               control={form.control}
               name="effortPoints"
@@ -333,8 +299,7 @@ export const EditTaskForm = ({
               )}
             />
 
-            {/* Dependencies Section - Only show if project is selected */}
-            {selectedProjectId && taskOptions.length > 0 && (
+            {watchProjectId && taskOptions.length > 0 && (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -372,18 +337,13 @@ export const EditTaskForm = ({
                               <SelectItem key={task.id} value={task.id}>
                                 <div className="flex items-center justify-between gap-x-2">
                                   <span className="truncate">{task.name}</span>
-                                  <Badge variant={task.status}>{task.status}</Badge>
+                                  <Badge variant={task.status as any}>{task.status}</Badge>
                                 </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        {field.value && field.value !== "no-blocked-by" && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            This task will wait for selected task to complete
-                          </p>
-                        )}
                       </FormItem>
                     )}
                   />
@@ -423,24 +383,18 @@ export const EditTaskForm = ({
                               <SelectItem key={task.id} value={task.id}>
                                 <div className="flex items-center justify-between gap-x-2">
                                   <span className="truncate">{task.name}</span>
-                                  <Badge variant={task.status}>{task.status}</Badge>
+                                  <Badge variant={task.status as any}>{task.status}</Badge>
                                 </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        {field.value && field.value !== "no-blocking-to" && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Selected task will wait for this task to complete
-                          </p>
-                        )}
                       </FormItem>
                     )}
                   />
                 </div>
 
-                {/* Circular dependency warning */}
                 {(watchBlockedBy && watchBlockedBy !== "no-blocked-by" &&
                   watchBlockingTo && watchBlockingTo !== "no-blocking-to" &&
                   watchBlockedBy === watchBlockingTo) && (
@@ -454,7 +408,6 @@ export const EditTaskForm = ({
               </div>
             )}
 
-            {/* Assignee */}
             <FormField
               control={form.control}
               name="assigneeId"
@@ -479,8 +432,7 @@ export const EditTaskForm = ({
                       {memberOptions.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           <div className="flex items-center gap-x-2">
-                            {/* Simple avatar without MemberAvatar component to fix duplication */}
-                            <div className="size-6 rounded-full bg-gray-200 flex items-center justify-center">
+                            <div className="size-6 rounded-full bg-secondary flex items-center justify-center">
                               <span className="text-xs font-medium">
                                 {member.name.charAt(0).toUpperCase()}
                               </span>
@@ -496,7 +448,6 @@ export const EditTaskForm = ({
               )}
             />
 
-            {/* Status, Type, Priority */}
             <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -570,7 +521,6 @@ export const EditTaskForm = ({
               />
             </div>
 
-            {/* Budget Section */}
             <div className="grid grid-cols-3 gap-3 items-end">
               <div className="col-span-1">
                 <FormField
@@ -597,9 +547,7 @@ export const EditTaskForm = ({
                   name="budget"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-medium">
-                        Cost Amount
-                      </FormLabel>
+                      <FormLabel className="text-xs font-medium">Cost Amount</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -618,7 +566,6 @@ export const EditTaskForm = ({
               </div>
             </div>
 
-            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -637,7 +584,6 @@ export const EditTaskForm = ({
               )}
             />
 
-            {/* Buttons */}
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
                 <Button

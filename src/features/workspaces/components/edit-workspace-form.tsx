@@ -139,7 +139,7 @@ export const EditWorkspaceForm = ({
   };
 
   return (
-    <div className="w-full flex flex-col gap-y-4">
+    <div className="w-full flex flex-col gap-y-4 pb-3">
       <DeleteDialog />
       <ResetDialog />
       <Card className="w-full h-full border-none shadow-none">
@@ -202,7 +202,7 @@ export const EditWorkspaceForm = ({
                             type="button"
                             disabled={isPending}
                             variant="destructive"
-                            size="xs"
+                            size="sm"
                             className="w-fit mt-2"
                             onClick={() => {
                               field.onChange(null);
@@ -219,7 +219,7 @@ export const EditWorkspaceForm = ({
                             type="button"
                             disabled={isPending}
                             variant="outline"
-                            size="xs"
+                            size="sm"
                             className="w-fit mt-2"
                             onClick={() => inputRef.current?.click()}
                           >

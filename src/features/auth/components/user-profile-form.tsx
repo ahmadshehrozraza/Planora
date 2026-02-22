@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, Calendar, Save, Trash2, ImageIcon, ArrowLeftIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -207,8 +207,8 @@ export const UserProfileForm = () => {
                                                             type="button"
                                                             // disabled={isPending}
                                                             variant="destructive"
-                                                            size="xs"
-                                                            className="w-fit mt-2"
+                                                            size="sm"
+                                                            className=" mt-2"
                                                             onClick={() => {
                                                                 field.onChange(null);
                                                                 setImageSizeError(false);
@@ -224,8 +224,8 @@ export const UserProfileForm = () => {
                                                             type="button"
                                                             // disabled={isPending}
                                                             variant="outline"
-                                                            size="xs"
-                                                            className="w-fit mt-2"
+                                                            size="sm"
+                                                            className="mt-2"
                                                             onClick={() => inputRef.current?.click()}
                                                         >
                                                             Upload Image
@@ -280,7 +280,7 @@ export const UserProfileForm = () => {
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            size="xs"
+                                            size="sm"
                                             onClick={() => setIsEmailModalOpen(true)}
                                         >
                                             Change Email
@@ -306,24 +306,29 @@ export const UserProfileForm = () => {
                                             Change Password
                                         </Button>
                                     </div>
-                                    <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                                        <div className="flex flex-col">
-                                            <h3 className="font-bold text-red-600">Danger Zone</h3>
-                                            <p className="text-sm text-red-600 mt-1">
-                                                Deleting your account is irreversible and will remove all your data including workspaces, projects, and tasks.
-                                            </p>
-                                            <Button
-                                                className="mt-4 w-fit ml-auto"
-                                                size="sm"
-                                                variant="destructive"
-                                                type="button"
-                                                onClick={() => setIsDeleteModalOpen(true)}
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                Delete Account
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
+        <CardHeader>
+          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
+        </CardHeader>
+        <CardContent>
+            <p className="text-sm text-destructive/80  dark:text-red-600">
+              Deleting a account is irreversible and will remove all
+              associated data.
+            </p>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button
+            size="sm"
+            variant="destructive"
+            type="button"
+            // disabled={isPending}
+            // onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Account
+          </Button>
+        </CardFooter>
+      </Card>
 
                                 </div>
                             </form>

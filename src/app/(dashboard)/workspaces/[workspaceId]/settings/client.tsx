@@ -22,7 +22,7 @@ export const WorkspaceSettingsClient = ({ workspaceId }: WorkspaceSettingsClient
   }
 
   return (
-    <div className="w-full flex flex-col gap-y-6">
+    <div className="w-full flex flex-col">
       <EditWorkspaceForm initialValues={initialValues} />
     </div>
   );

@@ -176,7 +176,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                                                                 type="button"
                                                                 disabled={isPending}
                                                                 variant="destructive"
-                                                                size="xs"
+                                                                size="sm"
                                                                 className="w-fit mt-2"
                                                                 onClick={() => {
                                                                     field.onChange(null);
@@ -193,7 +193,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                                                                 type="button"
                                                                 disabled={isPending}
                                                                 variant="outline"
-                                                                size="xs"
+                                                                size="sm"
                                                                 className="w-fit mt-2"
                                                                 onClick={() => inputRef.current?.click()}
                                                             >
