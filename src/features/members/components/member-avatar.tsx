@@ -1,3 +1,6 @@
+"use client";
+
+import Image from "next/image"; 
 import { cn } from "@/lib/utils";
 import { UserX } from "lucide-react";
 import { useState } from "react";
@@ -18,12 +21,12 @@ export const MemberAvatar = ({
     isActive = true,
 }: MemberAvatarProps) => {
     const [imageError, setImageError] = useState(false);
+
     const hasValidImage = src && !imageError; 
     const hasValidName = name && name.trim() !== "";
 
     return (
         <div className={cn(
-            // ✨ FIXED: Added shrink-0 and aspect-square to enforce a perfect circle
             "relative rounded-full border flex items-center justify-center overflow-hidden shrink-0 aspect-square", 
             isActive 
                 ? "border-border bg-secondary text-secondary-foreground"  
@@ -32,14 +35,17 @@ export const MemberAvatar = ({
         )}>
             <div className={cn(
                 "w-full h-full flex items-center justify-center overflow-hidden",
-                !isActive && "grayscale opacity-50"
+                !isActive && "grayscale opacity-50 relative z-0" 
             )}>
                 {hasValidImage ? (
-                    <img 
-                        src={src!} 
-                        alt={name || "Member"} 
-                        className="w-full h-full object-cover"
+                    <Image 
+                        src={src ?? ""} 
+                        alt={name || "Member Avatar"}
+                        fill 
+                        className="object-cover" 
                         onError={() => setImageError(true)}
+                        sizes="(max-width: 640px) 100vw, 64px"
+                        // priority={false}
                     />
                 ) : hasValidName ? (
                     <div className={cn(
@@ -54,7 +60,7 @@ export const MemberAvatar = ({
             </div>
 
             {!isActive && (
-                <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                     <div className="absolute inset-0 border-2 border-destructive rounded-full" />
                 </div>
             )}

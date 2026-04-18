@@ -12,14 +12,11 @@ import {
   Activity,
   Layers,
   PieChart,
-  LineChart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PlanoraLogo } from "@/components/planora-logo"; 
-import { redirect } from "next/navigation";
-import { getWorkspaces } from "@/features/workspaces/server/useGetWorkspace";
 
 const features = [
   {
@@ -72,6 +69,14 @@ const analyticsFeatures = [
       "Workspace-wide overview"
     ],
     icon: Activity,
+    popular: false,
+    Visual: () => (
+      <div className="h-20 w-full bg-muted/30 rounded-lg border border-border flex items-end justify-between p-2 gap-1.5 overflow-hidden">
+        {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
+          <div key={i} className="w-full bg-blue-500/40 hover:bg-blue-500/60 transition-colors rounded-t-sm" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+    ),
   },
   {
     name: "Cumulative Flow",
@@ -85,6 +90,25 @@ const analyticsFeatures = [
     ],
     icon: Layers,
     popular: true,
+    Visual: () => (
+      <div className="h-20 w-full bg-muted/30 rounded-lg border border-border flex items-end justify-between p-2 gap-1 overflow-hidden">
+        {[
+          { done: 20, progress: 30, todo: 50 },
+          { done: 25, progress: 35, todo: 40 },
+          { done: 30, progress: 40, todo: 30 },
+          { done: 45, progress: 35, todo: 20 },
+          { done: 60, progress: 25, todo: 15 },
+          { done: 75, progress: 15, todo: 10 },
+          { done: 85, progress: 10, todo: 5 },
+        ].map((col, i) => (
+          <div key={i} className="w-full h-full flex flex-col justify-end gap-[1px]">
+            <div className="w-full bg-rose-500/40 rounded-t-sm" style={{ height: `${col.todo}%` }} title="To Do" />
+            <div className="w-full bg-amber-500/40" style={{ height: `${col.progress}%` }} title="In Progress" />
+            <div className="w-full bg-emerald-500/40 rounded-b-sm" style={{ height: `${col.done}%` }} title="Done" />
+          </div>
+        ))}
+      </div>
+    ),
   },
   {
     name: "Performance Matrix",
@@ -97,22 +121,35 @@ const analyticsFeatures = [
       "Role-based performance"
     ],
     icon: PieChart,
+    popular: false,
+    Visual: () => (
+      <div className="h-20 w-full bg-muted/30 rounded-lg border border-border flex flex-col justify-center p-3 gap-2.5 overflow-hidden">
+        <div className="w-full bg-background/50 rounded-full h-2 overflow-hidden flex">
+          <div className="bg-primary/80 h-full w-[85%] rounded-full" />
+        </div>
+        <div className="w-full bg-background/50 rounded-full h-2 overflow-hidden flex">
+          <div className="bg-emerald-500/80 h-full w-[60%] rounded-full" />
+        </div>
+        <div className="w-full bg-background/50 rounded-full h-2 overflow-hidden flex">
+          <div className="bg-purple-500/80 h-full w-[40%] rounded-full" />
+        </div>
+      </div>
+    ),
   },
 ];
 
-export default async function LandingPage() {
-  const workspacesData = await getWorkspaces();
+export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-2 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PlanoraLogo 
-                  fontFamily="outfit"
-                  wheelSize={50}
-                  wheelHandWidth={3}
-                  animateText={false}
-                  className="" />
+                fontFamily="outfit"
+                wheelSize={50}
+                wheelHandWidth={3}
+                animateText={false}
+                className="" />
           </div>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
@@ -147,7 +184,7 @@ export default async function LandingPage() {
               Sign In
             </Link>
             <Button asChild size="sm" className="shadow-sm">
-              <Link href={workspacesData?.documents?.[0] ? `/workspaces/${workspacesData.documents[0].id}` : '/sign-up'}>
+              <Link href="/sign-up">
                 Get Started
               </Link>
             </Button>
@@ -338,46 +375,44 @@ export default async function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {analyticsFeatures.map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`relative flex flex-col p-8 rounded-3xl border ${item.popular ? "border-primary shadow-lg bg-background" : "border-border bg-background"}`}
-                >
-                  {item.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                        Most Powerful
-                      </Badge>
-                    </div>
-                  )}
-                  <div className="mb-6">
-                    <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 text-primary">
-                      <item.icon className="size-6" />
-                    </div>
-                    <Badge variant="secondary" className="mb-3">{item.highlight}</Badge>
-                    <h3 className="text-2xl font-bold mb-3">{item.name}</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-                  
-                  <ul className="space-y-4 mb-8 flex-1 mt-4 border-t border-border/50 pt-6">
-                    {item.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-3">
-                        <CheckCircle2 className="size-4 text-primary shrink-0" />
-                        <span className="text-sm font-medium">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+  {analyticsFeatures.map((item, idx) => (
+    <div
+      key={idx}
+      className={`relative flex flex-col p-8 rounded-3xl border ${item.popular ? "border-primary shadow-lg bg-background" : "border-border bg-background"}`}
+    >
+      {item.popular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <Badge className="bg-primary text-primary-foreground px-3 py-1">
+            Most Powerful
+          </Badge>
+        </div>
+      )}
+      <div className="mb-6">
+        <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center mb-6 text-primary">
+          <item.icon className="size-6" />
+        </div>
+        <Badge variant="secondary" className="mb-3">{item.highlight}</Badge>
+        <h3 className="text-2xl font-bold mb-3">{item.name}</h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {item.description}
+        </p>
+      </div>
+      
+      <ul className="space-y-4 mb-8 flex-1 mt-4 border-t border-border/50 pt-6">
+        {item.features.map((feature, i) => (
+          <li key={i} className="flex items-center gap-3">
+            <CheckCircle2 className="size-4 text-primary shrink-0" />
+            <span className="text-sm font-medium">{feature}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-auto pt-4">
+        <item.Visual />
+      </div>
 
-                  <div className="h-20 w-full bg-muted/30 rounded-lg border border-border flex items-end justify-between p-2 gap-1 overflow-hidden mt-auto">
-                    {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
-                      <div key={i} className="w-full bg-primary/40 rounded-t-sm" style={{ height: `${h}%` }} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+    </div>
+  ))}
+</div>
           </div>
         </section>
 
@@ -440,12 +475,12 @@ export default async function LandingPage() {
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="/docs" className="hover:text-primary transition-colors">
                     Documentation
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="/community" className="hover:text-primary transition-colors">
                     Community
                   </Link>
                 </li>
@@ -461,12 +496,12 @@ export default async function LandingPage() {
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="/privacy" className="hover:text-primary transition-colors">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-primary transition-colors">
+                  <Link href="/terms" className="hover:text-primary transition-colors">
                     Terms of Service
                   </Link>
                 </li>

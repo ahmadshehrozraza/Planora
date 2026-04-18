@@ -8,7 +8,7 @@ export default async function WorkspaceSettingsPage({
 }) {
   return (
     <div className="flex flex-col">
-        <Navbar title="Workspace Settings" description="Manage & view workspace here" />
+      <Navbar title="Workspace Settings" description="Manage & view workspace here" />
       <WorkspaceSettingsClient workspaceId={params.workspaceId} />
     </div>
   );

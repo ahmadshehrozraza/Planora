@@ -15,6 +15,7 @@ import { useJoinWorkspace } from "../api/use-join-workspace";
 import { useInviteCode } from "../hooks/use-invite-code";
 import { useWorkspaceId } from "../hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
+import { WorkspaceAvatar } from "./workspace-avatar";
 
 interface JoinWorkspaceFormProps {
     initialValues: {
@@ -36,21 +37,16 @@ export const JoinWorkspaceForm = ({
         return;
     }
 
-    const onSubmit = () => {
-
+   const onSubmit = () => {
         if (!workspaceId || !inviteCode) {
             toast.error("Invalid workspace link or invite code");
             return;
         }
 
         mutate({
-            param: { workspaceId },
-            json: { code: inviteCode },
-        }, {
-            onSuccess: ({ data }) => {
-                router.push(`/workspaces/${data.$id}`);
-            }
-        })
+             workspaceId, 
+             inviteCode 
+        });
     }
 
     return (
@@ -58,7 +54,14 @@ export const JoinWorkspaceForm = ({
             <Card className="w-full h-full border-none shadow-none">
                 <CardHeader className="p-7">
                     <CardTitle className="text-xl font-bold">
-                        Join Workspace
+                        <div className="flex items-center gap-2">
+                            <WorkspaceAvatar 
+                            name={initialValues.name}
+                            />
+
+                            {initialValues.name}
+                        </div>
+                        
                     </CardTitle>
 
                     <CardDescription>

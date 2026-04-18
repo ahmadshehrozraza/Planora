@@ -1,19 +1,35 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { getTasksAction } from "../server/get-tasks";
 
-import { TaskStatus } from "../types";
+interface UseGetTasksProps {
+    workspaceId?: string;
+    projectId?: string;
+    segmentId?: string;
+    assigneeId?: string;
+    status?: string;
+    dueDate?: string;
+    search?: string;
+}
 
-
-
-export const useGetTasks = () => {
-
-  return useQuery({
-    queryKey: ["tasks"],
-    queryFn: async () => {
-      
-      return null;
-      
-    },
-  });
+export const useGetTasks = (params: UseGetTasksProps) => {
+    return useQuery({
+        queryKey: [
+            "tasks",
+            params.workspaceId,
+            params.projectId,
+            params.segmentId,
+            params.assigneeId,
+            params.status,
+            params.dueDate,
+            params.search
+        ],
+        queryFn: async () => {
+            const response = await getTasksAction(params);
+            return response.data;
+        },
+        enabled: !!params.workspaceId,
+        placeholderData: keepPreviousData,
+    });
 };

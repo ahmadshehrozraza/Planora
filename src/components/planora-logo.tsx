@@ -52,7 +52,7 @@ export const PlanoraLogo: React.FC<PlanoraLogoProps> = ({
     ""; 
 
   return (
-    <div className={cn("flex items-center select-none group cursor-pointer", className)}>
+    <div className={cn("flex items-center select-none group/logo cursor-pointer", className)}>
 
       <PlanoraWheel
         size={wheelSize}
@@ -72,7 +72,7 @@ export const PlanoraLogo: React.FC<PlanoraLogoProps> = ({
           className={cn(
             fontClass, 
             fontWeight, 
-            "tracking-tight transition-transform duration-300 group-hover:scale-105",
+            "tracking-tight transition-transform duration-300 group-hover/logo:scale-105",
             textColor,
             fontFamily === "poppins" && "tracking-tighter" 
           )}

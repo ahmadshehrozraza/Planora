@@ -1,49 +1,48 @@
+"use client";
+
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
-import { client2 } from "@/lib/rpc";
-
-type ResponseType = InferResponseType<typeof client2.api.auth[":userId"]["$patch"], 200>;
-type RequestType = InferRequestType<typeof client2.api.auth[":userId"]["$patch"]>;
+import { uploadFileAction } from "@/lib/upload-file";
+import { updateUserAction } from "../server/update-user-action"; 
+import { useRouter } from "next/navigation";
 
 export const useUpdateUser = () => {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
-    const mutation = useMutation<
-        ResponseType,
-        Error,
-        RequestType
-    >({
-        mutationFn: async ({ form, param }) => {
-            const response = await client2.api.auth[":userId"]["$patch"]({ 
-                form, 
-                param 
-            });
+    return useMutation({
+        mutationFn: async (values: any) => {
+            let finalImageUrl = values.imageUrl;
 
-            if (!response.ok) {
+            if (values.imageFile instanceof File) {
+                const formData = new FormData();
+                formData.append("file", values.imageFile);
 
-                let errorMessage = "Failed to update user";
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.error || errorMessage;
-                } catch {
-                    errorMessage = response.statusText || errorMessage;
+                const uploadRes = await uploadFileAction(formData, "avatars"); 
+                if (uploadRes.success && uploadRes.fileUrl) {
+                    finalImageUrl = uploadRes.fileUrl;
+                } else {
+                    throw new Error(uploadRes.error || "Failed to upload avatar");
                 }
-                throw new Error(errorMessage);
             }
 
-            return await response.json();
+            const { imageFile, imageUrl, ...plainValues } = values;
+
+            const response = await updateUserAction({
+                ...plainValues,
+                imageUrl: finalImageUrl 
+            });
+
+            if (response?.error) throw new Error(response.error);
+            return response;
         },
-        onSuccess: ({ data }) => {
-            toast.success("Profile updated successfully api");
+        onSuccess: (data) => {
+            toast.success(data.success);
             queryClient.invalidateQueries({ queryKey: ["current"] });
-            queryClient.invalidateQueries({ queryKey: ["members"] }); 
+            router.refresh(); 
         },
-        onError: (error) => {
-            console.error("Update error:", error);
-            toast.error(error.message || "Failed to update profile");
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to update Profile");
         }
     });
-
-    return mutation;
 };

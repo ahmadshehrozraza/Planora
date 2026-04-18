@@ -1,11 +1,11 @@
-import { projectAnalyticsType } from "@/features/projects/api/use-get-project-analytics"
+
 import { ScrollArea, ScrollBar } from "./ui/scroll-area"
 import { AnalyticsCard } from "./analytics-card"
 import { Separator } from "@/components/ui/separator";
 
 export const Analytics = ({
     data,
-}: projectAnalyticsType ) => {
+}: any ) => {
     return (
         <ScrollArea className="border rounded-lg w-full whitespace-nowrap shrink-0">
         <div className="w-full flex flex-row">

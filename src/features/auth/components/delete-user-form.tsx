@@ -21,12 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { passwordVerifySchema } from "../schemas";
 import { useVerifyPassword } from "../api/use-verify-current-password";
 import { useDeleteUser } from "../api/use-delete-user";
+import { PageLoader } from "@/components/page-loader";
 
 interface DeleteUserFormProps {
     isOpen: boolean;
@@ -166,12 +167,12 @@ export const DeleteUserForm = ({
                                 >
                                     {isVerifying ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <PageLoader />
                                             Verifying...
                                         </>
                                     ) : isDeleting ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <PageLoader />
                                             Deleting...
                                         </>
                                     ) : (

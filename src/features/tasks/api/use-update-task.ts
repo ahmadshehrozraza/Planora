@@ -1,28 +1,44 @@
-
+"use client";
 
 import { toast } from "sonner";
-import { useMutation, useQueryClient  } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateTaskAction, bulkUpdateTasksOrder } from "../server/update-task";
 
 export const useUpdateTask = () => {
-
     const queryClient = useQueryClient();
-    
-    const mutation = useMutation({
-        mutationFn: async() => {
-            
-      return null;
-      
-        },
-        onSuccess: () => {
-            toast.success("Task Updated successfully");
-            queryClient.invalidateQueries({ queryKey: ["tasks"]});
-            queryClient.invalidateQueries({ queryKey: ["task", ]});
 
+    return useMutation({
+        mutationFn: async (values: any) => {
+            const response = await updateTaskAction(values);
+            if (response?.error) throw new Error(response.error);
+            return response;
         },
-        onError: () => {
-            toast.error("Failed to update Task");
+        onSuccess: (data, variables) => {
+            toast.success(data.success || "Task updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["tasks", variables.workspaceId] });
+            queryClient.invalidateQueries({ queryKey: ["task", variables.id] });
+            queryClient.invalidateQueries({ queryKey: ["project-analytics"] });
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to update task");
         }
     });
+};
 
-    return mutation;
+export const useReorderTasks = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (values: any) => {
+            const response = await bulkUpdateTasksOrder(values);
+            if (response?.error) throw new Error(response.error);
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        },
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to reorder tasks");
+        }
+    });
 };

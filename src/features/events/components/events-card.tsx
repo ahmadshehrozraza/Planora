@@ -5,20 +5,15 @@ import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
-import { LayersIcon, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { DateIndicator } from "@/components/date-indicator";
 import { differenceInDays } from "date-fns";
+import { EventTypes } from "../types";
 
-interface EventsCardProps {
+interface EventsCardProps extends Partial<EventTypes> {
     id: string;
     title: string;
     date: string;
-    time?: string;
-    project?: { name: string; imageUrl?: string };
-    segment?: { name: string };
-    description?: string;
-    eventCreator?: { name: string; avatar?: string };
-    opened?: boolean;
     variant?: "default" | "mini";
 }
 
@@ -101,7 +96,7 @@ export const EventsCard = ({
                     {segment && (
                         <div className="flex items-center gap-0.5 min-w-0">
                              {!isMini && <span className="text-muted-foreground/50">•</span>}
-                             <span className="truncate text-[9px] text-muted-foreground opacity-80 max-w-[60px]">
+                             <span className="truncate text-[9px] text-muted-foreground opacity-80 max-w-[60px]" title={segment.name}>
                                 {segment.name}
                              </span>
                         </div>
@@ -134,7 +129,7 @@ export const EventsCard = ({
                             <div title={`Created by ${eventCreator.name}`} className="relative z-20">
                                 <MemberAvatar
                                     name={eventCreator.name}
-                                    avatar={eventCreator.avatar}
+                                    src={eventCreator.avatar} 
                                     className={cn("border border-background", isMini ? "size-4" : "size-5")}
                                     fallbackClassname="text-[6px] bg-primary text-primary-foreground"
                                 />

@@ -4,18 +4,15 @@ import React, { useState, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import {
   CalendarIcon,
-  Clock,
   ArrowRight,
   ArrowLeft,
   Layers,
   Plus,
-  Loader,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { DataCalendar } from "@/features/events/components/data-calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useCreateEventModal } from "@/features/events/hooks/use-create-event-modal";
@@ -26,23 +23,27 @@ import { useGetEvents } from "@/features/events/api/use-get-events";
 import { EventFilters } from "@/features/events/components/event-filters";
 import { useEventFilters } from "@/features/events/hooks/use-event-filters";
 import { EventsCard } from "@/features/events/components/events-card";
+import { PageLoader } from "@/components/page-loader";
+import { EventTypes } from "@/features/events/types";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 const EventsClientPage = () => {
   const { open } = useCreateEventModal();
   const router = useRouter();
   const workspaceId = useWorkspaceId();
 
-  const [{ projectId, date }] = useEventFilters();
+  const [{ projectId, segmentId, date }] = useEventFilters();
 
-  const {
-    data: events,
-    isLoading,
-    isError,
-  } = useGetEvents({
+  const { data, isLoading, isError } = useGetEvents({
     workspaceId,
     projectId,
-    date,
+    segmentId,
   });
+
+  const { data: permissions } = useGetPermissions( workspaceId );
+  const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+
+  const events: EventTypes[] = data || [];
 
   const [view, setView] = useState<"TODAY" | "ALL">("TODAY");
 
@@ -51,7 +52,7 @@ const EventsClientPage = () => {
   }, []);
 
   const displayedEvents = useMemo(() => {
-    if (!events) return [];
+    if (!events.length) return [];
 
     const targetDate = date || new Date();
 
@@ -80,6 +81,8 @@ const EventsClientPage = () => {
         <div className="w-full lg:w-auto">
           <EventFilters />
         </div>
+
+        {allowed && (
         <Button
           onClick={open}
           className="w-full lg:w-auto shadow-sm"
@@ -88,17 +91,19 @@ const EventsClientPage = () => {
           <Plus className="size-4 mr-2" />
           New Event
         </Button>
+        )}
+
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         <div className="flex-1 bg-card rounded-xl shadow-sm border border-border flex flex-col min-h-0 overflow-hidden relative">
           {isLoading ? (
             <div className="w-full h-full flex items-center justify-center">
-              <Loader className="size-8 animate-spin text-muted-foreground" />
+              <PageLoader />
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-              <DataCalendar data={events || []} />
+              <DataCalendar data={events} />
             </div>
           )}
         </div>
@@ -122,7 +127,7 @@ const EventsClientPage = () => {
                 <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
                   {view === "TODAY"
                     ? format(date || new Date(), "EEEE, MMM do")
-                    : `${events?.length || 0} Events Total`}
+                    : `${events.length} Events Total`}
                 </p>
               </div>
               <Button
@@ -152,14 +157,14 @@ const EventsClientPage = () => {
                   ) : displayedEvents.length > 0 ? (
                     displayedEvents.map((event) => (
                       <EventsCard
-                        key={event.$id}
-                        id={event.$id}
+                        key={event.id}
+                        id={event.id}
                         title={event.title}
-                        date={event.date as string}
+                        date={event.date}
                         time={event.time}
-                        description={event.description}
-                        project={event.project}
-                        segment={event.segment}
+                        description={event.description || undefined}
+                        project={event.project || undefined}
+                        segment={event.segment || undefined}
                         eventCreator={event.eventCreator}
                         opened={event.opened}
                         variant="default"
@@ -180,6 +185,8 @@ const EventsClientPage = () => {
                             : "No upcoming events scheduled."}
                         </p>
                       </div>
+
+                      {allowed && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -188,6 +195,8 @@ const EventsClientPage = () => {
                       >
                         Create one now
                       </Button>
+                      )}
+                      
                     </div>
                   )}
                 </div>

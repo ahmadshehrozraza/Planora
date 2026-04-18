@@ -2,12 +2,16 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { useSSE } from "@/hooks/use-sse";
 
 interface DashboardLayoutWrapperProps {
   children: React.ReactNode;
 }
 
 export const DashboardLayoutWrapper = ({ children }: DashboardLayoutWrapperProps) => {
+
+  useSSE();
+  
   return (
     <SidebarProvider>
       <div className="min-h-screen w-full">

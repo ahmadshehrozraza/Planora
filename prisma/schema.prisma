@@ -1,0 +1,445 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+//  MODELs
+// ==========================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  isActive      Boolean?  @default(true)
+
+  emailVerified DateTime?
+  image         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+
+  accounts         Account[]
+  workspaceMembers WorkspaceMember[]
+  projectMembers   ProjectMember[]
+  activityLogs     ActivityLog[]
+  
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  createdTasks     Task[]            @relation("TaskAssignedBy")
+  comments         Comment[]         @relation("UserComments")
+  likedComments    Comment[]         @relation("CommentLikes")
+  createdEvents    Event[]           @relation("EventCreator")
+  attachments Attachment[]           @relation("UserAttachments")
+
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+  sentNotifications     Notification[] @relation("SentNotifications")
+
+  preferences   UserPreference?
+}
+
+
+model UserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  lastWorkspaceId String?  
+  theme           String   @default("system")
+  sidebarExpanded Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+enum WorkspaceRole {
+  ADMIN
+  MEMBER
+}
+
+model Workspace {
+  id         String  @id @default(cuid())
+  name       String
+  imageUrl   String? @db.Text
+  inviteCode String  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  WorkspaceMember[]
+  projects Project[]
+  tasks    Task[]
+  events Event[]
+  activityLogs    ActivityLog[]
+  attachments Attachment[]
+}
+
+model WorkspaceMember {
+  id   String        @id @default(cuid())
+  role WorkspaceRole @default(MEMBER)
+
+  userId      String
+  workspaceId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  OVER_DUE
+}
+
+enum ProjectRole {
+  PROJECT_MANAGER
+  MEMBER
+}
+
+model Project {
+  id            String  @id @default(cuid())
+  name          String
+  description   String? @db.Text
+  imageUrl      String? @db.Text
+  githubRepoUrl String? @db.Text
+  inviteCode    String  @unique
+
+  status        ProjectStatus @default(ACTIVE)
+  currency      String        @default("PKR")
+  budget        Float         @default(0)
+
+  startDate     DateTime?
+  dueDate       DateTime?
+  completedAt   DateTime?
+
+  workspaceId   String
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members       ProjectMember[]
+  segments      Segment[]
+  customColumns CustomColumn[]
+  tasks         Task[]
+  events        Event[]
+  activityLogs  ActivityLog[]
+  attachments   Attachment[]
+}
+
+model ProjectMember {
+  id   String      @id @default(cuid())
+  role ProjectRole @default(MEMBER)
+
+  userId    String
+  projectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+enum SegmentStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  OVER_DUE
+}
+
+
+// ==========================================
+//  Segment MODEL
+// ==========================================
+
+model Segment {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+
+  status SegmentStatus @default(ACTIVE)
+
+  startDate   DateTime?
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  projectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+  events Event[]
+  attachments Attachment[]
+  // members    SegmentMember[]  
+}
+
+
+// ==========================================
+//  EVENT MODEL
+// ==========================================
+
+model CustomColumn {
+  id        String @id @default(cuid())
+  name      String
+  position  Int
+  projectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@unique([projectId, name])
+}
+
+
+// ==========================================
+//  Task MODEL
+// ==========================================
+
+model Task {
+  id           String  @id @default(cuid())
+  name         String
+  description  String? @db.Text
+
+  branchName   String? 
+
+  columnId     String
+  column       CustomColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  position     Int
+
+  projectId    String
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  segmentId    String?
+  segment      Segment? @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  assigneeId   String?
+  assignee     User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  assignedById String
+  assignedBy   User    @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+
+  taskType     String
+  priority     String
+
+  budget       Float  @default(0)
+  currency     String @default("PKR")
+  effortPoints Int    @default(1)
+  progress     Int    @default(0)
+
+  startDate    DateTime?
+  dueDate      DateTime?
+
+  blockedById  String?
+  blockedBy    Task?   @relation("TaskBlocks", fields: [blockedById], references: [id], onDelete: SetNull)
+  blocking     Task[]  @relation("TaskBlocks")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments     Comment[]
+  attachments  Attachment[]
+}
+
+
+// ==========================================
+//  comment
+// ==========================================
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  parentId  String?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  
+  likedBy   User[]   @relation("CommentLikes")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
+// ==========================================
+//  EVENT MODEL
+// ==========================================
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  date        DateTime 
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  projectId   String?   
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  segmentId   String?  
+  segment     Segment?  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  creatorId   String
+  creator     User      @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+
+
+
+// ==========================================
+//  ACTIVITY / AUDIT LOG MODEL
+// ==========================================
+model ActivityLog {
+  id          String   @id @default(cuid())
+
+  workspaceId String
+  projectId   String? 
+
+  userId      String   
+
+  action      String  
+
+  entityType  String  
+  entityId    String  
+
+  metadata    Json?    
+  
+  createdAt   DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+
+
+
+// ==========================================
+//  Notifications
+// ==========================================
+
+model Notification {
+  id          String   @id @default(cuid())
+
+  userId      String   
+  user        User     @relation("ReceivedNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  actorId     String   
+  actor       User     @relation("SentNotifications", fields: [actorId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  projectId   String?  
+  entityId    String   
+  entityType  String  
+  action      String   
+  title       String   
+  message     String   
+  isRead      Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isRead])
+}
+
+
+// ==========================================
+//  ATTACHMENT / FILE MODEL
+// ==========================================
+model Attachment {
+  id          String   @id @default(cuid())
+  name        String  
+  url         String   @db.Text 
+  size        Int      
+  type        String  
+
+  uploadedById String
+  uploadedBy   User     @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  projectId    String?
+  project      Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  segmentId    String?
+  segment      Segment?  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  taskId       String?
+  task         Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([segmentId])
+  @@index([taskId])
+}

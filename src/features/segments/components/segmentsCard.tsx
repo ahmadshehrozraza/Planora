@@ -6,12 +6,12 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { cn, daysSinceStart, daysUntilDue, snakeCaseToTitleCase } from "@/lib/utils";
 import { ProgressBar } from "@/components/Progress-bar";
-import { DummySegment, SegmentStatus } from "../types";
+import { Segment, SegmentStatus } from "../types";
 import { DateIndicator, dateFormatter } from "@/components/date-indicator";
 import { Layers } from "lucide-react"; 
 
 interface SegmentCardProps {
-  segment: DummySegment;
+  segment: any;
   className?: string;
   view?: "grid" | "list";
 }
@@ -23,30 +23,39 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
 }) => {
 
   const { statusLabel, remainingText, remainingVariant } = useMemo(() => {
-    const daysRemaining = daysUntilDue(segment.endingDate);
+    // ✨ FIX: endingDate ko dueDate kar diya
+    const daysRemaining = segment.dueDate ? daysUntilDue(segment.dueDate) : 0;
     let text = "";
     let variant = "outline";
 
-    if (segment.segmentStatus === SegmentStatus.ACTIVE) {
-        text = `${daysRemaining} days remaining`;
+    // ✨ FIX: segmentStatus ko status kar diya
+    if (segment.status === SegmentStatus.ACTIVE) {
+        text = segment.dueDate ? `${daysRemaining} days remaining` : "No due date";
         variant = "ACTIVE";
-    } else if (segment.segmentStatus === SegmentStatus.OVER_DUE) {
+    } else if (segment.status === SegmentStatus.OVER_DUE) {
         text = `${daysRemaining} days overdue`;
         variant = "OVER_DUE";
-    } else if (segment.segmentStatus === SegmentStatus.COMPLETED) {
+    } else if (segment.status === SegmentStatus.COMPLETED) {
         text = `${daysRemaining} days ago`; 
         variant = "COMPLETED";
     }
 
     return {
-        statusLabel: snakeCaseToTitleCase(segment.segmentStatus),
+        // ✨ FIX: segmentStatus ko status kar diya
+        statusLabel: segment.status ? snakeCaseToTitleCase(segment.status) : "Unknown",
         remainingText: text,
         remainingVariant: variant,
     };
-  }, [segment.segmentStatus, segment.endingDate]);
+  }, [segment.status, segment.dueDate]);
 
-  const formattedStartDate = useMemo(() => dateFormatter(segment.startingDate), [segment.startingDate]);
-  const daysSince = useMemo(() => daysSinceStart(segment.startingDate), [segment.startingDate]);
+  // ✨ FIX: startingDate ko startDate kar diya
+  const formattedStartDate = useMemo(() => dateFormatter(segment.startDate || null), [segment.startDate]);
+  const daysSince = useMemo(() => segment.startDate ? daysSinceStart(segment.startDate) : "N/A", [segment.startDate]);
+
+  // ✨ TEMP FIX: Tasks ka data abhi relation mein nahi hai
+  const completedTasks = 0;
+  const totalTasks = 0;
+  const progress = 0;
 
   if (view === "list") {
       return (
@@ -59,8 +68,12 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
                       <h2 className="truncate font-bold text-foreground">{segment.name}</h2>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 truncate font-medium">
                           <span>{formattedStartDate}</span>
-                          <span>—</span>
-                          <DateIndicator value={segment.endingDate} />
+                          {segment.dueDate && (
+                              <>
+                                <span>—</span>
+                                <DateIndicator value={segment.dueDate} />
+                              </>
+                          )}
                       </div>
                   </div>
               </div>
@@ -68,21 +81,22 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
               <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto shrink-0">
                   <div className="flex flex-col gap-1 text-xs">
                       <span className="text-muted-foreground font-medium">
-                          Tasks: <span className="font-bold text-foreground">{segment.completedTasks || 0} / {segment.totalTasks}</span>
+                          Tasks: <span className="font-bold text-foreground">{completedTasks} / {totalTasks}</span>
                       </span>
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <Badge variant={segment.segmentStatus as any}>{statusLabel}</Badge>
+                      {/* ✨ FIX: segmentStatus ko status kar diya */}
+                      <Badge variant={segment.status as any}>{statusLabel}</Badge>
                       {remainingText && (
-                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", segment.segmentStatus === 'OVER_DUE' ? 'text-destructive' : 'text-muted-foreground')}>
+                          <span className={cn("text-[10px] font-bold uppercase tracking-wider", segment.status === 'OVER_DUE' ? 'text-destructive' : 'text-muted-foreground')}>
                               {remainingText}
                           </span>
                       )}
                   </div>
 
                   <div className="w-24 shrink-0 hidden md:block">
-                      <ProgressBar value={segment.progress} className="h-2" />
+                      <ProgressBar value={progress} className="h-2" />
                   </div>
               </div>
           </Card>
@@ -96,7 +110,8 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
           <Layers className="size-4 text-primary shrink-0" />
           <h2 className="truncate font-bold text-foreground text-[15px]">{segment.name}</h2>
         </div>
-        <Badge variant={segment.segmentStatus as any} className="shrink-0 ml-2">
+        {/* ✨ FIX: segmentStatus ko status kar diya */}
+        <Badge variant={segment.status as any} className="shrink-0 ml-2">
           {statusLabel}
         </Badge>
       </CardHeader>
@@ -107,15 +122,21 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
             <span className="text-muted-foreground font-medium">Start Date</span>
             <div className="flex items-center gap-2">
                <span className="text-foreground font-semibold">{formattedStartDate}</span>
-               <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold bg-secondary text-secondary-foreground border-none">{daysSince}</Badge>
+               {segment.startDate && (
+                   <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold bg-secondary text-secondary-foreground border-none">{daysSince}</Badge>
+               )}
             </div>
           </div>
 
           <div className="flex justify-between items-center text-xs">
             <span className="text-muted-foreground font-medium">End Date</span>
             <div className="flex items-center gap-2">
-               <DateIndicator value={segment.endingDate} className="text-foreground font-semibold" />
-               {remainingText && (
+               {segment.dueDate ? (
+                   <DateIndicator value={segment.dueDate} className="text-foreground font-semibold" />
+               ) : (
+                   <span className="text-foreground font-semibold">No Date</span>
+               )}
+               {remainingText && segment.dueDate && (
                  <Badge variant={remainingVariant as any} showIcon={false} className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider border-none">
                    {remainingText}
                  </Badge>
@@ -128,14 +149,14 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
           <div className="flex justify-between items-center text-xs">
             <span className="text-muted-foreground font-medium">Task Progress</span>
             <span className="font-bold text-foreground bg-secondary px-2 py-0.5 rounded-md">
-                {segment.completedTasks || 0} / {segment.totalTasks}
+                {completedTasks} / {totalTasks}
             </span>
           </div>
         </div>
       </CardContent>
 
       <CardFooter className="p-4 pt-0 pb-10 shrink-0">
-        <ProgressBar value={segment.progress} className="w-full h-1.5" />
+        <ProgressBar value={progress} className="w-full h-1.5" />
       </CardFooter>
     </Card>
   );

@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/page-loader";
 
 const passwordVerifySchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -50,8 +50,6 @@ export const ChangePasswordForm = ({
     const [currentStep, setCurrentStep] = useState<FormStep>('verify');
     const [isLoading, setIsLoading] = useState(false);
     const [verifiedPassword, setVerifiedPassword] = useState(false);
-
-    // Password verification form
     const verifyForm = useForm<z.infer<typeof passwordVerifySchema>>({
         resolver: zodResolver(passwordVerifySchema),
         defaultValues: {
@@ -59,7 +57,6 @@ export const ChangePasswordForm = ({
         },
     });
 
-    // New password form
     const newPasswordForm = useForm<z.infer<typeof newPasswordSchema>>({
         resolver: zodResolver(newPasswordSchema),
         defaultValues: {
@@ -68,17 +65,10 @@ export const ChangePasswordForm = ({
         },
     });
 
-    // Step 1: Verify current password
     const onVerifySubmit = async (values: z.infer<typeof passwordVerifySchema>) => {
         setIsLoading(true);
         try {
-            // Add your password verification API call here
             console.log("Verifying password:", values);
-            
-            // Simulate API call
-            
-            
-            // If password is correct
             setVerifiedPassword(true);
             setCurrentStep('newPassword');
             toast.success("Password verified successfully");
@@ -89,16 +79,11 @@ export const ChangePasswordForm = ({
         }
     };
 
-    // Step 2: Set new password
     const onNewPasswordSubmit = async (values: z.infer<typeof newPasswordSchema>) => {
         setIsLoading(true);
         try {
-            // Add your password change API call here
+
             console.log("Changing password:", values);
-            
-            // Simulate API call
-            
-            
             toast.success("Password changed successfully");
             resetForms();
             onClose();
@@ -138,7 +123,6 @@ export const ChangePasswordForm = ({
                     </DialogTitle>
                 </DialogHeader>
 
-                {/* Step 1: Password Verification */}
                 {currentStep === 'verify' && (
                     <Form {...verifyForm}>
                         <form onSubmit={verifyForm.handleSubmit(onVerifySubmit)} className="space-y-4">
@@ -177,7 +161,7 @@ export const ChangePasswordForm = ({
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <PageLoader /> 
                                             Verifying...
                                         </>
                                     ) : (
@@ -189,7 +173,6 @@ export const ChangePasswordForm = ({
                     </Form>
                 )}
 
-                {/* Step 2: Set New Password */}
                 {currentStep === 'newPassword' && (
                     <Form {...newPasswordForm}>
                         <form onSubmit={newPasswordForm.handleSubmit(onNewPasswordSubmit)} className="space-y-4">
@@ -256,7 +239,7 @@ export const ChangePasswordForm = ({
                                     <Button type="submit" disabled={isLoading}>
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <PageLoader /> 
                                                 Changing...
                                             </>
                                         ) : (

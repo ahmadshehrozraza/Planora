@@ -1,0 +1,17 @@
+
+export enum ACTION {
+  CREATE = "CREATE",
+  UPDATE = "UPDATE",
+  DELETE = "DELETE",
+}
+
+export enum ENTITY_TYPE {
+  WORKSPACE = "WORKSPACE",
+  PROJECT = "PROJECT",
+  COLUMN = "COLUMN",
+  TASK = "TASK",
+  EVENT = "EVENT",
+  SEGMENT = "SEGMENT",
+  MEMBER = "MEMBER",
+  COMMENT = "COMMENT",
+}

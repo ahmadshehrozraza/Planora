@@ -16,21 +16,7 @@ import "./data-calendar.css";
 import { EventsCard } from "./events-card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-
-interface EventType {
-    $id: string;
-    title: string;
-    date: string | Date;
-    description?: string;
-    projectId?: string;
-    workspaceId?: string;
-    segmentId?: string;
-    project?: { name: string, imageUrl?: string }; 
-    segment?: { name: string };
-    time?: string;
-    opened?: boolean;
-    eventCreator?: { name: string; avatar?: string };
-}
+import { EventTypes } from "../types";
 
 const locales = {
     "en-US": enUS
@@ -45,7 +31,7 @@ const localizer = dateFnsLocalizer({
 });
 
 interface DataCalendarProps {
-    data: EventType[];
+    data: EventTypes[];
 }
 
 interface CustomToolbarProps {
@@ -95,7 +81,7 @@ export const DataCalendar = ({
     );
 
     const events = data.map((event) => ({
-        id: event.$id,
+        id: event.id,
         title: event.title,
         start: new Date(event.date),
         end: new Date(event.date), 

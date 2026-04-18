@@ -1,24 +1,20 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import ResetPasswordForm from "@/features/auth/components/reset-password-form";
+import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 import { PageError } from "@/components/page-error";
 
 export const ResetPasswordPage = () => {
-
     const searchParams = useSearchParams();
+    const token = searchParams.get("token");
 
-    const userId = searchParams.get("userId");
-    const secret = searchParams.get("secret");
-    const expire = searchParams.get("expire");
-
-    if(!userId || !secret || !expire ){
-        return <PageError message="Invalid reset link"/>
+    if (!token) {
+        return <PageError message="Invalid or missing reset link"/>
     }
 
     return (
         <div>
-            <ResetPasswordForm secret={secret} userId={userId}  />
+            <ResetPasswordForm token={token} />
         </div>
     )
 };

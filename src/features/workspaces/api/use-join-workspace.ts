@@ -1,26 +1,31 @@
-
+"use client";
 
 import { toast } from "sonner";
-import { useMutation, useQueryClient  } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { joinWorkspaceAction } from "../server/join-workspace"; 
+import { useRouter } from "next/navigation";
 
 export const useJoinWorkspace = () => {
     const queryClient = useQueryClient();
-    const mutation = useMutation({
-        
-        mutationFn: async() => {
+    const router = useRouter();
+
+    return useMutation({
+        mutationFn: async ({ workspaceId, inviteCode }: { workspaceId: string, inviteCode: string }) => {
+            const response = await joinWorkspaceAction({ workspaceId, inviteCode });
+            if (response?.error) throw new Error(response.error);
+            return response;
+        },
+        onSuccess: (data, variables) => {
+            toast.success(data.success);
+            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+            queryClient.invalidateQueries({ queryKey: ["workspace", variables.workspaceId] });
             
-            return null;
+            if (data?.data?.id) {
+                router.push(`/workspaces/${data.data.id}`);
+            }
         },
-        onSuccess: () => {
-            toast.success("Joined workspace successfully");
-            queryClient.invalidateQueries({ queryKey: ["workspaces"]});
-            queryClient.invalidateQueries({ queryKey: ["workspace", ]});
-        },
-        onError: () => {
-            toast.error("Failed to join workspace 1111");
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to join workspace");
         }
     });
-
-    return mutation;
 };

@@ -1,44 +1,40 @@
-export enum TaskStatus {
-    BACKLOG = "BACKLOG",
-    TODO = "TODO",
-    IN_PROGRESS = "IN_PROGRESS",
-    IN_REVIEW = "IN_REVIEW",
-    DONE = "DONE"
-};
 
 export enum TaskType {
     TASK = "TASK",
     FEATURE = "FEATURE",
     DOCUMENTATION = "DOCUMENTATION"
-};
+}
 
 export enum TaskPriority {
     LOW = "LOW",
     MEDIUM = "MEDIUM",
     HIGH = "HIGH"
-};
+}
+
+export type CustomColumnData = {
+    id: string;
+    name: string;
+    position: number;
+    projectId: string;
+}
 
 export type Task = {
     id: string;
     workspaceId: string;
     assignedById: string;
-
     projectId: string;
-    segmentId: string;
+    segmentId: string | null;
+    columnId: string;
     name: string;
-    description: string;
+    description: string | null;
     budget: number;
-    startDate: Date;
-    endDate: Date;
-    assigneeId: string;
-    taskStatus: TaskStatus;
-    taskType: TaskType;
-    taskPriority: TaskPriority;
+    startDate: Date | null;
+    dueDate: Date | null;
+    assigneeId: string | null;
+    taskType: string;
+    priority: string;
     effortPoints: number;
-    progress: number;
-    blockedBy: string;
-    blockingTo: string;
-
+    blockedById: string | null;
     currency: string;
     createdAt: Date;
     updatedAt: Date;

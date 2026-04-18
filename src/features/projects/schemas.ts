@@ -9,8 +9,9 @@ export const createProjectSchema = z.object({
         z.instanceof(File),
         z.string().transform((value) => value === "" ? undefined : value),
     ])
-    .optional(),
-  projectStatus: z.enum(ProjectStatus).default(ProjectStatus.ACTIVE),
+    .optional().nullable(),
+  githubRepoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  status: z.enum(ProjectStatus).default(ProjectStatus.ACTIVE),
   startDate: z.date().optional(),
   dueDate: z.date().min(new Date(), "Due date must be in the future"),
   budget: z.number().min(0, "Budget cannot be negative").optional(),
@@ -25,10 +26,11 @@ export const updateProjectSchema = z.object({
         z.instanceof(File),
         z.string().transform((value) => value === "" ? undefined : value),
     ])
-    .optional(),
-  projectStatus: z.enum(ProjectStatus),
+    .optional().nullable(),
+  githubRepoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  status: z.enum(ProjectStatus),
   startDate: z.date().optional(),
   dueDate: z.date().min(new Date(), "Due date must be in the future"),
   budget: z.number().min(0, "Budget cannot be negative").optional(),
   currency: z.string().optional().default("PKR"),
-}); 
+});

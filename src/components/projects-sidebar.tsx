@@ -8,21 +8,24 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useCreateProjectModal } from "@/features/projects/hooks/use-create-project-modal";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
+import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 export const ProjectsSidebar = () => {
   const workspaceId = useWorkspaceId();
+  const { data: permissions } = useGetPermissions( workspaceId );
+  const allowed = (permissions?.workspaceAdmin) ?? false;
   const pathname = usePathname();
   const { open } = useCreateProjectModal();
   
   const [isOpen, setIsOpen] = useState(true);
 
-  const { data, isLoading } = useGetDummyProjects(workspaceId);
+  const { data, isLoading } = useGetProjects({ workspaceId })
 
   const toggleOpen = useCallback(() => {
     setIsOpen((prev) => !prev);
@@ -46,6 +49,7 @@ export const ProjectsSidebar = () => {
         <SidebarMenuItem>
             <div className="flex w-full items-center gap-0.5 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-y-0.5 group-data-[collapsible=icon]:py-1">
 
+                {allowed && (
                 <div 
                     role="button"
                     onClick={handleCreate}
@@ -58,6 +62,7 @@ export const ProjectsSidebar = () => {
                 >
                     <Plus className="size-3.5" />
                 </div>
+                )}
 
                 <SidebarMenuButton 
                     asChild
@@ -82,6 +87,7 @@ export const ProjectsSidebar = () => {
                         </Link>
 
                         <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+                            {allowed && (
                             <div 
                                 role="button"
                                 onClick={handleCreate}
@@ -94,7 +100,8 @@ export const ProjectsSidebar = () => {
                             >
                                 <Plus className="size-4" />
                             </div>
-
+                            )}
+                            
                             <div 
                                 role="button" 
                                 onClick={(e) => {
@@ -132,7 +139,7 @@ export const ProjectsSidebar = () => {
             </div>
         </SidebarMenuItem>
 
-        {isOpen && data.documents.map((project) => {
+        {isOpen && data.map((project) => {
             const projectHref = `/workspaces/${workspaceId}/projects/${project.id}`;
             const isProjectActive = pathname === projectHref || pathname.startsWith(projectHref + '/');
 
@@ -171,7 +178,7 @@ export const ProjectsSidebar = () => {
             );
         })}
 
-        {isOpen && data.documents.length === 0 && (
+        {isOpen && data.length === 0 && (
              <SidebarMenuItem>
                 <div className="px-2 py-1 text-xs text-muted-foreground italic group-data-[collapsible=icon]:hidden">
                     No projects found

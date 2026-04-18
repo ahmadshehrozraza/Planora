@@ -24,7 +24,7 @@ import {
     DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 
-import { MemberRole } from "@/features/members/types";
+import { WorkspaceMemberData as Member, MemberRole } from "@/features/members/types";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 
 interface MemberCardProps {
@@ -74,13 +74,7 @@ export const MemberCard = React.memo(({
                             >
                                 Administrator
                             </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem 
-                                value={MemberRole.PROJECT_MANAGER}
-                                disabled={isUpdating}
-                                className="cursor-pointer font-medium focus:bg-accent focus:text-accent-foreground"
-                            >
-                                Project Manager
-                            </DropdownMenuRadioItem>
+
                             <DropdownMenuRadioItem 
                                 value={MemberRole.MEMBER}
                                 disabled={isUpdating || isLastAdmin}
@@ -94,7 +88,12 @@ export const MemberCard = React.memo(({
 
                         <DropdownMenuItem 
                             className={`text-destructive font-medium focus:text-destructive focus:bg-destructive/10 cursor-pointer ${isLastAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={() => !isLastAdmin && onDelete(member.id, member.memberId)}
+                            onClick={(e) => {
+                                // Important: Link click rokne ke liye
+                                e.stopPropagation();
+                                e.preventDefault();
+                                if (!isLastAdmin) onDelete(member.id, member.name);
+                            }}
                             disabled={isDeleting || isLastAdmin}
                         >
                             <Trash2 className="size-4 mr-2" />
@@ -106,9 +105,9 @@ export const MemberCard = React.memo(({
 
             <div className="mb-4 relative">
                 <MemberAvatar 
-                    name={member.memberId}
+                    name={member.name}
+                    src={member.imageUrl}
                     className="size-20 text-2xl border-4 border-background shadow-sm ring-1 ring-border"
-                    isActive={member.hasAccess}
                 />
                 {member.role === MemberRole.ADMIN && (
                     <div className="absolute -bottom-1 -right-1 bg-background p-1.5 rounded-full border border-border shadow-sm" title="Workspace Admin">
@@ -119,11 +118,11 @@ export const MemberCard = React.memo(({
 
             <div className="w-full mb-4">
                 <h3 className="font-bold text-foreground text-lg truncate px-2">
-                    {member.memberId}
+                    {member.name}
                 </h3>
                 <div className="flex items-center justify-center gap-1.5 mt-1 text-muted-foreground text-xs">
                     <Mail className="size-3.5" />
-                    <span className="truncate max-w-[150px] font-medium">{member.memberId}@example.com</span>
+                    <span className="truncate max-w-[150px] font-medium">{member.email}</span>
                 </div>
             </div>
 
@@ -136,15 +135,8 @@ export const MemberCard = React.memo(({
             <div className="w-full pt-4 border-t border-border mt-auto flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5 font-medium">
                     <Calendar className="size-3.5" />
-                    <span>Joined: {format(new Date(member.joinedDate), 'MMM yyyy')}</span>
+                    <span>Joined: {member.createdAt ? format(new Date(member.createdAt), 'MMM yyyy') : 'N/A'}</span>
                 </div>
-                
-                {!member.hasAccess && (
-                    <div className="flex items-center gap-1.5 text-destructive bg-destructive/10 px-2 py-1 rounded-full border border-destructive/20">
-                        <ShieldAlert className="size-3.5" />
-                        <span className="font-semibold">Revoked</span>
-                    </div>
-                )}
             </div>
         </div>
     );

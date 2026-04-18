@@ -1,18 +1,8 @@
-
-
-export type Workspace =  {
-    name: string;
-    imageUrl: string;
-    inviteCode: string;
-    userId: string;
-};
-
-export type DummyWorkspace = {
+export type Workspace = {
     id: string;
     name: string;
-    imageUrl: string | null | undefined;
+    imageUrl: string | null; // Prisma mein yeh null ho sakta hai
     inviteCode: string;
-    userId: string;
-    createdDate: Date;
-    createdBy: string;
+    createdAt: Date;
+    updatedAt: Date;
 };

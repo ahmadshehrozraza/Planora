@@ -1,13 +1,19 @@
 "use client";
 
-import { useMemberId } from '@/features/members/hooks/use-member-id'
-import ProjectMember from '@/features/projects/components/project-member'
+import ProjectMember from '@/features/projects/components/project-member';
+import { useGetMemberProfile } from '@/features/projects/api/use-get-member-profile';
+import { PageLoader } from '@/components/page-loader';
 
-import { memberFullProfile} from "./dummy-data";
+export default function SingleProjectMember({
+  params 
+} : {
+  params: { memberId: string } 
+}) {
+  
+  const { data: memberProfile, isLoading } = useGetMemberProfile({ memberId: params.memberId });
 
-export default function SingleProjectMember() {
+  if (isLoading) return <div className="h-screen flex items-center justify-center"><PageLoader /></div>;
+  if (!memberProfile) return <div className="p-8 text-center text-muted-foreground">Member profile not found.</div>;
 
-  const memberId = useMemberId();
-
-  return <ProjectMember memberInfo = {memberFullProfile} />
+  return <ProjectMember memberInfo={memberProfile} />;
 }

@@ -4,18 +4,28 @@ import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { useUpdatePreferences } from "@/features/preferences/api/use-preferences";
+import { useSession } from "next-auth/react";
 
 export const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const { data: session } = useSession();
+  
+  const { mutate: updatePreferences } = useUpdatePreferences();
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
   const toggleTheme = React.useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }, [theme, setTheme]);
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    
+    if (session) {
+      updatePreferences({ theme: newTheme });
+    }
+  }, [theme, setTheme, updatePreferences, session]);
 
   if (!mounted) {
     return <div className="h-8 w-full" />; 

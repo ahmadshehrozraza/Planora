@@ -6,14 +6,14 @@ export const createWorkspaceSchema = z.object({
         z.instanceof(File),
         z.string().transform((value) => value === "" ? undefined : value),
     ])
-    .optional(),
+    .optional().nullable(),
 }); 
 
 export const updateWorkspaceSchema = z.object({
-    name: z.string().trim().min(1, "Must be 1 or more characters").optional(),
+    name: z.string().trim().min(1, "Must be 1 or more characters"),
     imageUrl: z.union([
         z.instanceof(File),
         z.string().transform((value) => value === "" ? undefined : value),
     ])
-    .optional(),
+    .optional().nullable(),
 }); 

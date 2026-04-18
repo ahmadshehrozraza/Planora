@@ -25,6 +25,7 @@ interface CurrencySelectorProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export function CurrencySelector({
@@ -32,6 +33,7 @@ export function CurrencySelector({
   onValueChange,
   placeholder = "Select currency...",
   className,
+  disabled,
 }: CurrencySelectorProps) {
   const [open, setOpen] = useState(false);
   
@@ -45,6 +47,7 @@ export function CurrencySelector({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between h-10 px-3", className)} 
+          disabled={disabled}
         >
           <div className="flex items-center gap-2 overflow-hidden">
             {selectedCurrency ? (
@@ -75,7 +78,7 @@ export function CurrencySelector({
       </PopoverTrigger>
       <PopoverContent 
         className="w-[300px] p-0" 
-        align="start" // Changed to align start
+        align="start"
         sideOffset={5}
       >
         <Command>
@@ -94,7 +97,7 @@ export function CurrencySelector({
                   className="py-2" 
                 >
                   <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3 min-w-0"> {/* Added min-w-0 */}
+                    <div className="flex items-center gap-3 min-w-0">
                       {currency.countryCode !== "EU" ? (
                         <ReactCountryFlag 
                           countryCode={currency.countryCode} 
@@ -107,7 +110,7 @@ export function CurrencySelector({
                           <span className="text-white text-[10px] font-bold">€</span>
                         </div>
                       )}
-                      <div className="flex flex-col min-w-0 flex-1"> {/* Added min-w-0 and flex-1 */}
+                      <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm truncate">{currency.code}</span>
                           <span className="text-sm text-gray-600 truncate">{currency.symbol}</span>

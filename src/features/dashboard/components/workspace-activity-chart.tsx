@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Activity } from "lucide-react";
 
 import {
   Card,
@@ -17,16 +18,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-const chartData = [
-  { date: "Jun 24", assigned: 40, completed: 24 },
-  { date: "Jun 25", assigned: 30, completed: 13 },
-  { date: "Jun 26", assigned: 55, completed: 38 },
-  { date: "Jun 27", assigned: 45, completed: 39 },
-  { date: "Jun 28", assigned: 60, completed: 48 },
-  { date: "Jun 29", assigned: 35, completed: 28 },
-  { date: "Jun 30", assigned: 50, completed: 42 },
-];
-
 const chartConfig = {
   assigned: {
     label: "Tasks Assigned",
@@ -38,8 +29,37 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export const WorkspaceActivityChart = () => {
+interface WorkspaceActivityChartProps {
+  data: {
+    date: string;
+    assigned: number;
+    completed: number;
+  }[];
+}
+
+export const WorkspaceActivityChart = ({ data }: WorkspaceActivityChartProps) => {
   const [timeRange, setTimeRange] = React.useState("7d");
+
+  const filteredData = React.useMemo(() => {
+    if (!data) return [];
+    if (timeRange === "7d") return data.slice(-7);
+    if (timeRange === "30d") return data.slice(-30);
+    return data; 
+  }, [data, timeRange]);
+
+  if (!data || data.length === 0) {
+    return (
+      <Card className="bg-card border-border shadow-sm col-span-1 xl:col-span-2 flex flex-col items-center justify-center min-h-[350px]">
+        <div className="size-12 bg-muted rounded-full flex items-center justify-center mb-4">
+          <Activity className="size-6 text-muted-foreground/70" />
+        </div>
+        <CardTitle className="text-lg mb-1">No Activity Data</CardTitle>
+        <CardDescription>
+          Task assignments and completions will appear here over time.
+        </CardDescription>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-card border-border shadow-sm col-span-1 xl:col-span-2">
@@ -81,13 +101,8 @@ export const WorkspaceActivityChart = () => {
         <ChartContainer config={chartConfig} className="h-[250px] w-full mt-4">
           <AreaChart
             accessibilityLayer
-            data={chartData}
-            margin={{
-              left: -20,
-              right: 12,
-              top: 10,
-              bottom: 0,
-            }}
+            data={filteredData}
+            margin={{ left: -20, right: 12, top: 10, bottom: 0 }}
           >
             <defs>
               <linearGradient id="fillAssigned" x1="0" y1="0" x2="0" y2="1">

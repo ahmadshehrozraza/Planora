@@ -1,17 +1,16 @@
 export enum MemberRole {
     ADMIN = "ADMIN",
-    PROJECT_MANAGER = "PROJECT_MANAGER",
-    MEMBER = "MEMBER"
-};
+    MEMBER = "MEMBER",
+    PROJECT_MANAGER = "PROJECT_MANAGER"
+}
 
-export type Member = {
+export type WorkspaceMemberData = {
     id: string;
-    memberId: string; 
+    userId: string;
     workspaceId: string;
+    name: string;
+    email: string;
+    imageUrl: string | null;
     role: MemberRole;
-    projectId?: string;
-    hasAccess: boolean;
-    joinedDate: Date;
     createdAt: Date;
-    updatedAt: Date;
-};
+}

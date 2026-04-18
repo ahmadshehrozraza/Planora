@@ -2,7 +2,8 @@
 
 import { useCallback } from "react";
 import { useQueryState } from "nuqs";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Github } from "lucide-react";
+import { useParams } from "next/navigation"; 
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,93 +12,162 @@ import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useCreateTaskModal } from "../hooks/use-create-task-modal";
 import { useTaskFilters } from "../hooks/use-task-filters";
-import { useGetTasks } from "../api/use-get-dummy-tasks";
+import { useGetTasks } from "../api/use-get-tasks";
 
-import { DataFilters } from "./data-filters";
+import { WorkspaceTaskFilters } from "./workspace-task-filters";
+import { ProjectTaskFilters } from "./project-task-filters";
+
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { DataCalendar } from "./data-calendar";
 import { PageLoader } from "@/components/page-loader";
 import { DataKanban } from "./data-kanban";
-import { TaskStatus } from "../types";
+
+import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
+import { useColumnMutations } from "@/features/columns/api/use-columns"; 
+import { useBulkUpdateTasks } from "../api/use-bulk-update-tasks";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { useGetProject } from "@/features/projects/api/use-get-project";
+import { useSSE } from "@/hooks/use-sse";
 
 export const TaskViewSwitcher = () => {
-  const [{ status, assigneeId, projectId: filterProjectId, segmentId, dueDate }] = useTaskFilters();
+
+   useSSE();
+
+  const [{ status, assigneeId, projectId: filterProjectId, segmentId: filterSegmentId, dueDate, search }] = useTaskFilters();
   
-  const [view, setView] = useQueryState("task-view", {
-    defaultValue: "table",
-  });
+  const [view, setView] = useQueryState("task-view", { defaultValue: "table" });
 
   const workspaceId = useWorkspaceId();
-  const urlProjectId = useProjectId();
+  const paramProjectId = useProjectId();
+
+   const { data: permissions } = useGetPermissions( workspaceId );
+   const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+  
+  const params = useParams();
+  const paramSegmentId = params.segmentId as string | undefined;
+
   const { open } = useCreateTaskModal();
 
-  const effectiveProjectId = urlProjectId || filterProjectId;
+  const effectiveProjectId = filterProjectId === "all" ? undefined : (filterProjectId || paramProjectId);
+  const effectiveSegmentId = filterSegmentId === "all" ? "all" : (filterSegmentId || paramSegmentId);
 
-  const validStatus = status === "all" ? undefined : (status as TaskStatus);
-  const validAssigneeId = assigneeId === "all-tasks" ? undefined : assigneeId;
-  const validProjectId = effectiveProjectId === "all" ? undefined : effectiveProjectId;
-  const validSegmentId = segmentId === "all" ? undefined : segmentId;
-  const validDueDate = dueDate ? new Date(dueDate) : undefined;
+  const { data: project } = useGetProject({ projectId: effectiveProjectId as string });
 
   const { data: tasks, isLoading: isLoadingTasks } = useGetTasks({
     workspaceId,
-    projectId: validProjectId,
-    segmentId: validSegmentId,
-    assigneeId: validAssigneeId,
-    status: validStatus,
-    dueDate: validDueDate,
+    projectId: effectiveProjectId,
+    segmentId: effectiveSegmentId,
+    assigneeId: assigneeId === "all-tasks" ? undefined : assigneeId,
+    status: status === "all" ? undefined : status,
+    dueDate: dueDate || undefined,
+    search: search === "" ? undefined : search
   });
 
-  const onKanbanChange = useCallback((updatedTasks: { id: string; status: TaskStatus; position: number; }[]) => {
-     console.log("Kanban tasks updated:", updatedTasks);
-  }, []);
+  const { data: projectColumns } = useGetProjectColumns(effectiveProjectId);
+  const { createColumn, reorderColumns } = useColumnMutations();
+  const { mutate: bulkUpdateTasks } = useBulkUpdateTasks();
+
+  const onKanbanChange = useCallback((updatedTasks: { id: string; columnId: string; position: number; }[]) => {
+      bulkUpdateTasks(updatedTasks);
+  }, [bulkUpdateTasks]);
+  
+  const onColumnsChange = useCallback((updatedColumns: { id: string; position: number; }[]) => {
+      if (!effectiveProjectId) return;
+      if (reorderColumns) {
+          reorderColumns.mutate({ 
+              columns: updatedColumns, 
+              projectId: effectiveProjectId 
+          });
+      }
+  }, [reorderColumns, effectiveProjectId]);
+
+  const handleCreateColumn = useCallback((name: string) => {
+      if (effectiveProjectId && workspaceId) {
+          createColumn.mutate({ 
+              projectId: effectiveProjectId, 
+              name, 
+              workspaceId 
+          });
+      }
+  }, [effectiveProjectId, workspaceId, createColumn]);
 
   return (
-    <Tabs
-      defaultValue={view}
-      onValueChange={setView}
-      className="flex-1 w-full border-none"
-    >
+    <Tabs defaultValue={view} onValueChange={setView} className="flex-1 w-full border-none">
       <div className="h-full flex flex-col overflow-auto border-none">
         <div className="flex flex-col gap-y-4 lg:flex-row justify-between items-center mb-4 border-none">
-          <TabsList className="w-full lg:w-auto bg-muted/50 border-none">
-            <TabsTrigger value="table" className="h-8 w-full lg:w-auto ml-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Table</TabsTrigger>
-            <TabsTrigger value="kanban" className="h-8 w-full lg:w-auto ml-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Kanban</TabsTrigger>
-            <TabsTrigger value="calendar" className="h-8 w-full lg:w-auto ml-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Calendar</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+              <TabsList className="h-11 w-full lg:w-auto bg-muted/60 p-1 rounded-xl border border-border/50">
+                <TabsTrigger value="table">Table</TabsTrigger>
+                <TabsTrigger value="kanban">Kanban</TabsTrigger>
+                <TabsTrigger value="calendar">Calendar</TabsTrigger>
+              </TabsList>
 
-          <Button onClick={open} size="sm" className="w-full lg:w-auto shadow-sm">
-            <PlusIcon className="size-4 mr-2" />
-            New Task
-          </Button>
+              {project?.githubRepoUrl && (
+                  <Button asChild variant="outline" size="sm" className="h-10 shadow-sm hidden lg:flex">
+                      <a href={project.githubRepoUrl} target="_blank" rel="noopener noreferrer">
+                          <Github className="size-4 mr-1" />
+                          Repository
+                      </a>
+                  </Button>
+              )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+              {project?.githubRepoUrl && (
+                  <Button asChild variant="outline" size="sm" className="h-11 shadow-sm w-full lg:hidden">
+                      <a href={project.githubRepoUrl} target="_blank" rel="noopener noreferrer">
+                          <Github className="size-4 mr-2" />
+                          Repository
+                      </a>
+                  </Button>
+              )}
+            {allowed && (
+              <Button onClick={open} size="sm" className="w-full lg:w-auto h-11 shadow-sm">
+                <PlusIcon className="size-4 mr-2" />
+                New Task
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mb-4">
-           <DataFilters />
+           {paramProjectId ? <ProjectTaskFilters /> : <WorkspaceTaskFilters />}
         </div>
         
         {isLoadingTasks ? (
-           <div className="w-full h-[200px] flex items-center justify-center border border-border bg-card rounded-lg">
+           <div className="w-full h-[200px] flex items-center justify-center border border-border bg-card rounded-lg shadow-sm">
                 <PageLoader />
            </div>
         ) : (
           <>
             <TabsContent value="table" className="mt-0">
-               <div className="border-none border-border bg-card rounded-lg overflow-hidden shadow-sm">
-                  <DataTable columns={columns} data={tasks?.documents ?? []} />
+               <div className=" bg-card rounded-lg overflow-hidden shadow-sm">
+                  <DataTable columns={columns} data={tasks || []} />
                </div>
             </TabsContent>
 
             <TabsContent value="kanban" className="mt-0">
                <div className="border border-border rounded-lg p-4 min-h-[500px] bg-card shadow-sm">
-                  <DataKanban data={tasks?.documents ?? []} onChange={onKanbanChange} />
+                  {effectiveProjectId && projectColumns ? (
+                     <DataKanban 
+                        tasks={tasks || []} 
+                        columns={projectColumns} 
+                        onChangeTasks={onKanbanChange} 
+                        onChangeColumns={onColumnsChange} 
+                        onCreateColumn={handleCreateColumn}
+                     />
+                  ) : (
+                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        Please select a project to view the Kanban board.
+                     </div>
+                  )}
                </div>
             </TabsContent>
 
             <TabsContent value="calendar" className="mt-0">
                <div className="border border-border rounded-lg p-4 h-full bg-card shadow-sm">
-                  <DataCalendar data={tasks?.documents ?? []} />
+                  <DataCalendar data={tasks || []} />
                </div>
             </TabsContent>
           </>

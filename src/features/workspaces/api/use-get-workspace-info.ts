@@ -1,20 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { getJoineeWorkspace } from "../server/get-joinee-workspace";
 
 interface UseGetWorkspaceInfoProps {
   workspaceId?: string;
 }
 
-export const useGetWorkspaceInfo = ({ workspaceId }: UseGetWorkspaceInfoProps) => {
+export const useGetJoineeWorkspace = ({ workspaceId }: UseGetWorkspaceInfoProps) => {
   return useQuery({
-    queryKey: ["workspace-info", workspaceId],
-
+    queryKey: ["joinee-workspace", workspaceId],
     queryFn: async () => {
-
-      return null;
+      if (!workspaceId) return null; 
+      return await getJoineeWorkspace({ workspaceId });
     },
-
     enabled: !!workspaceId,
   });
 };

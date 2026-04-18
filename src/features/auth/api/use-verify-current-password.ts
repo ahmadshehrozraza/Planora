@@ -1,34 +1,26 @@
-import { useMutation } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
-import { toast } from "sonner";
-import { client } from "@/lib/rpc"; 
+"use client";
 
-type ResponseType = InferResponseType<typeof client.api.auth["verify-password"]["$post"]>;
-type RequestType = InferRequestType<typeof client.api.auth["verify-password"]["$post"]>
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { verifyPasswordAction } from "../server/verify-password-action";
 
 export const useVerifyPassword = () => {
-    const mutation = useMutation<
-        ResponseType,
-        Error,
-        RequestType
-    >({
-        mutationFn: async({ json }) => {
-            const response = await client.api.auth["verify-password"]["$post"]({ json });
-
-            if(!response.ok){
-                const errorData = await response.json();
-                throw new Error("Failed to verify password from api");
+    return useMutation({
+        mutationFn: async (password: string) => {
+            // Server action ko direct call karein
+            const response = await verifyPasswordAction(password);
+            
+            if (response.error) {
+                throw new Error(response.error); 
             }
-
-            return await response.json();
+            
+            return response;
         },
         onSuccess: () => {
             toast.success("Password Verified");
         },
         onError: (error) => {
-            toast.error("Wrong Password");
+            toast.error(error.message || "Wrong Password");
         }
     });
-
-    return mutation;
 };

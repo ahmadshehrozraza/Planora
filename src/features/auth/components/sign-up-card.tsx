@@ -25,8 +25,7 @@ import {
 } from "@/components/ui/form";
 import { registerSchema } from "../schemas";
 import { useRegister } from "../api/use-register";
-import { signUpWithGithub, signUpWithGoogle } from "@/lib/oauth";
-
+import { signIn } from "next-auth/react";
 
 
 
@@ -43,7 +42,7 @@ export const SignUpCard = () => {
     })
 
     const onSubmit = (values: z.infer<typeof registerSchema>) => {
-        // mutate({ json: values });
+        mutate(values);
     }
 
     return (
@@ -124,27 +123,30 @@ export const SignUpCard = () => {
                             size="lg"
                             disabled={isPending}
                             className="w-full"
+                            type="submit"
                         >
                             Register
                         </Button>
 
                         <Button
-                            onClick={() => signUpWithGoogle()}
+                            onClick={() => signIn("google", { callbackUrl: "/" })}
                             size="lg"
                             disabled={isPending}
                             className="w-full"
                             variant="secondary"
+                            type="button"
                         >
                             <FcGoogle className="mr-2 size-5" />
                             Login with Google
                         </Button>
 
                         <Button
-                            onClick={() => signUpWithGithub()}
+                            onClick={() => signIn("github", { callbackUrl: "/" })}
                             size="lg"
                             disabled={isPending}
                             className="w-full"
                             variant="secondary"
+                            type="button"
                         >
                             <FaGithub className="mr-2 size-5" />
                             Login with GitHub

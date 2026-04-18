@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { useDeleteTask } from "../api/use-delete-task";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
-import { useCurrentMember } from "@/features/members/hooks/current-user-role";
 
 
 
@@ -56,7 +55,7 @@ export const TaskBreadCrumbs = async ({
                 className="size-6 lg:size-8"
             />
 
-            <Link href={`/workspaces/${workspaceId}/projects/${project.$id}`}>
+            <Link href={`/workspaces/${workspaceId}/projects/${project.id}`}>
                 <p className="text-sm lg:text-lg font-semibold text-muted-foreground hover:opacity-75 transition">
                     {project.name}
                 </p>

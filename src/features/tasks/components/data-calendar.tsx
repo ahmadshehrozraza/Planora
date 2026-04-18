@@ -33,7 +33,7 @@ const localizer = dateFnsLocalizer({
 });
 
 interface DataCalendarProps {
-    data: Task[];
+    data: any[]; // Using any to safely access nested relation properties
 }
 
 interface CustomToolbarProps {
@@ -79,18 +79,28 @@ export const DataCalendar = ({
 }: DataCalendarProps) => {
 
     const [ value, setValue ] = useState(
-        data.length > 0 ? new Date(data[0].endDate) : new Date()
+        // Safely extracting date
+        data.length > 0 && data[0].dueDate 
+            ? new Date(data[0].dueDate) 
+            : new Date()
     );
 
-    const events = data.map((task) => ({
-        start: new Date(task.startDate),
-        end: new Date(task.endDate),
-        title: task.name,
-        project: task.projectId,
-        assignee: task.assigneeId,
-        status: task.taskStatus,
-        id: task.id,
-    }));
+    // Properly formatting events from Prisma nested structure
+    const events = data.map((task) => {
+        // Fallback for null start dates (use due date or today)
+        const startDate = task.startDate ? new Date(task.startDate) : (task.dueDate ? new Date(task.dueDate) : new Date());
+        const endDate = task.dueDate ? new Date(task.dueDate) : startDate;
+
+        return {
+            id: task.id,
+            title: task.name,
+            start: startDate,
+            end: endDate,
+            project: task.project?.name || "Unknown Project", 
+            assignee: task.assignee?.name || "Unassigned", 
+            status: task.column?.name || "Unknown Status", 
+        };
+    });
 
     const handleNavigate = (action: "PREV" | "NEXT" | "TODAY" ) => {
         if (action === "PREV"){
@@ -133,8 +143,8 @@ export const DataCalendar = ({
                     <EventCard
                         id={event.id as string}
                         title={event.title as string}
-                        assignee={event.assignee}
-                        project={event.project}
+                        assignee={event.assignee as any}
+                        project={event.project as any}
                         status={event.status as any}
                     />
                 ),

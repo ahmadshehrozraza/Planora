@@ -2,8 +2,6 @@
 import { Navbar } from "@/components/navbar";
 import { TaskViewSwitcher } from "@/features/tasks/components/task-view-switcher";
 
-
-
 const TasksPage = () => {
 
     return (

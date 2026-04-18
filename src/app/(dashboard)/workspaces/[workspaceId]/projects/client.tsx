@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
+import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import { CreateProjectModal } from "@/features/projects/components/create-project-modal";
 import { useCreateProjectModal } from "@/features/projects/hooks/use-create-project-modal";
 
@@ -32,13 +32,18 @@ import {
   Grid,
   PlayCircle,
 } from "lucide-react";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 interface ProjectsClientProps {
   workspaceId: string;
 }
 
 export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
-  const { data: projectsData, isLoading } = useGetDummyProjects(workspaceId);
+
+  const { data: permissions } = useGetPermissions(workspaceId);
+  const allowed = permissions?.workspaceAdmin ?? false;
+
+  const { data: projectsData, isLoading } = useGetProjects({ workspaceId });
   const { open } = useCreateProjectModal();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,34 +51,32 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const stats = useMemo(() => {
-    const projs = projectsData?.documents || [];
+    const projs = projectsData || []; 
     return {
       total: projs.length,
-      completed: projs.filter((p) => p.projectStatus === "COMPLETED").length,
-      active: projs.filter((p) => p.projectStatus === "ACTIVE").length,
-      onHold: projs.filter((p) => p.projectStatus === "ON_HOLD").length,
-      overdue: projs.filter((p) => p.projectStatus === "OVER_DUE").length,
+      completed: projs.filter((p) => p.status === "COMPLETED").length,
+      active: projs.filter((p) => p.status === "ACTIVE").length,
+      onHold: projs.filter((p) => p.status === "ON_HOLD").length,
+      overdue: projs.filter((p) => p.status === "OVER_DUE").length,
     };
-  }, [projectsData?.documents]);
+  }, [projectsData]);
 
   const filteredProjects = useMemo(() => {
-    const projs = projectsData?.documents || [];
+    const projs = projectsData || []; 
     return projs.filter((project) => {
       const matchesSearch =
         searchQuery === "" ||
         project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (project.description &&
-          project.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()));
-
+          project.description.toLowerCase().includes(searchQuery.toLowerCase()));
+          
       const matchesStatus =
         statusFilter === "all" ||
-        project.projectStatus?.toLowerCase() === statusFilter.toLowerCase();
+        project.status?.toLowerCase() === statusFilter.toLowerCase(); 
 
       return matchesSearch && matchesStatus;
     });
-  }, [projectsData?.documents, searchQuery, statusFilter]);
+  }, [projectsData, searchQuery, statusFilter]);
 
   if (isLoading) {
     return (
@@ -83,7 +86,7 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
     );
   }
 
-  const hasProjects = (projectsData?.documents?.length || 0) > 0;
+  const hasProjects = (projectsData?.length || 0) > 0;
 
   return (
     <>
@@ -100,6 +103,8 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
               <p className="text-muted-foreground mb-8">
                 Create your first project to get started with project management
               </p>
+
+              {allowed && (
               <Button
                 onClick={open}
                 size="lg"
@@ -108,13 +113,14 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
                 <Plus className="h-5 w-5 mr-2" />
                 Create First Project
               </Button>
+              )}
+
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap gap-4 items-center justify-between bg-card p-3 shadow-sm rounded-xl border border-border">
-            {/* Purani Line ko is se replace karein */}
             <div className="flex flex-col sm:flex-row gap-2 flex-1 overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
               <StatCard
                 icon={ListTodo}
@@ -147,12 +153,14 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
                 variant="success"
               />
             </div>
-            <div className="flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-              <Button onClick={open} size="sm" className="w-full shadow-sm">
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
-            </div>
+            {allowed && (
+              <div className="flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button onClick={open} size="sm" className="w-full shadow-sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+              </div>
+            )}
           </div>
 
           <Card className="bg-card border-border shadow-sm">
@@ -200,7 +208,7 @@ export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
                           {statusFilter === "all"
                             ? "All"
                             : statusFilter.charAt(0).toUpperCase() +
-                              statusFilter.slice(1)}
+                              statusFilter.slice(1).replace("-", " ")}
                         </span>
                       </Button>
                     </DropdownMenuTrigger>

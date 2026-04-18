@@ -7,6 +7,7 @@ import { QueryProviders } from "@/components/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WebVitals } from "@/components/WebVitals";
+import { AuthSessionProvider } from "@/components/session-provider";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={cn(inter.className, "antialiased min-h-screen")}
       >
+        <AuthSessionProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -42,6 +44,7 @@ export default function RootLayout({
         {children}
         </QueryProviders>
         </ThemeProvider>
+        </AuthSessionProvider>
       </body>
     </html>
   );

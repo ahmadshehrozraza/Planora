@@ -3,30 +3,24 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
-import { useGetSegments } from "@/features/segments/api/use-get-segment";
-import { CreateSegmentModal } from "@/features/segments/components/create-segment-modal";
+import { useGetSegments } from "@/features/segments/api/use-get-segments";
 import { useCreateSegmentModal } from "@/features/segments/hooks/use-create-segment-modal";
 import SegmentCard from "@/features/segments/components/segmentsCard";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Filter, ListTodo, Grid, List, CheckCircle, AlertCircle, PauseCircle } from "lucide-react";
 import { StatCard } from "@/components/stats-cards";
 import { PageLoader } from "@/components/page-loader";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
 export const SegmentsPage = () => {
-
   const workspaceId = useWorkspaceId();
   const projectId = useProjectId();
-  const { data, isLoading, error } = useGetSegments(projectId);
+  
+  const { data = [], isLoading, error } = useGetSegments(projectId);
   const { open } = useCreateSegmentModal();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,41 +28,32 @@ export const SegmentsPage = () => {
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const filteredSegments = useMemo(() => {
-    const segs = data?.documents || [];
-    return segs.filter((segment) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        segment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (segment.description && segment.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        segment.segmentStatus?.toLowerCase() === statusFilter.toLowerCase();
-
+    return data.filter((segment) => {
+      const matchesSearch = searchQuery === "" || segment.name.toLowerCase().includes(searchQuery.toLowerCase()) || (segment.description && segment.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || segment.status?.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
-  }, [data?.documents, searchQuery, statusFilter]);
+  }, [data, searchQuery, statusFilter]);
 
   const stats = useMemo(() => {
-     const segs = data?.documents || [];
-     return {
-        total: segs.length,
-        active: segs.filter((s) => s.segmentStatus === "ACTIVE").length,
-        completed: segs.filter((s) => s.segmentStatus === "COMPLETED").length,
-        onHold: segs.filter((s) => s.segmentStatus === "ON_HOLD").length,
-        overdue: segs.filter((s) => s.segmentStatus === "OVER_DUE").length,
-     }
-  }, [data?.documents]);
+    return data.reduce((acc, segment) => {
+      acc.total += 1;
+      if (segment.status === "ACTIVE") acc.active += 1;
+      else if (segment.status === "COMPLETED") acc.completed += 1;
+      else if (segment.status === "ON_HOLD") acc.onHold += 1;
+      else if (segment.status === "OVER_DUE") acc.overdue += 1;
+      return acc;
+    }, { total: 0, active: 0, completed: 0, onHold: 0, overdue: 0 });
+  }, [data]);
 
   if (isLoading) return <div className="h-64 flex items-center justify-center"><PageLoader /></div>;
-  if (error) return <div className="p-8 text-center text-destructive">Error loading segments: {error.message}</div>;
+  if (error) return <div className="p-8 text-center text-destructive">Error loading segments</div>;
 
-  const hasSegments = (data?.documents?.length || 0) > 0;
+  const hasSegments = data.length > 0;
 
   return (
     <div className="w-full p-4 sm:p-6 bg-background min-h-full">
       <div className="max-w-7xl mx-auto space-y-4">
-
         {!hasSegments ? (
           <Card className="bg-card border-border shadow-sm mt-4">
             <CardContent className="p-12 text-center">
@@ -89,7 +74,6 @@ export const SegmentsPage = () => {
           </Card>
         ) : (
           <>
-
             <div className="flex flex-wrap gap-4 items-center justify-between bg-card p-3 shadow-sm rounded-xl border border-border">
                 <div className="flex flex-col sm:flex-row gap-2 flex-1 overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
                     <StatCard icon={ListTodo} label="Total Segments" value={stats.total} variant="primary" />
@@ -109,26 +93,16 @@ export const SegmentsPage = () => {
                       placeholder="Search segments..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 h-10 bg-background border-border focus:bg-background transition-colors"
+                      className="pl-9 h-10 bg-background border-border transition-colors"
                     />
                   </div>
                   
                   <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="flex gap-1 bg-muted p-1 rounded-lg border border-border">
-                      <Button
-                        variant={view === "grid" ? "secondary" : "ghost"}
-                        size="icon"
-                        className={`h-8 w-8 ${view === "grid" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`}
-                        onClick={() => setView("grid")}
-                      >
+                      <Button variant={view === "grid" ? "secondary" : "ghost"} size="icon" className={`h-8 w-8 ${view === "grid" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`} onClick={() => setView("grid")}>
                         <Grid className="size-4" />
                       </Button>
-                      <Button
-                        variant={view === "list" ? "secondary" : "ghost"}
-                        size="icon"
-                        className={`h-8 w-8 ${view === "list" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`}
-                        onClick={() => setView("list")}
-                      >
+                      <Button variant={view === "list" ? "secondary" : "ghost"} size="icon" className={`h-8 w-8 ${view === "list" ? "bg-background shadow-sm text-foreground" : "hover:bg-accent text-muted-foreground"}`} onClick={() => setView("list")}>
                         <List className="size-4" />
                       </Button>
                     </div>

@@ -1,13 +1,12 @@
 
-
 export interface EventTypes {
-  $id: string;
+  id: string;
   title: string;
   date: string;       
   time: string;      
-  description: string;
-  project: { name: string };
-  segment: { name: string };
+  description?: string | null;
+  project: { name: string; imageUrl?: string } | null; 
+  segment: { name: string } | null; 
   eventCreator: { name: string; avatar?: string }; 
   opened: boolean;    
 }

@@ -5,52 +5,19 @@ import {
   UploadCloud, 
   FileIcon, 
   Download, 
-  Trash2, 
-  Loader2,
+  Trash2,
   FileText,
   FileSpreadsheet,
   FileImage,
   FileArchive,
-  Presentation
+  Presentation,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PageLoader } from "@/components/page-loader";
+import { toast } from "sonner";
 
-
-interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  url: string;
-  createdAt: Date;
-}
-
-const INITIAL_MOCK_FILES: UploadedFile[] = [
-  {
-    id: "mock-1",
-    name: "Q1_Financial_Report.xlsx",
-    size: 2540000, // 2.5 MB
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    url: "/sample-docs/Q1_Financial_Report.xlsx", // Public folder ka path
-    createdAt: new Date(Date.now() - 86400000 * 2), // 2 din pehle
-  },
-  {
-    id: "mock-2",
-    name: "Project_Proposal_V3.pdf",
-    size: 1048576, // 1 MB
-    type: "application/pdf",
-    url: "/sample-docs/Project_Proposal_V3.pdf",
-    createdAt: new Date(Date.now() - 86400000), // 1 din pehle
-  },
-  {
-    id: "mock-3",
-    name: "Client_Presentation.pptx",
-    size: 5200000, // 5.2 MB
-    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    url: "/sample-docs/Client_Presentation.pptx",
-    createdAt: new Date(), // Aaj
-  }
-];
+import { useGetSegmentFiles, useUploadSegmentFile, useDeleteSegmentFile } from "../api/use-segment-files";
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return "0 Bytes";
@@ -63,28 +30,23 @@ function formatBytes(bytes: number, decimals = 2) {
 
 function getFileIcon(name: string, type: string) {
   const nameLower = name.toLowerCase();
-  
-  if (type.includes('pdf') || nameLower.endsWith('.pdf')) {
-    return { icon: FileText, color: "text-red-500", bg: "bg-red-500/10" };
-  }
-  if (type.includes('spreadsheet') || type.includes('excel') || nameLower.endsWith('.xlsx') || nameLower.endsWith('.csv')) {
-    return { icon: FileSpreadsheet, color: "text-emerald-500", bg: "bg-emerald-500/10" };
-  }
-  if (type.includes('presentation') || nameLower.endsWith('.pptx') || nameLower.endsWith('.ppt')) {
-    return { icon: Presentation, color: "text-orange-500", bg: "bg-orange-500/10" };
-  }
-  if (type.includes('image') || nameLower.match(/\.(jpg|jpeg|png|gif|svg)$/i)) {
-    return { icon: FileImage, color: "text-blue-500", bg: "bg-blue-500/10" };
-  }
-  if (type.includes('zip') || type.includes('compressed') || nameLower.endsWith('.zip') || nameLower.endsWith('.rar')) {
-    return { icon: FileArchive, color: "text-yellow-600", bg: "bg-yellow-600/10" };
-  }
-
+  if (type.includes('pdf') || nameLower.endsWith('.pdf')) return { icon: FileText, color: "text-red-500", bg: "bg-red-500/10" };
+  if (type.includes('spreadsheet') || type.includes('excel') || nameLower.endsWith('.xlsx') || nameLower.endsWith('.csv')) return { icon: FileSpreadsheet, color: "text-emerald-500", bg: "bg-emerald-500/10" };
+  if (type.includes('presentation') || nameLower.endsWith('.pptx') || nameLower.endsWith('.ppt')) return { icon: Presentation, color: "text-orange-500", bg: "bg-orange-500/10" };
+  if (type.includes('image') || nameLower.match(/\.(jpg|jpeg|png|gif|svg)$/i)) return { icon: FileImage, color: "text-blue-500", bg: "bg-blue-500/10" };
+  if (type.includes('zip') || type.includes('compressed') || nameLower.endsWith('.zip') || nameLower.endsWith('.rar')) return { icon: FileArchive, color: "text-yellow-600", bg: "bg-yellow-600/10" };
   return { icon: FileIcon, color: "text-primary", bg: "bg-primary/10" };
 }
 
-export default function DocumentsPage() {
-  const [files, setFiles] = useState<UploadedFile[]>(INITIAL_MOCK_FILES);
+interface SegmentFilesProps {
+  segmentId: string;
+}
+
+export const SegmentFiles = ({ segmentId }: SegmentFilesProps) => {
+  const { data: files, isLoading: isFetching } = useGetSegmentFiles(segmentId);
+  const { mutateAsync: uploadFile } = useUploadSegmentFile();
+  const { mutate: deleteFile, isPending: isDeleting } = useDeleteSegmentFile();
+
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,24 +61,24 @@ export default function DocumentsPage() {
     setIsDragging(false);
   }, []);
 
-  const processFiles = (selectedFiles: FileList | null) => {
+  const processFiles = async (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
 
     setIsUploading(true);
 
-    setTimeout(() => {
-      const newFiles: UploadedFile[] = Array.from(selectedFiles).map((file) => ({
-        id: crypto.randomUUID(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file), 
-        createdAt: new Date(),
-      }));
+    try {
+      const uploadPromises = Array.from(selectedFiles).map((file) => 
+        uploadFile({ file, segmentId })
+      );
 
-      setFiles((prev) => [...newFiles, ...prev]);
+      await Promise.all(uploadPromises);
+      toast.success(`${selectedFiles.length} file(s) uploaded successfully!`);
+    } catch (error) {
+      toast.error("Some files failed to upload");
+    } finally {
       setIsUploading(false);
-    }, 1500);
+      if (fileInputRef.current) fileInputRef.current.value = ""; 
+    }
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -127,19 +89,20 @@ export default function DocumentsPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     processFiles(e.target.files);
-    if (fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
   const handleDelete = (id: string, url: string) => {
-    if (url.startsWith('blob:')) {
-      URL.revokeObjectURL(url); 
-    }
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    deleteFile({ fileId: id, fileUrl: url, segmentId });
   };
 
+  if (isFetching) {
+    return <div className="h-48 flex items-center justify-center"><PageLoader /></div>;
+  }
+
+  const fileList = files || [];
+
   return (
-    <div className="flex flex-col w-full h-full  mx-auto gap-6">
-      
+    <div className="flex flex-col w-full h-full mx-auto gap-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold text-foreground">Files</h1>
         <p className="text-sm text-muted-foreground">
@@ -168,7 +131,7 @@ export default function DocumentsPage() {
         
         {isUploading ? (
           <div className="flex flex-col items-center gap-2 text-primary">
-            <Loader2 className="size-8 animate-spin" />
+            <PageLoader />
             <span className="text-sm font-medium">Uploading files...</span>
           </div>
         ) : (
@@ -187,13 +150,13 @@ export default function DocumentsPage() {
       <div className="flex flex-col gap-3 mt-4">
         <h2 className="text-lg font-semibold text-foreground">Uploaded Files</h2>
         
-        {files.length === 0 ? (
+        {fileList.length === 0 ? (
           <div className="flex items-center justify-center p-8 border rounded-xl bg-sidebar/50 text-muted-foreground text-sm border-dashed">
             No documents uploaded yet.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
-            {files.map((file) => {
+            {fileList.map((file: any) => {
               const { icon: Icon, color, bg } = getFileIcon(file.name, file.type);
               
               return (
@@ -202,7 +165,6 @@ export default function DocumentsPage() {
                   className="flex items-center justify-between p-4 bg-sidebar border rounded-xl hover:shadow-sm transition-shadow group"
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
-
                     <div className={cn("p-2 rounded-lg shrink-0", bg, color)}>
                       <Icon className="size-5" />
                     </div>
@@ -212,7 +174,7 @@ export default function DocumentsPage() {
                         {file.name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatBytes(file.size)} • {file.createdAt.toLocaleDateString()}
+                        {formatBytes(file.size)} • {new Date(file.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -221,6 +183,8 @@ export default function DocumentsPage() {
                     <a 
                       href={file.url} 
                       download={file.name}
+                      target="_blank"
+                      rel="noreferrer"
                       className="flex items-center justify-center size-8 rounded hover:bg-neutral-200 text-muted-foreground hover:text-primary transition-colors"
                       title="Download"
                       onClick={(e) => e.stopPropagation()}
@@ -230,10 +194,11 @@ export default function DocumentsPage() {
                     
                     <button 
                       onClick={() => handleDelete(file.id, file.url)}
-                      className="flex items-center justify-center size-8 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors"
+                      disabled={isDeleting}
+                      className="flex items-center justify-center size-8 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
                       title="Delete"
                     >
-                      <Trash2 className="size-4" />
+                      {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                     </button>
                   </div>
                 </div>

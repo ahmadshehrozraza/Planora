@@ -10,19 +10,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
-  Loader2,
   LayoutTemplate,
-  Settings,
-  Users,
-  BarChart3,
-  ListTodo,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
 import { useGetSegment } from "@/features/segments/api/use-get-segment";
 import { PageLoader } from "@/components/page-loader";
 import { PageError } from "@/components/page-error";
-import SegmentFiles from "@/features/segments/components/segment-files";
+import { SegmentFiles } from "@/features/segments/components/segment-files";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 const TaskViewSwitcher = dynamic(
   () =>
@@ -32,7 +28,7 @@ const TaskViewSwitcher = dynamic(
   {
     loading: () => (
       <div className="h-[400px] flex items-center justify-center">
-        <Loader2 className="animate-spin text-muted-foreground size-8" />
+        <PageLoader />
       </div>
     ),
   }
@@ -46,7 +42,7 @@ const EditSegmentForm = dynamic(
   {
     loading: () => (
       <div className="h-[400px] flex items-center justify-center">
-        <Loader2 className="animate-spin text-muted-foreground size-8" />
+        <PageLoader />
       </div>
     ),
   }
@@ -64,6 +60,9 @@ export const SegmentIdClient = ({
   segmentId,
 }: SegmentIdClientProps) => {
   const { data: segment, isLoading, error } = useGetSegment(segmentId);
+
+  const { data: permissions } = useGetPermissions(workspaceId, projectId);
+  const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
 
   if (isLoading) {
     return (
@@ -142,12 +141,15 @@ export const SegmentIdClient = ({
               >
                 Files
               </TabsTrigger>
+
+              {allowed && (
               <TabsTrigger
                 value="settings"
                 className="px-5 text-sm data-[state=active]:shadow-sm"
               >
                 Settings
               </TabsTrigger>
+              )}
             </TabsList>
           </div>
         </div>
@@ -165,7 +167,7 @@ export const SegmentIdClient = ({
             className="m-0 p-6 focus-visible:outline-none"
           >
             <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-              <SegmentFiles />
+              <SegmentFiles segmentId={segmentId} />
             </div>
           </TabsContent>
 

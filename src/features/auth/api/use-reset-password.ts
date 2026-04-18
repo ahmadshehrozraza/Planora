@@ -1,38 +1,26 @@
 import { useMutation } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
 import { toast } from "sonner";
-import { client } from "@/lib/rpc"; 
 import { useRouter } from "next/navigation";
-
-type ResponseType = InferResponseType<typeof client.api.auth["reset-password"]["$post"]>;
-type RequestType = InferRequestType<typeof client.api.auth["reset-password"]["$post"]>
+import { setNewPasswordAction } from "../server/set-new-password";
 
 export const useResetPassword = () => {
     const router = useRouter();
 
-    const mutation = useMutation<
-        ResponseType,
-        Error,
-        RequestType
-    >({
-        mutationFn: async({ json }) => {
-            const response = await client.api.auth["reset-password"]["$post"]({ json });
-
-            if(!response.ok){
-                throw new Error("Failed to reset password");
+    return useMutation({
+        mutationFn: async ({ values, token }: { values: any, token: string }) => {
+            return await setNewPasswordAction(values, token);
+        },
+        onSuccess: (data) => {
+            if (data?.error) {
+                toast.error(data.error);
             }
-
-            return await response.json();
+            if (data?.success) {
+                toast.success(data.success);
+                router.push("/sign-in");
+            }
         },
-        onSuccess: () => {
-            toast.success("Password reset successfully");
-            router.push("/sign-in"); 
-        },
-        onError: (error) => {
-            console.error("Reset password error:", error);
-            toast.error("Failed to reset password. Please try again.");
+        onError: () => {
+            toast.error("Network error or something went wrong.");
         }
     });
-
-    return mutation;
 };

@@ -30,11 +30,9 @@ export const emailSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-    userId: z.string(),
-    secret: z.string(),
-    password: z.string().min(8, "Minimum 8 characters"),
-    confirmPassword: z.string().min(8, "Minimum 8 characters"),
+  password: z.string().min(8, "Minimum 8 characters required"),
+  confirmPassword: z.string().min(8, "Minimum 8 characters required"),
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });

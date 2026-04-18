@@ -25,6 +25,7 @@ import {
   HiOutlineChartBar,
   HiChartBar,
 } from "react-icons/hi";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 const routes = [
   { 
@@ -32,41 +33,51 @@ const routes = [
     href: "", 
     icon: HiOutlineHome, 
     activeIcon: HiHome,
+    requireAdmin: false,
   },
   { 
     label: "Tasks", 
     href: "/tasks", 
     icon: HiOutlineCheckCircle, 
     activeIcon: HiCheckCircle,
+    requireAdmin: false,
   },
   { 
     label: "Events", 
     href: "/events", 
     icon: HiOutlineCalendar, 
     activeIcon: HiCalendar,
+    requireAdmin: false,
   },
   { 
     label: "Analytics", 
     href: "/analytics", 
     icon: HiOutlineChartBar, 
     activeIcon: HiChartBar,
+    requireAdmin: true, 
   },
   { 
     label: "Members", 
     href: "/members", 
     icon: HiOutlineUsers, 
     activeIcon: HiUsers,
+    requireAdmin: true, 
   },
   { 
     label: "Settings", 
     href: "/settings", 
     icon: HiOutlineCog, 
     activeIcon: HiCog,
+    requireAdmin: true, 
   }
 ];
 
 export const Navigation = () => {
   const workspaceId = useWorkspaceId();
+
+  const { data: permissions } = useGetPermissions(workspaceId as string);
+  const allowed = permissions?.workspaceAdmin ?? false;
+
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar(); 
 
@@ -76,9 +87,16 @@ export const Navigation = () => {
     }
   };
 
+  const filteredRoutes = routes.filter((item) => {
+    if (item.requireAdmin) {
+      return allowed;
+    }
+    return true; 
+  });
+
   return (
     <SidebarMenu>
-      {routes.map((item) => {
+      {filteredRoutes.map((item) => {
         const fullHref = `/workspaces/${workspaceId}${item.href}`;
         
         const isActive = item.href === ""

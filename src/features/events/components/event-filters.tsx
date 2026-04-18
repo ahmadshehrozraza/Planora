@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderIcon, X, CalendarIcon, Layers } from "lucide-react";
+import { FolderIcon, X, Layers } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,38 +11,37 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/date-picker";
-import { useEventFilters } from "../hooks/use-event-filters";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
-import { useGetDummySegmentsByProject } from "@/features/segments/api/use-get-dummy-segments"; 
+
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { useEventFilters } from "../hooks/use-event-filters";
+import { useGetProjects } from "@/features/projects/api/use-get-projects";
+import { useGetSegments } from "@/features/segments/api/use-get-segments";
 
 export const EventFilters = () => {
   const workspaceId = useWorkspaceId();
   
   const [{ projectId, segmentId, date }, setFilters] = useEventFilters();
 
-  const { data: projects, isLoading: isLoadingProjects } = useGetDummyProjects(workspaceId);
+  const { data: projects, isLoading: isLoadingProjects } = useGetProjects({ workspaceId });
 
-  const { data: segments, isLoading: isLoadingSegments } = useGetDummySegmentsByProject(
-    projectId || undefined
+  const { data: segments, isLoading: isLoadingSegments } = useGetSegments(
+    projectId && projectId !== "all" ? projectId : ""
   );
 
-  const isLoading = isLoadingProjects || isLoadingSegments;
-
-  const projectOptions = projects?.documents?.map((project) => ({
+  const projectOptions = projects?.map((project) => ({
     value: project.id,
     label: project.name,
   })) || [];
 
-  const segmentOptions = segments?.documents?.map((segment) => ({
+  const segmentOptions = segments?.map((segment) => ({
     value: segment.id,
     label: segment.name,
   })) || [];
 
   const onProjectChange = (value: string) => {
     setFilters({ 
-        projectId: value === "all" ? null : value,
-        segmentId: null 
+      projectId: value === "all" ? null : value,
+      segmentId: null
     });
   };
 
@@ -50,8 +49,8 @@ export const EventFilters = () => {
     setFilters({ segmentId: value === "all" ? null : value });
   };
 
-  const onDateChange = (date: Date | undefined) => {
-    setFilters({ date: date ? date : null });
+  const onDateChange = (newDate: Date | undefined) => {
+    setFilters({ date: newDate ? newDate : null });
   };
 
   const resetFilters = () => {
@@ -77,7 +76,7 @@ export const EventFilters = () => {
         </SelectTrigger>
         <SelectContent className="bg-popover border-border">
           <SelectItem value="all" className="cursor-pointer focus:bg-accent focus:text-accent-foreground">All Projects</SelectItem>
-          <SelectSeparator className="bg-border" />
+          {projectOptions.length > 0 && <SelectSeparator className="bg-border" />}
           {projectOptions.map((project) => (
             <SelectItem key={project.value} value={project.value} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
               {project.label}
@@ -89,12 +88,12 @@ export const EventFilters = () => {
       <Select
         value={segmentId || "all"}
         onValueChange={onSegmentChange}
-        disabled={!projectId} 
+        disabled={!projectId || projectId === "all" || isLoadingSegments} 
       >
         <SelectTrigger className="w-full lg:w-[180px] h-8 bg-background border-border disabled:opacity-50 disabled:cursor-not-allowed">
           <div className="flex items-center pr-2 truncate">
             <Layers className="size-4 mr-2 text-muted-foreground shrink-0" />
-            <SelectValue placeholder="All Segments" />
+            <SelectValue placeholder={isLoadingSegments ? "Loading..." : "All Segments"} />
           </div>
         </SelectTrigger>
         <SelectContent className="bg-popover border-border">

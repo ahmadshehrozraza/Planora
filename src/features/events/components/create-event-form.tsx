@@ -1,81 +1,71 @@
 "use client";
 
 import { z } from "zod";
-import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
-import { CalendarIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+
 import { DatePicker } from "@/components/date-picker";
+import { ScrollTimePicker } from "@/components/time-picker";
 import { createEventSchema } from "../schemas";
 
-// Import the Time Picker Wrapper
-import { ScrollTimePicker } from "@/components/time-picker";
-
-// --- Mock Hooks (Replace these with your actual API hooks) ---
-// import { useGetWorkspaces } from "@/features/workspaces/api/use-get-workspaces";
-// import { useGetProjects } from "@/features/projects/api/use-get-projects";
-// import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useCreateEvent } from "@/features/events/api/use-create-event"; // Adjust path if needed
 
 interface CreateEventFormProps {
   onCancel?: () => void;
+  workspaceId: string; 
+  projects: any[];    
 }
 
-export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
-  // MOCK DATA for display purposes
-  const workspaces = [
-    { $id: "ws_1", name: "Workspace A" },
-    { $id: "ws_2", name: "Workspace B" },
-  ];
-  const projects = [
-    { $id: "pj_1", name: "Website Redesign" },
-    { $id: "pj_2", name: "Mobile App" },
-  ];
-  const segments = [
-    { $id: "sg_1", name: "UI Design" },
-    { $id: "sg_2", name: "Backend" },
-  ];
-  const isPending = false;
+export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEventFormProps) => {
+  
+  const { mutate: createEvent, isPending: isCreatingEvent } = useCreateEvent();
 
   const form = useForm<z.infer<typeof createEventSchema>>({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       title: "",
-      date: new Date(), // Initialize with current date & time
-      workspaceId: "",
-      projectId: "",
-      segmentId: "",
+      date: new Date(), 
+      workspaceId: workspaceId,
+      projectId: "none", 
+      segmentId: "none", 
       description: "",
     },
   });
 
-  const selectedWorkspaceId = form.watch("workspaceId");
   const selectedProjectId = form.watch("projectId");
 
+const { data: segmentsData, isLoading: isLoadingSegments } = useGetSegments(
+     selectedProjectId === "none" ? "" : (selectedProjectId || "")
+  );
+  
+  const segments = segmentsData;
+
   const onSubmit = (values: z.infer<typeof createEventSchema>) => {
-    console.log("Form Values with Time:", values);
-    // values.date now contains both Date and Time
-    // mutate({ json: values });
+
+    const finalPayload = {
+      ...values,
+      projectId: values.projectId === "none" ? undefined : values.projectId,
+      segmentId: values.segmentId === "none" ? undefined : values.segmentId,
+    };
+
+    createEvent(finalPayload, { 
+      onSuccess: () => {
+        form.reset();
+        onCancel?.();
+      } 
+    });
   };
+
+  const isPending = isCreatingEvent;
 
   return (
     <Card className="w-full h-fit border-none shadow-none">
@@ -86,7 +76,7 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* 1. Title */}
+
             <FormField
               control={form.control}
               name="title"
@@ -105,7 +95,6 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
               )}
             />
 
-            {/* 2. Date & Time Row */}
             <FormField
               control={form.control}
               name="date"
@@ -147,54 +136,20 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
               )}
             />
 
-            {/* 3. Hierarchy Selectors */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="workspaceId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Workspace</FormLabel>
-                    <Select
-                      onValueChange={(val) => {
-                        field.onChange(val);
-                        form.setValue("projectId", "");
-                        form.setValue("segmentId", "");
-                      }}
-                      defaultValue={field.value}
-                      disabled={isPending}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select workspace" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {workspaces?.map((ws) => (
-                          <SelectItem key={ws.$id} value={ws.$id}>
-                            {ws.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
+                    <FormLabel>Scope (Project)</FormLabel>
                     <Select
                       onValueChange={(val) => {
                         field.onChange(val);
-                        form.setValue("segmentId", "");
+                        form.setValue("segmentId", "none");
                       }}
-                      defaultValue={field.value}
-                      disabled={isPending || !selectedWorkspaceId}
+                      value={field.value}
+                      disabled={isPending}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -202,8 +157,11 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
+                          Entire Workspace
+                        </SelectItem>
                         {projects?.map((proj) => (
-                          <SelectItem key={proj.$id} value={proj.$id}>
+                          <SelectItem key={proj.id} value={proj.id}>
                             {proj.name}
                           </SelectItem>
                         ))}
@@ -219,20 +177,23 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
                 name="segmentId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Segment</FormLabel>
+                    <FormLabel>Scope (Segment)</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isPending || !selectedProjectId}
+                      value={field.value}
+                      disabled={isPending || isLoadingSegments || !selectedProjectId || selectedProjectId === "none"}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select segment" />
+                          <SelectValue placeholder={isLoadingSegments ? "Loading..." : "Select segment"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {segments?.map((seg) => (
-                          <SelectItem key={seg.$id} value={seg.$id}>
+                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
+                          Entire Project
+                        </SelectItem>
+                        {segments?.map((seg: any) => (
+                          <SelectItem key={seg.id} value={seg.id}>
                             {seg.name}
                           </SelectItem>
                         ))}
@@ -244,7 +205,6 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
               />
             </div>
 
-            {/* 4. Description */}
             <FormField
               control={form.control}
               name="description"
@@ -266,7 +226,6 @@ export const CreateEventForm = ({ onCancel }: CreateEventFormProps) => {
 
             <Separator className="my-4" />
 
-            {/* 5. Actions */}
             <div className="flex items-center justify-end gap-3">
               {onCancel && (
                 <Button

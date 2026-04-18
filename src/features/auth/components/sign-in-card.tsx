@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/form";
 import Link from "next/link";
 import { loginSchema } from "../schemas";
-// import { useLogin } from "../api/use-login";
-import { redirect } from "next/dist/server/api-utils";
+import { useLogin } from "../api/use-login";
+import { signIn } from "next-auth/react";
 
 export const SignInCard = () => {
 
-    // const { mutate, isPending } = useLogin();
+    const { mutate, isPending } = useLogin();
 
     const form = useForm<z.infer<typeof loginSchema>>({
         resolver: zodResolver(loginSchema),
@@ -33,9 +33,11 @@ export const SignInCard = () => {
         }
     })
 
-    const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-
+    const onSubmit = (values: z.infer<typeof loginSchema>) => {
+        mutate(values); 
     }
+
+
     return (
         <Card className="w-full h-full md:w-[487px]">
             <CardHeader className="flex items-center justify-center text-center p-7">
@@ -85,8 +87,9 @@ export const SignInCard = () => {
                         />
                         <Button
                             size="lg"
-                            // disabled={isPending}
+                            disabled={isPending}
                             className="w-full"
+                            type="submit"
                         >
                             Login
                         </Button>
@@ -98,20 +101,23 @@ export const SignInCard = () => {
                         </p>
 
                         <Button
-                            // onClick={() => signUpWithGoogle()}
+                            type="button"
+                            onClick={() => signIn("google", { callbackUrl: "/" })}
                             size="lg"
-                            // disabled={isPending}
+                            disabled={isPending}
                             className="w-full"
                             variant="secondary"
+                            
                         >
                             <FcGoogle className="mr-2 size-5" />
                             Login with Google
                         </Button>
 
                         <Button
-                            // onClick={() => signUpWithGithub()}
+                            type="button"
+                            onClick={() => signIn("github", { callbackUrl: "/" })}
                             size="lg"
-                            // disabled={isPending}
+                            disabled={isPending}
                             className="w-full"
                             variant="secondary"
                         >

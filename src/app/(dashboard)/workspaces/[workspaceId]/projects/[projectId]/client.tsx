@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Plus, Download, Loader2, LayoutTemplate } from "lucide-react";
+import { Plus, Download, LayoutTemplate } from "lucide-react";
 import dynamic from "next/dynamic";
 
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
+import { useGetProject } from "@/features/projects/api/use-get-project";
 import { useCreateSegmentModal } from "@/features/segments/hooks/use-create-segment-modal";
 
 import { PageLoader } from "@/components/page-loader";
@@ -16,15 +16,21 @@ import { Button } from "@/components/ui/button";
 import { SegmentsPage } from "./segments/page";
 import { CreateSegmentModal } from "@/features/segments/components/create-segment-modal";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
-const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
-const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
-const ProjectMembers = dynamic(() => import("@/features/projects/components/project-members"), { loading: () => <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-muted-foreground" /></div> });
+const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><PageLoader /></div> });
+const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><PageLoader /></div> });
+const ProjectMembers = dynamic(() => import("@/features/projects/components/project-members"), { loading: () => <div className="p-8 flex justify-center"><PageLoader /></div> });
 
 export const ProjectIdClient = () => {
+    
+    const workspaceId = useWorkspaceId();
     const projectId = useProjectId();
-    const { data, isLoading: isLoadingProject } = useGetDummyProjects();
-    const project = data?.documents.find((p) => p.id === projectId);
+    const { data: project, isLoading: isLoadingProject } = useGetProject({ projectId });
+
+    const { data: permissions } = useGetPermissions(workspaceId, projectId);
+    const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
 
     const { open } = useCreateSegmentModal();
     const printRef = useRef<HTMLDivElement>(null);
@@ -87,7 +93,11 @@ export const ProjectIdClient = () => {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center px-6 py-4 gap-4 bg-card border-b border-border sticky top-0 z-20 shadow-sm">
                     <div className="flex items-center gap-3">
                          
-                             <ProjectAvatar name={project.name} className="size-10" />
+                             <ProjectAvatar 
+                                name={project.name} 
+                                className="size-10" 
+                                image={project.imageUrl}
+                            />
 
                          <div>
                              <h1 className="font-bold text-lg text-foreground leading-none">{project.name}</h1>
@@ -98,15 +108,21 @@ export const ProjectIdClient = () => {
                     <div className="flex items-center justify-between w-full lg:w-auto gap-4">
                         <TabsList className="h-10 bg-muted/80 p-1 w-full lg:w-auto overflow-x-auto justify-start border border-border">
                             <TabsTrigger value="segments" className="px-5 text-sm data-[state=active]:shadow-sm">Segments</TabsTrigger>
+                            {allowed && (
+                                <>
                             <TabsTrigger value="projectAnalytics" className="px-5 text-sm data-[state=active]:shadow-sm">Analytics</TabsTrigger>
                             <TabsTrigger value="projectMembers" className="px-5 text-sm data-[state=active]:shadow-sm">Members</TabsTrigger>
                             <TabsTrigger value="projectSettings" className="px-5 text-sm data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                            </>
+                            )}
                         </TabsList>
 
+                        {allowed && (
                         <Button onClick={open} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shrink-0">
                             <Plus className="size-4 mr-2" />
                             New Segment
                         </Button>
+                        )}
                     </div>
                 </div>
 
@@ -125,9 +141,10 @@ export const ProjectIdClient = () => {
                                     size="sm"
                                     className="bg-background hover:bg-accent border-border shadow-sm text-foreground font-medium"
                                 >
-                                    {isExporting ? <><Loader2 className="size-4 mr-2 animate-spin" /> Generating PDF...</> : <><Download className="size-4 mr-2" /> Export Report</>}
+                                    {isExporting ? <><PageLoader /> Generating PDF...</> : <><Download className="size-4 mr-2" /> Export Report</>}
                                 </Button>
                             </div>
+
                             <div ref={printRef} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden print-container">
                                 <ProjectAnalytics projectId={projectId} />
                             </div>
@@ -136,7 +153,7 @@ export const ProjectIdClient = () => {
 
                     <TabsContent value="projectMembers" className="m-0 p-6">
                         <div className=" ">
-                           <ProjectMembers project={project} />
+                           <ProjectMembers projectId={projectId} />
                         </div>
                     </TabsContent>
 

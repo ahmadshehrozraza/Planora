@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download } from "lucide-react";
 import dynamic from "next/dynamic";
 
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGetDummyProjects } from "@/features/projects/api/use-get-dummy-projects";
+import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { PageLoader } from "@/components/page-loader";
-import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
 const ProjectAnalytics = dynamic(
   () => import("@/features/projects/components/project-analytics"),
@@ -35,7 +34,7 @@ interface AnalyticsClientProps {
 
 export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
 
-  const { data, isLoading } = useGetDummyProjects(workspaceId);
+  const { data, isLoading } = useGetProjects({ workspaceId })
 
   const [selectedProjectId, setSelectedProjectId] = useState<
     string | undefined
@@ -44,12 +43,12 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
 
   const printRef = useRef<HTMLDivElement>(null);
 
-  const activeProjectId = selectedProjectId || data?.documents?.[0]?.id;
+  const activeProjectId = selectedProjectId || data?.[0]?.id;
 
   const handleExportPDF = async () => {
     if (!printRef.current || !activeProjectId) return;
 
-    const project = data?.documents.find((p) => p.id === activeProjectId);
+    const project = data?.find((p) => p.id === activeProjectId);
     const fileName = project ? project.name.replace(/\s+/g, "_") : "Project";
 
     setIsExporting(true);
@@ -113,7 +112,7 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
               <SelectValue placeholder="Select a project" />
             </SelectTrigger>
             <SelectContent>
-              {data?.documents.map((project) => (
+              {data?.map((project) => (
                 <SelectItem
                   key={project.id}
                   value={project.id}
@@ -140,7 +139,7 @@ export const AnalyticsClient = ({ workspaceId }: AnalyticsClientProps) => {
         >
           {isExporting ? (
             <>
-              <Loader2 className="size-4 mr-2 animate-spin" /> Generating PDF...
+              <PageLoader /> Generating PDF...
             </>
           ) : (
             <>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { TaskStatus, TaskType, TaskPriority } from "@/features/tasks/types";
+import { TaskType, TaskPriority } from "@/features/tasks/types";
 import { SegmentStatus } from "@/features/segments/types"; 
 import { ProjectStatus } from "@/features/projects/types"; 
 import { MemberRole } from "@/features/members/types";
@@ -33,19 +33,12 @@ type BadgeVariant =
   | "secondary"
   | "destructive"
   | "outline"
-  | TaskStatus
   | TaskType
   | TaskPriority
   | MemberRole
   | SharedStatus;
 
 const variantLabels: Record<string, string> = {
-
-  [TaskStatus.TODO]: "To Do",
-  [TaskStatus.IN_PROGRESS]: "In Progress",
-  [TaskStatus.IN_REVIEW]: "In Review",
-  [TaskStatus.DONE]: "Done",
-  [TaskStatus.BACKLOG]: "Backlog",
 
   [TaskPriority.LOW]: "Low",
   [TaskPriority.MEDIUM]: "Medium",
@@ -77,17 +70,6 @@ const badgeVariants = cva(
        destructive:
           "border-transparent bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100/80 dark:hover:bg-rose-500/20",
         outline: "text-foreground",
-
-        [TaskStatus.TODO]:
-          "border-transparent bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100/80 dark:hover:bg-red-500/20",
-        [TaskStatus.IN_PROGRESS]:
-          "border-transparent bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100/80 dark:hover:bg-amber-500/20",
-        [TaskStatus.IN_REVIEW]:
-          "border-transparent bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-500/20",
-        [TaskStatus.DONE]:
-          "border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/20",
-        [TaskStatus.BACKLOG]:
-          "border-transparent bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400 border-pink-200 dark:border-pink-800 hover:bg-pink-100/80 dark:hover:bg-pink-500/20",
 
         [TaskType.TASK]:
           "border-transparent bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100/80 dark:hover:bg-blue-500/20",
@@ -153,16 +135,6 @@ function Badge({
     if (!showIcon) return null;
 
     switch (v) {
-      case TaskStatus.DONE:
-        return <CheckCircle className="size-3" />;
-      case TaskStatus.IN_PROGRESS:
-        return <Clock className="size-3" />;
-      case TaskStatus.IN_REVIEW:
-        return <Eye className="size-3" />;
-      case TaskStatus.TODO:
-        return <CircleDashed className="size-3" />;
-      case TaskStatus.BACKLOG:
-        return <ListTodo className="size-3" />;
 
       case TaskPriority.HIGH:
         return <Flag className="size-3" />;

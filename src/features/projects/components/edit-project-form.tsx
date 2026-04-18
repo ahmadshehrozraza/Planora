@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { DummyProject, Project, ProjectStatus } from "../types";
+import { Project, ProjectStatus } from "../types";
 import { useUpdateProject } from "../api/use-update-project";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
@@ -36,7 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface EditProjectFormProps {
     onCancel?: () => void;
-    initialValues: DummyProject;
+    initialValues: any;
 };
 
 export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProps) => {
@@ -50,13 +50,11 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
         isPending: isDeletingProject
     } = useDeleteProject();
 
-
     const [DeleteDialog, confirmDelete] = useConfirm(
         "Delete Project",
         "This action cannot be undone",
         "destructive",
     );
-
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [imageSizeError, setImageSizeError] = useState(false);
@@ -65,49 +63,51 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
         resolver: zodResolver(updateProjectSchema),
         defaultValues: {
             ...initialValues,
+            status: initialValues.status as ProjectStatus, 
             imageUrl: initialValues.imageUrl ?? "",
+            githubRepoUrl: initialValues.githubRepoUrl ?? "",
         },
     });
 
     const handleDelete = async () => {
         const ok = await confirmDelete();
-
         if (!ok) return;
 
-        // deleteProject({
-        //     param: { projectId: initialValues.id },
-        // }, {
-        //     onSuccess: () => {
-        //         toast.success("Project Deleted Successfully");
-        //         window.location.href = `/workspaces/${initialValues.workspaceId}`;
-        //     }
-        // })
+        deleteProject(
+            { projectId: initialValues.id }, 
+            {
+                onSuccess: () => {
+                    window.location.href = `/workspaces/${initialValues.workspaceId}`;
+                }
+            }
+        );
     }
 
-
     const onSubmit = (values: z.infer<typeof updateProjectSchema>) => {
+        if (imageSizeError) return;
+
         const finalValues = {
             ...values,
-            imageUrl: values.imageUrl instanceof File ? values.imageUrl : "",
+            imageFile: values.imageUrl instanceof File ? values.imageUrl : null,
+            imageUrl: typeof values.imageUrl === "string" ? values.imageUrl : null,
+            status: values.status,
+            startDate: values.startDate ? values.startDate.toISOString() : undefined,
+            dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
+            budget: Number(values.budget) || 0,
+            githubRepoUrl: values.githubRepoUrl,
         };
 
-        // mutate({
-        //     form: finalValues,
-        //     param: { projectId: initialValues.$id }
-        // }, {
-        //     onSuccess: ( { data }) => {
-        //         form.reset();
-        //         router.push(`/workspaces/${workspaceId}/projects/${data.$id}`);
-        //     }
-        // });
-
-        alert("Edited Successfully");
+        mutate({
+             projectId: initialValues.id,
+             workspaceId: workspaceId, 
+             values: finalValues
+        });
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const maxSize = 1024 * 1024; // 1MB
+            const maxSize = 1024 * 1024;
             if (file.size > maxSize) {
                 setImageSizeError(true);
                 form.setValue("imageUrl", file);
@@ -127,13 +127,11 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)}>
                                 <div className="space-y-4">
-
                                     <FormField
                                         control={form.control}
                                         name="imageUrl"
                                         render={({ field }) => (
                                             <div className="space-y-2 flex justify-center items-center flex-col">
-                                                {/* <FormLabel>Project Image</FormLabel> */}
                                                 <div className="flex items-center gap-x-5">
                                                     {field.value ? (
                                                         <div className="size-24 lg:size-60 relative rounded-full overflow-hidden border">
@@ -185,7 +183,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                                                 type="button"
                                                                 disabled={isPending}
                                                                 variant="destructive"
-                                                                size="xs"
+                                                                size="sm"
                                                                 className="w-fit mt-2"
                                                                 onClick={() => {
                                                                     field.onChange(null);
@@ -202,7 +200,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                                                 type="button"
                                                                 disabled={isPending}
                                                                 variant="outline"
-                                                                size="xs"
+                                                                size="sm"
                                                                 className="w-fit mt-2"
                                                                 onClick={() => inputRef.current?.click()}
                                                             >
@@ -210,7 +208,6 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                                             </Button>
                                                         )}
                                                     </div>
-                                                <FormMessage />
                                             </div>
                                         )}
                                     />
@@ -235,7 +232,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
 
                                     <FormField
                                         control={form.control}
-                                        name="projectStatus"
+                                        name="status"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Project Status</FormLabel>
@@ -322,9 +319,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                             />
                                         </div>
                                     </div>
-                                
 
-                                    {/* Start Date */}
                                     <FormField
                                         control={form.control}
                                         name="startDate"
@@ -363,6 +358,24 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
 
                                     <FormField
                                         control={form.control}
+                                        name="githubRepoUrl"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>GitHub Repository URL</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        {...field}
+                                                        placeholder="https://github.com/owner/repo"
+                                                        disabled={isPending}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
                                         name="description"
                                         render={({ field }) => (
                                             <FormItem className="">
@@ -380,7 +393,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                         )}
                                     />
 
-                                    </div>
+                                </div>
 
                             <div className="flex items-center justify-end mt-3">
                                 <Button
@@ -397,7 +410,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                 </CardContent>
             </Card>
 
-<Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
+      <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
         <CardHeader>
           <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
         </CardHeader>

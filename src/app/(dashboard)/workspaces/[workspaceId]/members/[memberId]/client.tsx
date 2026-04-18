@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import Link from "next/link";
+import React, { useMemo, useState, useEffect } from "react";
 import { 
-  ArrowLeft, Mail, Calendar, Briefcase, CheckCircle2, 
+  Mail, Calendar, Briefcase, CheckCircle2, 
   AlertOctagon, TrendingUp, Target, Shield, Trash2, Plus 
 } from "lucide-react";
 import { 
@@ -17,83 +16,27 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { PageLoader } from "@/components/page-loader";
+import { useConfirm } from "@/hooks/use-confirm";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-// ==========================================
-// 1. DUMMY DATA
-// ==========================================
-const dummyMemberProfile = {
-  id: "mem_123",
-  name: "Ahmed Raza",
-  email: "ahmed@planora.com",
-  role: "PROJECT_MANAGER",
-  joinedDate: "2025-10-15T00:00:00.000Z",
-  totalPointsEarned: 345,
-  
-  kpis: {
-    totalTasksAssigned: 85,
-    tasksCompleted: 62,
-    overdueTasks: 3,
-    efficiency: 92,
-  },
-
-  taskStatusData: [
-    { status: "Done", count: 62, fill: "#10b981" },
-    { status: "In Progress", count: 12, fill: "#3b82f6" },
-    { status: "In Review", count: 8, fill: "#a855f7" },
-    { status: "To Do", count: 3, fill: "#f59e0b" },
-  ],
-
-  weeklyEffortData: [
-    { day: "Mon", points: 15 },
-    { day: "Tue", points: 25 },
-    { day: "Wed", points: 10 },
-    { day: "Thu", points: 30 },
-    { day: "Fri", points: 20 },
-    { day: "Sat", points: 0 },
-    { day: "Sun", points: 5 },
-  ],
-
-  projects: [
-    { id: "proj_1", name: "Planora Web App", status: "ACTIVE", roleInProject: "Lead Developer", tasksAssigned: 40, tasksCompleted: 35, pointsEarned: 180 },
-    { id: "proj_2", name: "Mobile App API", status: "ACTIVE", roleInProject: "Backend Engineer", tasksAssigned: 25, tasksCompleted: 15, pointsEarned: 90 },
-    { id: "proj_3", name: "Landing Page Redesign", status: "COMPLETED", roleInProject: "Reviewer", tasksAssigned: 20, tasksCompleted: 12, pointsEarned: 75 }
-  ]
-};
-
-const availableProjectsToAdd = [
-  { id: "proj_4", name: "Marketing Campaign Q4" },
-  { id: "proj_5", name: "Database Migration" },
-];
-
-const statusConfig = {
-  done: { label: "Done", color: "#10b981" },
-  in_progress: { label: "In Progress", color: "#3b82f6" },
-  in_review: { label: "In Review", color: "#a855f7" },
-  todo: { label: "To Do", color: "#f59e0b" },
-} satisfies ChartConfig;
+import { useGetWorkspaceMemberProfile } from "@/features/members/api/use-get-workspace-member-profile";
+import { useUpdateMember } from "@/features/members/api/use-update-member";
+import { useDeleteMember } from "@/features/members/api/use-delete-member";
+import { MemberRole } from "@/features/members/types";
+import { useAddProjectMember } from "@/features/projects/api/use-add-project-member";
+import { toast } from "sonner";
 
 const effortConfig = {
   points: { label: "Effort Points", color: "hsl(var(--primary))" },
 } satisfies ChartConfig;
-
 
 interface MemberProfileClientProps {
   memberId: string; 
@@ -101,36 +44,74 @@ interface MemberProfileClientProps {
 }
 
 export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClientProps) => {
-  const member = dummyMemberProfile; 
 
-  const [role, setRole] = useState(member.role);
+  const { data: member, isLoading } = useGetWorkspaceMemberProfile({ workspaceId, memberId });
+  const { mutate: addProjectMember, isPending: isAddingToProject } = useAddProjectMember();
+
+  const { mutate: updateRole, isPending: isUpdating } = useUpdateMember();
+  const { mutate: removeMember, isPending: isDeleting } = useDeleteMember();
+  
+  const [ConfirmDialog, confirm] = useConfirm(
+    "Remove member",
+    "Are you sure you want to remove this member from the workspace? They will lose access to all projects.",
+    "destructive"
+  );
+
+  const [role, setRole] = useState<string>("");
   const [selectedProject, setSelectedProject] = useState<string>("");
 
-  const totalTasks = useMemo(() => {
-    return member.taskStatusData.reduce((acc, curr) => acc + curr.count, 0);
-  }, [member.taskStatusData]);
+  useEffect(() => {
+    if (member?.role) setRole(member.role);
+  }, [member?.role]);
 
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
-    console.log(`Role updated to ${newRole}`);
+    updateRole({ memberId, role: newRole as MemberRole });
   };
 
-  const handleDeleteMember = () => {
-    console.log(`Removing member ${member.name} from workspace`);
+  const handleDeleteMember = async () => {
+    const ok = await confirm();
+    if (!ok) return;
+    removeMember({ memberId });
   };
 
   const handleAddToProject = () => {
-    if (!selectedProject) return;
-    console.log(`Adding member to project: ${selectedProject}`);
-    setSelectedProject("");
+    if (!selectedProject || !member?.userId) return;
+
+    addProjectMember(
+      { 
+        projectId: selectedProject, 
+        userId: member.userId 
+      },
+      {
+        onSuccess: () => {
+          setSelectedProject("");
+          
+        }
+      }
+    );
   };
+
+  const dynamicStatusConfig = useMemo(() => {
+    if (!member?.taskStatusData) return {};
+    const config: Record<string, any> = {};
+    member.taskStatusData.forEach((item: any) => {
+      config[item.status.toLowerCase().replace(/\s+/g, '_')] = { label: item.status, color: item.fill };
+    });
+    return config as ChartConfig;
+  }, [member?.taskStatusData]);
+
+  if (isLoading || !member) return <div className="h-screen flex items-center justify-center"><PageLoader /></div>;
 
   return (
     <div className="w-full flex flex-col space-y-6 pb-8 text-foreground">
+      <ConfirmDialog />
+      
       <Card className="border-border shadow-sm bg-card">
         <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <MemberAvatar 
             name={member.name} 
+            src={member.image}
             className="size-20 sm:size-24 text-3xl border shadow-sm"
           />
           <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
@@ -155,7 +136,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
           <div className="w-full sm:w-auto flex justify-center sm:justify-end shrink-0 mt-2 sm:mt-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="shadow-sm">
+                <Button variant="outline" className="shadow-sm" disabled={isUpdating || isDeleting}>
                   <Shield className="size-4 mr-2" />
                   Manage Access
                 </Button>
@@ -166,19 +147,10 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={role} onValueChange={handleRoleChange}>
-                  <DropdownMenuRadioItem value="ADMIN" className="cursor-pointer font-medium">
-                    Administrator
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="PROJECT_MANAGER" className="cursor-pointer font-medium">
-                    Project Manager
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="MEMBER" className="cursor-pointer font-medium">
-                    Member
-                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="ADMIN" className="cursor-pointer font-medium">Administrator</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="MEMBER" className="cursor-pointer font-medium">Member</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
-                
                 <DropdownMenuSeparator />
-                
                 <DropdownMenuItem 
                   onClick={handleDeleteMember}
                   className="text-destructive font-medium focus:text-destructive focus:bg-destructive/10 cursor-pointer"
@@ -191,6 +163,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
           </div>
         </CardContent>
       </Card>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-border shadow-sm">
           <CardContent className="p-6">
@@ -237,6 +210,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
           </CardContent>
         </Card>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-1 shadow-sm border-border flex flex-col">
           <CardHeader className="pb-0">
@@ -244,7 +218,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <CardDescription>Current status of all assigned tasks</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 pb-4 flex items-center justify-center">
-            <ChartContainer config={statusConfig} className="w-full aspect-square max-h-[220px]">
+            <ChartContainer config={dynamicStatusConfig} className="w-full aspect-square max-h-[220px]">
               <PieChart>
                 <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
                 <Pie
@@ -261,7 +235,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                         return (
                           <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
                             <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                              {totalTasks}
+                              {member.kpis.totalTasksAssigned}
                             </tspan>
                             <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-xs font-medium">
                               Tasks
@@ -295,6 +269,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
           </CardContent>
         </Card>
       </div>
+
       <Card className="shadow-sm border-border overflow-hidden">
         <CardHeader className="bg-muted/30 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -308,16 +283,13 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 <SelectValue placeholder="Select project..." />
               </SelectTrigger>
               <SelectContent>
-                {availableProjectsToAdd.map((proj) => (
-                  <SelectItem key={proj.id} value={proj.id}>
-                    {proj.name}
-                  </SelectItem>
-                ))}
+                {member.availableProjectsToAdd.length > 0 ? member.availableProjectsToAdd.map((proj: any) => (
+                  <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
+                )) : <SelectItem value="none" disabled>No projects available</SelectItem>}
               </SelectContent>
             </Select>
             <Button onClick={handleAddToProject} disabled={!selectedProject} size="sm" className="h-9 shadow-sm">
-              <Plus className="size-4 mr-1.5" />
-              Add
+              <Plus className="size-4 mr-1.5" /> Add
             </Button>
           </div>
         </CardHeader>
@@ -335,39 +307,34 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
-                {member.projects.map((project) => (
+                {member.projects.length > 0 ? member.projects.map((project: any) => (
                   <tr key={project.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-foreground">
-                      {project.name}
-                    </td>
+                    <td className="px-6 py-4 font-semibold text-foreground">{project.name}</td>
                     <td className="px-6 py-4">
-                      <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>
-                        {project.status}
-                      </Badge>
+                      <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>{project.status.replace(/_/g, " ")}</Badge>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground font-medium">
-                      {project.roleInProject}
-                    </td>
+                    <td className="px-6 py-4 text-muted-foreground font-medium">{project.roleInProject.replace(/_/g, " ")}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold w-8 text-right">{Math.round((project.tasksCompleted / project.tasksAssigned) * 100)}%</span>
-                        <Progress value={(project.tasksCompleted / project.tasksAssigned) * 100} className="h-2 flex-1" />
+                        <span className="text-xs font-bold w-8 text-right">
+                          {project.tasksAssigned > 0 ? Math.round((project.tasksCompleted / project.tasksAssigned) * 100) : 0}%
+                        </span>
+                        <Progress value={project.tasksAssigned > 0 ? (project.tasksCompleted / project.tasksAssigned) * 100 : 0} className="h-2 flex-1" />
                         <span className="text-xs text-muted-foreground w-12">{project.tasksCompleted}/{project.tasksAssigned}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
-                        {project.pointsEarned} pts
-                      </span>
+                      <span className="font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">{project.pointsEarned} pts</span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan={5} className="py-12 text-center text-muted-foreground font-medium">Not involved in any projects yet.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 };

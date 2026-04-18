@@ -22,19 +22,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/page-loader";
 
-// Step 1: Verify password schema
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
 });
 
-// Step 2: Enter new email and send OTP schema
 const emailSchema = z.object({
     newEmail: z.string().email("Invalid email address"),
 });
 
-// Step 3: Verify OTP schema
 const otpSchema = z.object({
     otp: z.string().min(6, "OTP must be 6 digits").max(6, "OTP must be 6 digits"),
 });
@@ -57,7 +54,6 @@ export const ChangeEmailForm = ({
     const [verifiedPassword, setVerifiedPassword] = useState(false);
     const [newEmail, setNewEmail] = useState("");
 
-    // Password verification form
     const passwordForm = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
         defaultValues: {
@@ -65,7 +61,6 @@ export const ChangeEmailForm = ({
         },
     });
 
-    // Email form
     const emailForm = useForm<z.infer<typeof emailSchema>>({
         resolver: zodResolver(emailSchema),
         defaultValues: {
@@ -73,7 +68,6 @@ export const ChangeEmailForm = ({
         },
     });
 
-    // OTP form
     const otpForm = useForm<z.infer<typeof otpSchema>>({
         resolver: zodResolver(otpSchema),
         defaultValues: {
@@ -81,17 +75,11 @@ export const ChangeEmailForm = ({
         },
     });
 
-    // Step 1: Verify current password
     const onPasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
         setIsLoading(true);
         try {
-            // Add your password verification API call here
             console.log("Verifying password:", values);
-            
-            // Simulate API call
-            
-            
-            // If password is correct
+
             setVerifiedPassword(true);
             setCurrentStep('email');
             toast.success("Password verified successfully");
@@ -102,11 +90,9 @@ export const ChangeEmailForm = ({
         }
     };
 
-    // Step 2: Enter new email and send OTP
     const onEmailSubmit = async (values: z.infer<typeof emailSchema>) => {
         setIsLoading(true);
         try {
-            // Add your OTP sending API call here
             console.log("Sending OTP to:", values.newEmail);
             
             // Simulate API call
@@ -122,16 +108,10 @@ export const ChangeEmailForm = ({
         }
     };
 
-    // Step 3: Verify OTP and complete email change
     const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
         setIsLoading(true);
         try {
-            // Add your OTP verification and email change API call here
             console.log("Verifying OTP and changing email:", { newEmail, otp: values.otp });
-            
-            // Simulate API call
-            
-            
             toast.success("Email changed successfully");
             resetForms();
             onClose();
@@ -176,7 +156,6 @@ export const ChangeEmailForm = ({
                     </DialogTitle>
                 </DialogHeader>
 
-                {/* Step 1: Password Verification */}
                 {currentStep === 'password' && (
                     <Form {...passwordForm}>
                         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
@@ -215,7 +194,7 @@ export const ChangeEmailForm = ({
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <PageLoader />
                                             Verifying...
                                         </>
                                     ) : (
@@ -227,7 +206,6 @@ export const ChangeEmailForm = ({
                     </Form>
                 )}
 
-                {/* Step 2: Enter New Email */}
                 {currentStep === 'email' && (
                     <Form {...emailForm}>
                         <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
@@ -276,7 +254,7 @@ export const ChangeEmailForm = ({
                                     <Button type="submit" disabled={isLoading}>
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <PageLoader />
                                                 Sending...
                                             </>
                                         ) : (
@@ -289,7 +267,6 @@ export const ChangeEmailForm = ({
                     </Form>
                 )}
 
-                {/* Step 3: Verify OTP */}
                 {currentStep === 'otp' && (
                     <Form {...otpForm}>
                         <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
@@ -339,7 +316,7 @@ export const ChangeEmailForm = ({
                                     <Button type="submit" disabled={isLoading}>
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                <PageLoader />
                                                 Verifying...
                                             </>
                                         ) : (

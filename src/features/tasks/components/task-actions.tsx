@@ -1,4 +1,4 @@
-
+"use client";
 
 import {
     DropdownMenu,
@@ -12,22 +12,42 @@ import { ExternalLink, PencilIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useEditTaskModal } from "../hooks/use-edit-task-modal";
-import { useCurrentMember } from "@/features/members/hooks/current-user-role";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { useSession } from "next-auth/react";
 
 interface TaskActionsProps {
     id: string;
     projectId: string;
+    assigneeId?: string; 
+    assigneeEmail?: string; 
     children: React.ReactNode;
 }
 
 export const TaskActions = ({
     id,
     projectId,
+    assigneeId,
+    assigneeEmail,
     children,
 }: TaskActionsProps) => {
 
     const router = useRouter();
     const workspaceId = useWorkspaceId();
+
+    const { data: session } = useSession();
+    const currentUserId = (session?.user as any)?.id;
+    const currentUserEmail = session?.user?.email;
+
+    const { data: permissions } = useGetPermissions(workspaceId, projectId);
+    const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
+
+    const isAssignee = Boolean(
+        (currentUserId && assigneeId && assigneeId === currentUserId) || 
+        (currentUserEmail && assigneeEmail && assigneeEmail === currentUserEmail)
+    );
+
+    const canEdit = allowed || isAssignee;
+    const canDelete = allowed; 
 
     const { open } = useEditTaskModal();
 
@@ -37,15 +57,17 @@ export const TaskActions = ({
         "destructive"
     );
 
-    const { isAdmin } = useCurrentMember();
-
     const { mutate, isPending } = useDeleteTask();
 
     const onDelete = async () => {
         const ok = await confirm();
         if(!ok) return;
 
-        // mutate({ param: { taskId: id } });
+        mutate(id,{
+            onSuccess: () => {
+                router.push(`/workspaces/${workspaceId}/tasks`);
+            }
+        });
     }
 
     const onOpenTask = () => {
@@ -80,24 +102,26 @@ export const TaskActions = ({
                         Open Project
                     </DropdownMenuItem>
 
-                    <DropdownMenuItem
-                    onClick={() => open(id)}
-                    className="font-medium p-[10px]"
-                    >
-                        <PencilIcon className="size-4 mr-2 stroke-2" />
-                        Edit Task
-                    </DropdownMenuItem>
+                    {canEdit && (
+                        <DropdownMenuItem
+                        onClick={() => open(id)}
+                        className="font-medium p-[10px]"
+                        >
+                            <PencilIcon className="size-4 mr-2 stroke-2" />
+                            Edit Task
+                        </DropdownMenuItem>
+                    )}
 
-                    {/* {isAdmin && */}
-                    <DropdownMenuItem
-                    onClick={onDelete}
-                    disabled={isPending}
-                    className="text-amber-700 focus:text-amber-700 font-medium p-[10px]"
-                    >
-                        <TrashIcon className="size-4 mr-2 stroke-2" />
-                        Delete Task
-                    </DropdownMenuItem>
-                    {/* } */}
+                    {canDelete && (
+                        <DropdownMenuItem
+                        onClick={onDelete}
+                        disabled={isPending}
+                        className="text-amber-700 focus:text-amber-700 font-medium p-[10px]"
+                        >
+                            <TrashIcon className="size-4 mr-2 stroke-2" />
+                            Delete Task
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

@@ -7,7 +7,8 @@ export const useEditTaskModal = () => {
     );
 
     const open = (id: string) => setTaskId(id);
-    const close = () => setTaskId(null);
+
+    const close = () => setTaskId(null, { shallow: true });
 
     return {
         taskId,

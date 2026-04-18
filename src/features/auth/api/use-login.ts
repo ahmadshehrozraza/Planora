@@ -1,42 +1,28 @@
-import { useMutation, useQueryClient  } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
-
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { client } from "@/lib/rpc"; 
 import { useRouter } from "next/navigation";
-
-
-type ResponseType = InferResponseType<typeof client.api.auth.login["$post"]>;
-type RequestType = InferRequestType<typeof client.api.auth.login["$post"]>
+import { loginUserAction } from "../server/sign-in-user"; 
 
 export const useLogin = () => {
-
     const router = useRouter();
-
     const queryClient = useQueryClient();
-    const mutation = useMutation<
-    ResponseType,
-    Error,
-    RequestType
-    >({
-        mutationFn: async({json}) => {
-            const response = await client.api.auth.login["$post"]({ json });
-
-            if(!response.ok){
-                throw new Error("Failed to Log in");
+    
+    return useMutation({
+        mutationFn: loginUserAction, 
+        
+        onSuccess: (data) => {
+            if (data?.error) {
+                toast.error(data.error);
             }
-
-            return await response.json();
-        },
-        onSuccess: () => {
-            toast.success("Logged in");
-            router.refresh();
-            queryClient.invalidateQueries({ queryKey: ["current"]});
+            
+            if (data?.success) {
+                toast.success(data.success);
+                queryClient.invalidateQueries({ queryKey: ["current"] });
+                router.refresh();
+            }
         },
         onError: () => {
-            toast.error("Failed to log in");
+            toast.error("Network error or something went wrong.");
         }
     });
-
-    return mutation;
 };

@@ -19,7 +19,8 @@ import { emailSchema } from "../schemas";
 import { useVerifyEmail } from "../api/use-verify-email";
 
 export const ForgetPasswordCard = () => {
-    const { mutate: verifyEmail, isPending: isVerifying } = useVerifyEmail();
+
+    const { mutate: verifyEmail, isPending } = useVerifyEmail();
 
     const form = useForm<z.infer<typeof emailSchema>>({
         resolver: zodResolver(emailSchema),
@@ -28,8 +29,8 @@ export const ForgetPasswordCard = () => {
         }
     });
 
-    const onSubmit = async (values: z.infer<typeof emailSchema>) => {
-        verifyEmail({ json: values });
+    const onSubmit = (values: z.infer<typeof emailSchema>) => {
+        verifyEmail(values); 
     };
 
     return (
@@ -39,9 +40,7 @@ export const ForgetPasswordCard = () => {
                     Reset Password
                 </CardTitle>
             </CardHeader>
-            <div className="px-7">
-                <Separator/>
-            </div>
+
             <CardContent className="p-7">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -55,6 +54,7 @@ export const ForgetPasswordCard = () => {
                                             {...field}
                                             type="email"
                                             placeholder="Enter email address"
+                                            disabled={isPending}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -63,14 +63,15 @@ export const ForgetPasswordCard = () => {
                         />
 
                         <Button 
+                            type="submit"
                             size="lg" 
-                            disabled={isVerifying}
+                            disabled={isPending}
                             className="w-full"
                         >
-                            {isVerifying ? "Sending..." : "Send Reset Link"}
+                            {isPending ? "Sending Link..." : "Send Reset Link"}
                         </Button>
 
-                        <div className="text-center">
+                        <div className="text-center mt-4">
                             <Link href="/sign-in" className="text-sm text-blue-600 hover:underline">
                                 Back to Login
                             </Link>

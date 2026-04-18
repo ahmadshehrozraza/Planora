@@ -2,14 +2,14 @@
 
 import { PageError } from "@/components/page-error";
 import { PageLoader } from "@/components/page-loader";
-import { useGetWorkspaceInfo } from "@/features/workspaces/api/use-get-workspace-info";
+import { useGetJoineeWorkspace } from "@/features/workspaces/api/use-get-workspace-info";
 import JoinWorkspaceForm from "@/features/workspaces/components/join-workspace-form";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 
 export const WorkspaceIdJoinClient = () => {
 
        const workspaceId = useWorkspaceId();
-           const { data: initialValues, isLoading } = useGetWorkspaceInfo({ workspaceId });
+           const { data: initialValues, isLoading } = useGetJoineeWorkspace({ workspaceId });
        
            if(isLoading){
                return <PageLoader />
@@ -20,7 +20,7 @@ export const WorkspaceIdJoinClient = () => {
            }
 
     return ( 
-        <div className="w-full lg:max-w-xl">
+        <div className="w-full">
             <JoinWorkspaceForm initialValues={initialValues} />
         </div>
      );

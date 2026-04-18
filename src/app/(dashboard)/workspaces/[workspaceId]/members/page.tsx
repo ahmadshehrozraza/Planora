@@ -1,7 +1,7 @@
 
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/navbar";
-import { MembersClient } from "./client";
+import { WorkspaceMembersClient } from "./client";
 
 
 const WorkspaceMembersPage = async () => {
@@ -9,7 +9,7 @@ const WorkspaceMembersPage = async () => {
     return ( 
         <div className="flex flex-col">
             <Navbar title="Workspace Members" description="Manage & view all your workspace members here" />
-            <MembersClient />
+            <WorkspaceMembersClient />
         </div>
      );
 }

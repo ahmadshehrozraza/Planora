@@ -1,221 +1,207 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Search,
-  User,
-  Crown,
-  Trash2,
-  Calendar,
-  Mail,
-  MoreVertical,
-  CheckCircle2
-} from "lucide-react";
-import { FcInvite } from "react-icons/fc";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
+import React, { useMemo, useState } from "react";
+import { Search, User, Crown, PlusIcon, CopyIcon, RefreshCcw, LinkIcon } from "lucide-react";
+import { toast } from "sonner";
 
-import { useGetProjectMembers } from "@/features/projects/api/use-get-dummy-project-members";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { useGetProjectMembers } from "@/features/projects/api/use-get-project-members";
+import { useGetWorkspaceMembers } from "@/features/workspaces/api/use-get-workspace-members";
+import { useGetProject } from "@/features/projects/api/use-get-project";
+
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { PageLoader } from "@/components/page-loader";
-import { MemberRole } from "@/features/members/types";
-import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
-import { useProjectId } from "@/features/projects/hooks/use-project-id";
+import { useConfirm } from "@/hooks/use-confirm";
 
-export const ProjectMembers = () => {
+import { useAddProjectMember } from "@/features/projects/api/use-add-project-member";
+import { useResetProjectInviteCode } from "@/features/projects/api/use-reset-project-invite-code"; 
+import { useUpdateProjectMember } from "@/features/projects/api/use-update-project-member";
+import { useDeleteProjectMember } from "../api/use-delete-project-member";
+
+import { ProjectMemberCard } from "./project-member-card";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import Link from "next/link";
+
+interface ProjectMembersProps {
+  projectId: string;
+}
+
+export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
   const workspaceId = useWorkspaceId();
-  const projectId = useProjectId();
-  const router = useRouter();
+  const { data: permissions } = useGetPermissions(workspaceId, projectId);
+  const isAllowedToManage = permissions?.workspaceAdmin || permissions?.projectManager;
 
-  const { data, isLoading } = useGetProjectMembers(projectId || "project_001");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  if (isLoading) return <PageLoader />;
-
-  const members = data?.documents || [];
-
-  const filteredMembers = members.filter((member: any) =>
-    member.memberId.toLowerCase().includes(searchQuery.toLowerCase()),
+  const [ConfirmDialog, confirm] = useConfirm(
+    "Remove member",
+    "Are you sure you want to remove this member from the project?",
+    "destructive"
   );
 
-  const handleMemberClick = (memberId: string) => {
-    router.push(
-      `/workspaces/${workspaceId}/projects/${projectId}/project-member/${memberId}`,
+  const [ResetDialog, confirmReset] = useConfirm(
+    "Reset Invite Link",
+    "This will invalidate the current invite link. Continue?",
+    "destructive"
+  );
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedWorkspaceMember, setSelectedWorkspaceMember] = useState("");
+
+  const { data: projectData } = useGetProject({ projectId });
+  const { data: projectMembersData, isLoading } = useGetProjectMembers({ projectId });
+  const { data: workspaceMembersData } = useGetWorkspaceMembers(workspaceId);
+  
+  const { mutate: addProjectMember, isPending: isAddingMember } = useAddProjectMember();
+  const { mutate: resetInviteCode, isPending: isResettingLink } = useResetProjectInviteCode(); 
+  const { mutate: updateMember, isPending: isUpdatingMember } = useUpdateProjectMember();
+  const { mutate: removeMember, isPending: isDeletingMember } = useDeleteProjectMember();
+
+  const members = projectMembersData?.data || [];
+  const workspaceMembers = workspaceMembersData?.data || [];
+  const inviteCode = projectData?.inviteCode || "";
+  const fullInviteLink = inviteCode ? `${window.location.origin}/workspaces/${workspaceId}/projects/${projectId}/join/${inviteCode}` : "";
+
+  const handleAction = async (id: string, type: "delete" | "update", role?: string) => {
+    if (type === "delete") {
+      const ok = await confirm();
+      if (!ok) return;
+      removeMember({ projectId, memberId: id }, { onSuccess: () => toast.success("Member removed") });
+    } else if (type === "update" && role) {
+      updateMember({ projectId, memberId: id, role }, { onSuccess: () => toast.success("Role updated") });
+    }
+  };
+
+  const filteredMembers = useMemo(() => {
+    const searchFiltered = members.filter((m: any) => 
+      m.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  };
 
-  const handleRoleChange = (memberId: string, newRole: MemberRole) => {
-    console.log(`Updating member ${memberId} to role: ${newRole}`);
-  };
+    return searchFiltered.sort((a: any, b: any) => {
+      const getPriority = (m: any) => {
+        if (m.workspaceRole === "ADMIN") return 1;
+        if (m.role === "PROJECT_MANAGER") return 2;
+        return 3;
+      };
+      return getPriority(a) - getPriority(b);
+    });
+  }, [members, searchQuery]);
 
-  const handleRemoveMember = (memberId: string) => {
-    console.log(`Removing member ${memberId}`);
-  };
+  const managerCount = members.filter((m: any) => m.role === "PROJECT_MANAGER" || m.workspaceRole === "ADMIN").length;
+
+  const availableWorkspaceMembers = workspaceMembers.filter((wm: any) => {
+    const wmId = wm.userId || wm.user?.id;
+    return !members.some((pm: any) => pm.userId === wmId);
+  });
+
+  if (isLoading) return <div className="h-64 flex items-center justify-center"><PageLoader /></div>;
 
   return (
     <div className="space-y-6 w-full pb-8">
+      <ConfirmDialog />
+      <ResetDialog />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4 w-full md:max-w-md">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search members..."
-              className="pl-9 h-10 bg-card border-border focus-visible:ring-primary shadow-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Project Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2"><LinkIcon className="size-4" /> Invite Link</label>
+              <div className="flex items-center gap-2">
+                <Input readOnly value={fullInviteLink} className="h-9 bg-muted/50 text-xs" />
+                <Button onClick={() => { navigator.clipboard.writeText(fullInviteLink); toast.success("Copied!"); }} variant="secondary" size="sm" className="h-9 px-3 shrink-0"><CopyIcon className="size-4" /></Button>
+                {permissions?.workspaceAdmin && (
+                  <Button variant="outline" size="sm" onClick={async () => { if (await confirmReset()) resetInviteCode({ projectId, workspaceId }); }} className="text-destructive h-9 shrink-0"><RefreshCcw className={`size-4 ${isResettingLink ? "animate-spin" : ""}`} /></Button>
+                )}
+              </div>
+            </div>
+
+            {isAllowedToManage && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2"><User className="size-4" /> Workspace Members</label>
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedWorkspaceMember} onValueChange={setSelectedWorkspaceMember}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Select member..." /></SelectTrigger>
+                      <SelectContent>
+                        {availableWorkspaceMembers.map((wm: any) => (
+                          <SelectItem key={wm.id} value={wm.userId || wm.user?.id}>
+                            <div className="flex items-center gap-2">
+                              <MemberAvatar name={wm.user?.name || wm.name} src={wm.user?.image || wm.imageUrl || undefined} className="size-5" />
+                              <span>{wm.user?.name || wm.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" className="h-9" disabled={!selectedWorkspaceMember || isAddingMember} onClick={() => addProjectMember({ projectId, userId: selectedWorkspaceMember }, { onSuccess: () => { setIsAddModalOpen(false); setSelectedWorkspaceMember(""); toast.success("Member added"); } })}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border shadow-sm">
+        <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-x-2 px-3 py-1.5 rounded-md bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 shrink-0">
+            <Crown className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 whitespace-nowrap">
+              {managerCount} {managerCount === 1 ? 'Manager/Owner' : 'Managers/Owners'}
+            </span>
+          </div>
+          <div className="flex items-center gap-x-2 px-3 py-1.5 rounded-md bg-slate-50 dark:bg-slate-500/10 border border-slate-200 dark:border-slate-500/20 shrink-0">
+            <User className="size-3.5 text-slate-600 dark:text-slate-400 shrink-0" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              {members.length} {members.length === 1 ? 'Member' : 'Total Members'}
+            </span>
           </div>
         </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 text-sm font-medium bg-card px-3 py-2 rounded-md border border-border shadow-sm">
-            <User className="size-4 text-muted-foreground" />
-            <span>{filteredMembers.length} Members</span>
+        <div className="flex items-center gap-2 lg:w-[400px]">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="pl-9 h-9" />
           </div>
-          <Button className="shadow-sm h-10 w-full md:w-auto" size="sm">
-            <FcInvite className="size-4 mr-2" />
-            Invite Member
-          </Button>
+          <Button size="sm" className="h-9" onClick={() => setIsAddModalOpen(true)}><PlusIcon className="size-4 mr-2" /> Add</Button>
         </div>
       </div>
 
-      {filteredMembers.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredMembers.map((member: any) => {
-            const totalTasks = Math.floor(Math.random() * 20) + 5;
-            const completedTasks = Math.floor(Math.random() * totalTasks);
-            const progressVal = Math.round((completedTasks / totalTasks) * 100);
-
-            return (
-              <div 
-                key={member.id}
-                onClick={() => handleMemberClick(member.id)}
-                className="group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/30 flex flex-col items-center p-6 text-center cursor-pointer"
-              >
-                <div 
-                  className="absolute top-3 right-3" 
-                  onClick={(e) => e.stopPropagation()} 
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-colors"
-                      >
-                        <MoreVertical className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border">
-                      <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Project Role
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup 
-                        value={member.role} 
-                        onValueChange={(val) => handleRoleChange(member.id, val as MemberRole)}
-                      >
-                        <DropdownMenuRadioItem value={MemberRole.ADMIN} className="cursor-pointer font-medium">
-                          Administrator
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value={MemberRole.PROJECT_MANAGER} className="cursor-pointer font-medium">
-                          Project Manager
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value={MemberRole.MEMBER} className="cursor-pointer font-medium">
-                          Member
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-
-                      <DropdownMenuSeparator />
-
-                      <DropdownMenuItem 
-                        className="text-destructive font-medium focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                        onClick={() => handleRemoveMember(member.id)}
-                      >
-                        <Trash2 className="size-4 mr-2" />
-                        Remove from Project
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <div className="mb-4 relative">
-                  <MemberAvatar 
-                    name={member.memberId}
-                    className="size-20 text-2xl border-4 border-background shadow-sm ring-1 ring-border"
-                  />
-                  {member.role === MemberRole.ADMIN && (
-                    <div className="absolute -bottom-1 -right-1 bg-background p-1.5 rounded-full border border-border shadow-sm" title="Project Admin">
-                      <Crown className="size-4 text-purple-500 fill-purple-100 dark:fill-purple-900/50" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="w-full mb-4">
-                  <h3 className="font-bold text-foreground text-lg truncate px-2 group-hover:text-primary transition-colors">
-                    {member.memberId}
-                  </h3>
-                  <div className="flex items-center justify-center gap-1.5 mt-1 text-muted-foreground text-xs">
-                    <Mail className="size-3.5" />
-                    <span className="truncate max-w-[150px] font-medium">{member.memberId}@example.com</span>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <Badge variant={member.role as any} className="uppercase tracking-wider text-[10px] px-2.5 py-0.5">
-                    {member.role.replace(/_/g, " ")}
-                  </Badge>
-                </div>
-
-                <div className="w-full bg-muted/40 rounded-lg p-3 mb-5 border border-border/50">
-                  <div className="flex justify-between items-center text-xs font-semibold mb-2">
-                    <span className="flex items-center gap-1 text-muted-foreground">
-                      <CheckCircle2 className="size-3.5" /> Tasks
-                    </span>
-                    <span className="text-foreground">{completedTasks} / {totalTasks}</span>
-                  </div>
-                  <Progress value={progressVal} className="h-1.5" />
-                </div>
-
-                <div className="w-full pt-4 border-t border-border mt-auto flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5 font-medium">
-                    <Calendar className="size-3.5" />
-                    <span>Joined {format(new Date(member.joinedDate || new Date()), 'MMM yyyy')}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <Card className="w-full border border-dashed border-border shadow-sm bg-muted/30">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="size-16 rounded-full bg-background border border-border flex items-center justify-center mb-5 shadow-sm">
-              <User className="size-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground">No members found</h3>
-            <p className="text-sm text-muted-foreground max-w-md mt-2 leading-relaxed">
-              We couldn't find anyone matching "{searchQuery}". Try a different name or invite a new member.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredMembers.map((member: any) => (
+          <Link key={member.id} href={`${projectId}/project-member/${member.id}`}>
+          <ProjectMemberCard 
+            key={member.id} 
+            member={member} 
+            isAdmin={isAllowedToManage || false}
+            disabled={isUpdatingMember || isDeletingMember}
+            onAction={handleAction}
+            onClick={() => {}} 
+          />
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };

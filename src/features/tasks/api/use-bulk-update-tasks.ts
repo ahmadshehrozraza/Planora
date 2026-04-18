@@ -1,28 +1,24 @@
+"use client";
 
-
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useMutation, useQueryClient  } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { bulkUpdateTasksAction } from "../server/bulk-update-tasks";
 
 export const useBulkUpdateTasks = () => {
-
-    const router = useRouter();
     const queryClient = useQueryClient();
-    
-    const mutation = useMutation({
-        mutationFn: async() => {
-            return null;
+
+    return useMutation({
+        mutationFn: async (tasks: { id: string; columnId: string; position: number }[]) => {
+            const response = await bulkUpdateTasksAction(tasks);
+            if (response?.error) throw new Error(response.error);
+            return response;
         },
         onSuccess: () => {
-
-            toast.success("Tasks Updated");
-            queryClient.invalidateQueries({ queryKey: ["tasks"]});
-
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            queryClient.invalidateQueries({ queryKey: ["project-analytics"] });
         },
-        onError: () => {
-            toast.error("Failed to update Tasks");
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to update task positions");
         }
     });
-
-    return mutation;
 };

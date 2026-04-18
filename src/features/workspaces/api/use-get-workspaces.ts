@@ -1,13 +1,11 @@
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
-import { getWorkspaces } from "../server/useGetWorkspace";
+import { getWorkspaces } from "../server/get-workspaces"; 
 
 export const useGetWorkspaces = () => {
   return useQuery({
-    queryKey: ["workspaces"],
-    queryFn: async () => {
-        const data = await getWorkspaces(); 
-        return data;
-    },
-    staleTime: 60 * 1000, 
+    queryKey: ["workspaces"], 
+    queryFn: () => getWorkspaces(),
   });
 };

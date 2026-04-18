@@ -14,7 +14,7 @@ export const WorkspaceSettingsClient = ({ workspaceId }: WorkspaceSettingsClient
   const { data: initialValues, isLoading } = useGetWorkspace({ workspaceId });
 
   if (isLoading) {
-    return <div className="h-[60vh] flex items-center justify-center"><PageLoader /></div>;
+    return <PageLoader />
   }
 
   if (!initialValues) {

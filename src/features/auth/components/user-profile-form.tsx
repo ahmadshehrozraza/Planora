@@ -3,337 +3,332 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Calendar, Save, Trash2, ImageIcon, ArrowLeftIcon } from "lucide-react";
+import {
+  Mail,
+  Calendar,
+  Save,
+  Trash2,
+  ImageIcon,
+  ArrowLeftIcon,
+  Loader2,
+  KeyRound,
+  ShieldCheck,
+  AlertTriangle,
+} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChangeEmailForm } from "./change-email-form";
-import { ChangePasswordForm } from "./change-password-form";
-import { DeleteUserForm } from "./delete-user-form";
-import { updateProfileSchema } from "../schemas";
+import Image from "next/image";
 import { useUpdateUser } from "../api/use-update-user";
+import { updateProfileSchema } from "../schemas";
 import { useCurrent } from "../api/use-current";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
-import Image from "next/image";
+import { PageLoader } from "@/components/page-loader";
+import { SecurityActionModal, SecurityActionType } from "./security-action-modal";
 
 export const UserProfileForm = () => {
-    // const { data: user, isLoading } = useCurrent();
+  const { data: user, isLoading } = useCurrent();
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { mutate, isPending } = useUpdateUser();
+  const [activeAction, setActiveAction] = useState<SecurityActionType>(null);
+  const [imageSizeError, setImageSizeError] = useState(false);
 
-    const workspaceId = useWorkspaceId();
+  const form = useForm<z.infer<typeof updateProfileSchema>>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      name: "",
+      imageUrl: "",
+    },
+  });
 
-    const router = useRouter();
-    const inputRef = useRef<HTMLInputElement>(null);
-    // const { mutate, isPending } = useUpdateUser();
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name || "",
+        imageUrl: user.image || "",
+      });
+    }
+  }, [user, form]);
 
-    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const maxSize = 1024 * 1024; // 1MB
+      if (file.size > maxSize) {
+        setImageSizeError(true);
+      } else {
+        setImageSizeError(false);
+      }
+      form.setValue("imageUrl", file);
+    }
+  };
 
+  const onSubmit = (values: z.infer<typeof updateProfileSchema>) => {
+    if (imageSizeError) return;
 
-    const form = useForm<z.infer<typeof updateProfileSchema>>({
-        resolver: zodResolver(updateProfileSchema),
-        defaultValues: {
-            // ...user,
-            // imageUrl: user.prefs?.avatar ?? "",
-        },
-    });
-
-    // useEffect(() => {
-    //     if (user) {
-    //         form.reset({
-    //             // name: user.name,
-    //             // imageUrl: user.prefs?.avatar || "",
-    //         });
-    //     }
-    // }, [user, form]);
-
-    // if (isLoading) {
-    //     return <div>Loading...</div>;
-    // }
-
-
-
-    const onSubmit = (values: z.infer<typeof updateProfileSchema>) => {
-
-        const finalValues = {
-            ...values,
-            imageUrl: values.imageUrl instanceof File ? values.imageUrl : values.imageUrl || "no-image",
-        };
-
-        console.log("Final values:", finalValues);
-
-        // mutate({
-        //     form: finalValues,
-        //     param: { userId: user.$id }
-        // }, {
-        //     onSuccess: () => {
-        //         router.refresh();
-        //     },
-        //     onError: (error) => {
-        //         toast.error("Failed to update profile");
-        //     }
-        // });
-
-        alert("changes saved");
+    const finalValues = {
+      name: values.name,
+      imageFile: values.imageUrl instanceof File ? values.imageUrl : null,
+      imageUrl: typeof values.imageUrl === "string" ? values.imageUrl : null,
     };
 
-    const [imageSizeError, setImageSizeError] = useState(false);
+    mutate(finalValues);
+  };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const maxSize = 1024 * 1024; // 1MB
-            if (file.size > maxSize) {
-                setImageSizeError(true);
-                form.setValue("imageUrl", file);
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
-            } else {
-                setImageSizeError(false);
-                form.setValue("imageUrl", file);
-            }
-        }
-    };
+  if (!user) return null;
 
+  return (
+    <div className="w-full max-w-6xl mx-auto py-8 px-4 space-y-8">
 
-    const openEmailModal = () => setIsEmailModalOpen(true);
-    const closeEmailModal = () => setIsEmailModalOpen(false);
+      <SecurityActionModal 
+        isOpen={activeAction !== null} 
+        actionType={activeAction} 
+        onClose={() => setActiveAction(null)} 
+      />
 
-    const openPasswordModal = () => setIsPasswordModalOpen(true);
-    const closePasswordModal = () => setIsPasswordModalOpen(false);
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage your profile details and security preferences.
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => router.back()}>
+          <ArrowLeftIcon className="size-4 mr-2" />
+          Back to App
+        </Button>
+      </div>
 
-    const openDeleteModal = () => setIsDeleteModalOpen(true);
-    const closeDeleteModal = () => setIsDeleteModalOpen(false);
-
-    return (
-        <Card className="border-none px-5">
-            {/* <ChangeEmailForm
-                isOpen={isEmailModalOpen}
-                onClose={closeEmailModal}
-                user={user}
-            />
-
-            <ChangePasswordForm
-                isOpen={isPasswordModalOpen}
-                onClose={closePasswordModal}
-                user={user}
-            />
-
-            <DeleteUserForm
-                isOpen={isDeleteModalOpen}
-                onClose={closeDeleteModal}
-                user={user}
-            /> */}
-
-                    <CardHeader className="w-32">
-                        <Button
-                            size="sm"
-                            variant="secondry"
-                            onClick={() => router.back()}
-                        >
-                            <ArrowLeftIcon className="size-4 mr-1" />
-                            Back
-                        </Button>
-                    </CardHeader>
-
-                    <CardContent className="p-2 px-7">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)}>
-                                <div className="flex flex-col gap-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="imageUrl"
-                                        render={({ field }) => (
-                                            <div className="space-y-2 flex justify-center items-center flex-col">
-                                                <div className="flex items-center gap-x-5">
-                                                    {field.value ? (
-                                                        <div className="size-24 lg:size-60 relative rounded-full overflow-hidden border">
-                                                            <Image
-                                                                alt="Workspace Logo"
-                                                                fill
-                                                                className="object-cover"
-                                                                src={
-                                                                    typeof field.value === "string"
-                                                                        ? field.value
-                                                                        : field.value
-                                                                            ? URL.createObjectURL(field.value as File)
-                                                                            : ""
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <Avatar className="size-24 lg:size-60 border">
-                                                            <AvatarFallback>
-                                                                <ImageIcon className="size-24 text-neutral-400" />
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                    )}
-
-                                                </div>
-                                                <div className="flex flex-col items-center">
-                                                    <p className="text-sm">User Image</p>
-                                                    {imageSizeError ? (
-                                                        <p className="text-sm text-red-600 font-medium">
-                                                            Image exceeds 1MB limit
-                                                        </p>
-                                                    ) : (
-                                                        <p className="text-sm text-muted-foreground">
-                                                            JPG, PNG, SVG, JPEG max 1mb
-                                                        </p>
-                                                    )}
-
-                                                    <input
-                                                        className="hidden"
-                                                        type="file"
-                                                        accept=".jpg, .png, .jpeg, .svg"
-                                                        ref={inputRef}
-                                                        onChange={handleImageChange}
-                                                        // disabled={isPending}
-                                                    />
-
-                                                    {field.value ? (
-                                                        <Button
-                                                            type="button"
-                                                            // disabled={isPending}
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            className=" mt-2"
-                                                            onClick={() => {
-                                                                field.onChange(null);
-                                                                setImageSizeError(false);
-                                                                if (inputRef.current) {
-                                                                    inputRef.current.value = "";
-                                                                }
-                                                            }}
-                                                        >
-                                                            Remove Image
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            type="button"
-                                                            // disabled={isPending}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="mt-2"
-                                                            onClick={() => inputRef.current?.click()}
-                                                        >
-                                                            Upload Image
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                <FormMessage />
-                                            </div>
-                                        )}
-                                    />
-
-
-
-                                    <FormField
-                                        control={form.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Name</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="Enter your name"
-                                                    // disabled={isPending}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <div className="flex justify-end">
-                                        <Button type="submit" size="sm"
-                                        // disabled={isPending}
-                                        >
-                                            <Save className="h-4 w-4 mr-2" />
-                                            {/* {isPending ? "Saving..." : "Save Changes"} */}
-                                            Save Changes
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <Mail className="h-4 w-4 text-gray-500" />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-gray-700 truncate max-w-[150px] sm:max-w-xs">
-                                                    admin@mail.com
-                                                </span>
-                                                <span className="text-xs text-gray-500">Email Address</span>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setIsEmailModalOpen(true)}
-                                        >
-                                            Change Email
-                                        </Button>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 border rounded-lg">
-                                        <Calendar className="h-4 w-4 text-gray-500" />
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-gray-700">
-                                                {new Date().toLocaleDateString()}
-                                            </span>
-                                            <span className="text-xs text-gray-500">Joined Date</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-3 border rounded-lg">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="w-full justify-start h-8"
-                                            onClick={() => setIsPasswordModalOpen(true)}
-                                        >
-                                            Change Password
-                                        </Button>
-                                    </div>
-                                    <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
+      <Card className="shadow-sm">
         <CardHeader>
-          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>Update your photo and personal details.</CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-sm text-destructive/80  dark:text-red-600">
-              Deleting a account is irreversible and will remove all
-              associated data.
-            </p>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <div className="flex flex-col sm:flex-row gap-8 items-start">
+                {/* Avatar Section */}
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <div className="flex flex-col items-center gap-4">
+                      {field.value ? (
+                        <div className="size-28 relative rounded-full overflow-hidden border-4 border-background shadow-md">
+                          <Image
+                            alt="User Profile"
+                            fill
+                            className="object-cover"
+                            src={
+                              typeof field.value === "string"
+                                ? field.value
+                                : URL.createObjectURL(field.value as File)
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <Avatar className="size-28 border-4 border-background shadow-md">
+                          <AvatarFallback className="bg-muted">
+                            <ImageIcon className="size-10 text-muted-foreground/50" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      
+                      <div className="flex flex-col items-center gap-2">
+                        <input
+                          className="hidden"
+                          type="file"
+                          accept=".jpg, .png, .jpeg, .svg"
+                          ref={inputRef}
+                          onChange={handleImageChange}
+                        />
+                        {field.value ? (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              field.onChange(null);
+                              setImageSizeError(false);
+                              if (inputRef.current) inputRef.current.value = "";
+                            }}
+                          >
+                            Remove Image
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => inputRef.current?.click()}
+                          >
+                            Upload Photo
+                          </Button>
+                        )}
+                        {imageSizeError ? (
+                          <p className="text-xs text-destructive font-medium">Max file size is 1MB</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">JPG, PNG or SVG (max. 1MB)</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                />
+
+                <div className="flex-1 w-full space-y-4 pt-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter your full name"  />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="mt-4 f"
+                    disabled={isPending || imageSizeError}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {isPending ? "Saving changes..." : "Save Changes"}
+                  </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </Form>
         </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button
-            size="sm"
-            variant="destructive"
-            type="button"
-            // disabled={isPending}
-            // onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Account
-          </Button>
-        </CardFooter>
       </Card>
 
-                                </div>
-                            </form>
-                        </Form>
-                    </CardContent>
-        </Card>
-    );
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-5 text-primary" />
+            <CardTitle>Security & Access</CardTitle>
+          </div>
+          <CardDescription>Manage your email address and password.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-card hover:bg-accent/10 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Mail className="size-5 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-foreground">Email Address</span>
+                <span className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-md">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setActiveAction("email")}>
+              Change Email
+            </Button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg bg-card hover:bg-accent/10 transition-colors">
+            <div className="flex items-center gap-4">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <KeyRound className="size-5 text-primary" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-foreground">Password</span>
+                <span className="text-sm text-muted-foreground">
+                  ••••••••••••
+                </span>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setActiveAction("password")}>
+              Update Password
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+            <div className="p-2 bg-muted rounded-full">
+              <Calendar className="size-5 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-foreground">Account Created</span>
+              <span className="text-sm text-muted-foreground">
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : "N/A"}
+              </span>
+            </div>
+          </div>
+
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm border-destructive/30 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertTriangle className="size-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription className="text-destructive/80">
+            Irreversible actions regarding your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Delete Account</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-lg">
+                Permanently delete your account and remove all your active access from workspaces. This action cannot be undone.
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={() => setActiveAction("delete")}
+              className="shrink-0"
+            >
+              <Trash2 className="size-4 mr-2" />
+              Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+    </div>
+  );
 };

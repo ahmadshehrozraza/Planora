@@ -1,34 +1,25 @@
-import { Project } from "@/features/projects/types";
-import { TaskStatus } from "../types";
+"use client";
+
 import { cn } from "@/lib/utils";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { useGetWorkspaces } from "@/features/workspaces/api/use-get-workspaces";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
 
-interface EventCardProps{
+interface EventCardProps {
+    id: string;
     title: string;
     assignee: any;
     project: any;
-    status: TaskStatus;
-    id: string;
-}
-
-const statusColorMap: Record<TaskStatus, string> = {
-    [TaskStatus.BACKLOG]: "border-l-pink-500",
-    [TaskStatus.TODO]: "border-l-red-500",
-    [TaskStatus.IN_PROGRESS]: "border-l-yellow-500",
-    [TaskStatus.IN_REVIEW]: "border-l-blue-500",
-    [TaskStatus.DONE]: "border-l-emerald-500",
+    status?: any;
 }
 
 export const EventCard = ({
+    id,
     title,
     assignee,
     project,
     status,
-    id,
 }: EventCardProps) => {
 
     const workspaceId = useWorkspaceId();
@@ -41,24 +32,34 @@ export const EventCard = ({
         router.push(`/workspaces/${workspaceId}/tasks/${id}`);
     }
 
+    const assigneeName = typeof assignee === "string" ? assignee : (assignee?.name || "Unassigned");
+    const assigneeImage = typeof assignee === "string" ? undefined : (assignee?.image || assignee?.avatarUrl);
+    
+    const projectName = typeof project === "string" ? project : (project?.name || "Unknown Project");
+    const projectImage = typeof project === "string" ? undefined : project?.imageUrl;
+
     return (
-        <div className="max-w-36  h-full overflow-hidden">
+        <div className="max-w-full h-full overflow-hidden">
             <div onClick={onClick} className={cn(
-                "p-1.5 w-full h-full text-xs  bg-card text-card-foreground border border-border rounded-md border-l-[4px] flex flex-col gap-y-1.5 cursor-pointer  transition-colors shadow-sm",
-                statusColorMap[status]
+                "p-1.5 w-full h-full text-xs bg-card text-card-foreground border border-border rounded-md border-l-[4px] border-l-primary flex flex-col gap-y-1.5 cursor-pointer hover:bg-muted/50 transition-colors shadow-sm",
             )}>
-                <p className="font-semibold truncate w-full" title={title}>{title}</p>
+                <p className="font-semibold truncate w-full" title={title}>
+                    {title}
+                </p>
+                
                 <div className="flex items-center gap-x-1.5 min-w-0 mt-auto">
                     <MemberAvatar
-                        name={assignee?.name || assignee || "Assignee"}
+                        name={assigneeName}
+                        src={assigneeImage}
                         className="size-4 shrink-0"
-                        fallbackClassname="text-[8px]"
+                        fallbackClassname="text-[8px]" 
                     />
                     
                     <div className="size-1 rounded-full bg-border shrink-0" />
 
                     <ProjectAvatar
-                        name={project?.name || project || "Project"}
+                        name={projectName}
+                        image={projectImage}
                         className="size-4 shrink-0"
                         fallbackClassName="text-[8px]"
                     />

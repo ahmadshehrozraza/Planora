@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import {
   Sidebar,
@@ -16,19 +17,40 @@ import Link from "next/link";
 import { Navigation } from "./navigation";
 import { ProjectsSidebar } from "./projects-sidebar";
 import { cn } from "@/lib/utils";
-import { NotificationButton } from "@/components/notifications";
+import { NotificationButton } from "@/features/notifications/components/notification-button";
 import { ThemeToggle } from "./theme-toggle";
 import { PlanoraLogo } from "./planora-logo";
 
+import { useUpdatePreferences, useGetPreferences } from "@/features/preferences/api/use-preferences";
+
 export function AppSidebar() {
-  const { isMobile, toggleSidebar, state } = useSidebar();
+  const { isMobile, toggleSidebar, state, setOpen } = useSidebar();
   const isCollapsed = state === "collapsed";
+  
+  const { data: preferences } = useGetPreferences();
+  const { mutate: updatePreferences } = useUpdatePreferences();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    if (preferences && !isInitialized && !isMobile) {
+      setOpen(preferences.sidebarExpanded);
+      setIsInitialized(true);
+    }
+  }, [preferences, isInitialized, isMobile, setOpen]);
+
+  const handleToggle = () => {
+    toggleSidebar();
+    
+    if (!isMobile) {
+        updatePreferences({ sidebarExpanded: isCollapsed }); 
+    }
+  };
 
   return (
     <>
       {!isMobile && (
         <button
-          onClick={toggleSidebar}
+          onClick={handleToggle} 
           className={cn(
             "fixed top-6 z-50",
             "h-10 w-5 rounded-r-xl",
@@ -54,7 +76,7 @@ export function AppSidebar() {
 
       {isMobile && (
         <button
-          onClick={toggleSidebar}
+          onClick={toggleSidebar} 
           className={cn(
             "fixed top-4 left-4 z-50 h-8 w-8 rounded-lg",
             "bg-sidebar border-2 border-sidebar-border",
@@ -77,7 +99,10 @@ export function AppSidebar() {
           
           <Link 
             href="/" 
-            className={cn("flex items-center justify-center transition-all duration-300", isCollapsed ? "" : "justify-start")}
+            className={cn(
+              "flex items-center justify-center transition-all duration-300 group/logo hover:opacity-90", // Nayi isolate class "group/logo"
+              isCollapsed ? "" : "justify-start"
+            )}
           >
              <PlanoraLogo 
                fontFamily="outfit"

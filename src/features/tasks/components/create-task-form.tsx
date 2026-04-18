@@ -6,59 +6,41 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTaskSchema } from "../schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { DatePicker } from "@/components/date-picker";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
-import { TaskStatus, TaskType, TaskPriority } from "../types";
+import { TaskType, TaskPriority } from "../types";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencySelector } from "@/components/currency-selector";
 import { useCreateTask } from "../api/use-create-task";
-import { dummySegments } from "@/features/segments/hooks/dummy-segments";
-import { Loader, AlertCircle } from "lucide-react";
-import { useGetTasksByProject } from "../api/use-get-dummy-tasks";
+import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
+import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useGetTasks } from "../api/use-get-tasks";
+import { useGetProjectMembers } from "@/features/members/api/use-get-project-members"; 
+import { PageLoader } from "@/components/page-loader";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 
 interface CreateTaskFormProps {
   onCancel?: () => void;
   projectOptions: { id: string, name: string, imageUrl: string }[];
-  memberOptions: { id: string, name: string, userId: string }[];
-  currentUser: { userId: string, name: string };
 };
 
 export const CreateTaskForm = ({
   onCancel,
   projectOptions,
-  memberOptions,
-  currentUser,
 }: CreateTaskFormProps) => {
   const workspaceId = useWorkspaceId();
   const prevProjectId = useRef<string>("");
   
-  const [segmentOptions, setSegmentOptions] = useState<{ id: string, name: string }[]>([]);
-  const [taskOptions, setTaskOptions] = useState<{ id: string, name: string, status: TaskStatus }[]>([]);
-  const [isLoadingSegments, setIsLoadingSegments] = useState(false);
-  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [isNewColumn, setIsNewColumn] = useState(false);
 
   const { mutate, isPending } = useCreateTask();
 
@@ -66,106 +48,121 @@ export const CreateTaskForm = ({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
       name: "",
-      status: TaskStatus.TODO,
       workspaceId: workspaceId || "",
       projectId: "",
       segmentId: "",
+      columnId: "",
+      newColumnName: "",
       dueDate: new Date(),
       assigneeId: "",
-      assignedBy: currentUser?.userId || "",
       description: "",
       taskType: TaskType.TASK,
       priority: TaskPriority.LOW,
       budget: 0,
       effortPoints: 1,
       startDate: new Date(),
-      blockedBy: "",
+      blockedById: "",
       blockingTo: "",
       currency: "PKR",
     },
   });
 
   const watchProjectId = form.watch("projectId");
-  const watchBlockedBy = form.watch("blockedBy");
+  const watchBlockedById = form.watch("blockedById");
   const watchBlockingTo = form.watch("blockingTo");
   
-  const { data: tasks } = useGetTasksByProject(watchProjectId);
+  const { data: columns, isLoading: isLoadingColumns } = useGetProjectColumns(watchProjectId);
+  const { data: segments, isLoading: isLoadingSegments } = useGetSegments(watchProjectId);
+  const { data: tasksResponse, isLoading: isLoadingTasks } = useGetTasks({
+      workspaceId: workspaceId,
+      projectId: watchProjectId
+  });
+  
+  const { data: membersData, isLoading: isLoadingMembers } = useGetProjectMembers(watchProjectId);
+
+  const tasks = tasksResponse || [];
+  
+  const memberOptions = useMemo(() => {
+    return membersData?.data?.map((m: any) => ({
+      id: m.userId, 
+      name: m.name,
+      userId: m.userId,
+      image: m.image
+    })) || [];
+  }, [membersData]);
 
   useEffect(() => {
-    if (!watchProjectId) {
-      setSegmentOptions([]);
-      setTaskOptions([]);
+    if (watchProjectId && watchProjectId !== prevProjectId.current) {
       form.setValue("segmentId", "");
-      form.setValue("blockedBy", "");
+      form.setValue("columnId", "");
+      form.setValue("newColumnName", "");
+      form.setValue("blockedById", "");
       form.setValue("blockingTo", "");
-      prevProjectId.current = "";
-      return;
-    }
-
-    if (watchProjectId !== prevProjectId.current) {
-      form.setValue("segmentId", "");
-      form.setValue("blockedBy", "");
-      form.setValue("blockingTo", "");
+      form.setValue("assigneeId", ""); 
       prevProjectId.current = watchProjectId;
+      
+      if (columns?.length === 0) {
+        setIsNewColumn(true);
+      }
     }
+  }, [watchProjectId, columns, form]);
 
-    setIsLoadingSegments(true);
-    setIsLoadingTasks(true);
-
-    const timer = setTimeout(() => {
-      const projectSegments = dummySegments
-        .filter(s => s.projectId === watchProjectId)
-        .map(s => ({ id: s.id, name: s.name }));
-
-      setSegmentOptions(projectSegments);
-      setIsLoadingSegments(false);
-
-      if (projectSegments.length === 1 && !form.getValues("segmentId")) {
-        form.setValue("segmentId", projectSegments[0].id);
+  useEffect(() => {
+      if (columns && columns.length > 0 && !form.getValues("columnId") && !isNewColumn) {
+          form.setValue("columnId", columns[0].id);
       }
-
-      if (tasks && tasks.length > 0) {
-        const filteredTasks = tasks
-          .filter(t => t.projectId === watchProjectId)
-          .map(t => ({ id: t.id, name: t.name, status: t.status as TaskStatus }));
-        setTaskOptions(filteredTasks);
-      } else {
-        setTaskOptions([
-          { id: "task-1", name: "Design Homepage", status: TaskStatus.IN_PROGRESS },
-          { id: "task-2", name: "API Integration", status: TaskStatus.TODO },
-          { id: "task-3", name: "Database Setup", status: TaskStatus.DONE },
-          { id: "task-4", name: "Testing", status: TaskStatus.IN_REVIEW },
-        ]);
-      }
-      setIsLoadingTasks(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [watchProjectId, tasks, form]);
+  }, [columns, form, isNewColumn]);
 
   const validateCircularDependency = () => {
-    const blockedBy = form.getValues("blockedBy");
+    const blockedById = form.getValues("blockedById");
     const blockingTo = form.getValues("blockingTo");
 
-    if (blockedBy && blockedBy !== "no-blocked-by" &&
-      blockingTo && blockingTo !== "no-blocking-to" &&
-      blockedBy === blockingTo) {
-      form.setError("blockingTo", {
-        type: "manual",
-        message: "A task cannot block itself"
-      });
-      return false;
+    if (blockedById && blockedById !== "no-blocked-by" &&
+        blockingTo && blockingTo !== "no-blocking-to" &&
+        blockedById === blockingTo) {
+        form.setError("blockingTo", {
+            type: "manual",
+            message: "A task cannot block itself"
+        });
+        return false;
     }
     return true;
   };
 
   const onSubmit = (values: z.infer<typeof createTaskSchema>) => {
+    if (!isNewColumn && (!values.columnId || values.columnId === "")) {
+        form.setError("columnId", { type: "manual", message: "Status column is required" });
+        return;
+    }
+
+    if (isNewColumn && (!values.newColumnName || values.newColumnName.trim() === "")) {
+        form.setError("newColumnName", { type: "manual", message: "Column name is required" });
+        return;
+    }
+
     if (!validateCircularDependency()) return;
 
-    console.log("Task form values: ", values);
-    alert("Task created successfully!");
-    form.reset();
-    onCancel?.();
+    const payload = { ...values };
+    
+    if (isNewColumn) {
+        payload.columnId = undefined;
+    } else {
+        payload.newColumnName = undefined;
+    }
+
+    if (payload.blockedById === "no-blocked-by") payload.blockedById = "";
+    if (payload.blockingTo === "no-blocking-to") payload.blockingTo = "";
+    if (payload.assigneeId === "no-assignee") payload.assigneeId = "";
+    if (payload.segmentId === "no-segment") payload.segmentId = "";
+
+    mutate(payload, {
+        onSuccess: (data) => {
+            if(data?.success) {
+                form.reset();
+                onCancel?.();
+            }
+        }
+    });
   };
 
   if (!workspaceId) return null;
@@ -192,11 +189,7 @@ export const CreateTaskForm = ({
                 <FormItem>
                   <FormLabel>Task Name *</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter task name"
-                      className="h-11"
-                    />
+                    <Input {...field} placeholder="Enter task name" className="h-11" disabled={isPending} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,7 +202,7 @@ export const CreateTaskForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Project *</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
                     <FormControl>
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select Project" />
@@ -220,19 +213,13 @@ export const CreateTaskForm = ({
                         projectOptions.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             <div className="flex items-center gap-x-2">
-                              <ProjectAvatar
-                                className="size-6"
-                                name={project.name}
-                                image={project.imageUrl}
-                              />
+                              <ProjectAvatar className="size-6" name={project.name} image={project.imageUrl} />
                               <span>{project.name}</span>
                             </div>
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="no-projects" disabled>
-                          No projects available
-                        </SelectItem>
+                        <SelectItem value="no-projects" disabled>No projects available</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -248,46 +235,27 @@ export const CreateTaskForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Segment (Optional)
-                      {isLoadingSegments && (
-                        <Loader className="ml-2 h-3 w-3 animate-spin inline" />
-                      )}
+                      Segment (Optional) {isLoadingSegments && <PageLoader />}
                     </FormLabel>
                     <Select
                       value={field.value || "no-segment"}
                       onValueChange={(val) => field.onChange(val === "no-segment" ? "" : val)}
-                      disabled={isLoadingSegments}
+                      disabled={isLoadingSegments || isPending}
                     >
                       <FormControl>
                         <SelectTrigger className="h-11">
                           {isLoadingSegments ? (
-                            <div className="flex items-center gap-2">
-                              <Loader className="h-4 w-4 animate-spin" />
-                              <span>Loading segments...</span>
-                            </div>
+                            <div className="flex items-center gap-2"><PageLoader /><span>Loading...</span></div>
                           ) : (
                             <SelectValue placeholder="Select Segment" />
                           )}
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="no-segment">
-                          <div className="flex items-center gap-x-2">
-                            No Segment
-                          </div>
-                        </SelectItem>
-                        {segmentOptions.map((segment) => (
-                          <SelectItem key={segment.id} value={segment.id}>
-                            <div className="flex items-center gap-x-2">
-                              <span>{segment.name}</span>
-                            </div>
-                          </SelectItem>
+                        <SelectItem value="no-segment"><span className="text-muted-foreground">No Segment</span></SelectItem>
+                        {segments?.map((segment: any) => (
+                          <SelectItem key={segment.id} value={segment.id}>{segment.name}</SelectItem>
                         ))}
-                        {segmentOptions.length === 0 && !isLoadingSegments && (
-                          <SelectItem value="no-segments-available" disabled>
-                            No segments available for this project
-                          </SelectItem>
-                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -304,11 +272,7 @@ export const CreateTaskForm = ({
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <DatePicker
-                        {...field}
-                        placeholder="Select start date"
-                        className="h-11"
-                      />
+                      <DatePicker {...field} placeholder="Select start date" className="h-11" disabled={isPending} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -322,11 +286,7 @@ export const CreateTaskForm = ({
                   <FormItem>
                     <FormLabel>Due Date *</FormLabel>
                     <FormControl>
-                      <DatePicker
-                        {...field}
-                        placeholder="Select due date"
-                        className="h-11"
-                      />
+                      <DatePicker {...field} placeholder="Select due date" className="h-11" disabled={isPending} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -340,20 +300,13 @@ export const CreateTaskForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Effort Points (1-10)</FormLabel>
-                  <Select
-                    value={field.value?.toString() || "1"}
-                    onValueChange={(val) => field.onChange(parseInt(val))}
-                  >
+                  <Select value={field.value?.toString() || "1"} onValueChange={(val) => field.onChange(parseInt(val))} disabled={isPending}>
                     <FormControl>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select effort points" />
-                      </SelectTrigger>
+                      <SelectTrigger className="h-11"><SelectValue placeholder="Select effort points" /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((point) => (
-                        <SelectItem key={point} value={point.toString()}>
-                          {point} point{point !== 1 ? 's' : ''}
-                        </SelectItem>
+                        <SelectItem key={point} value={point.toString()}>{point} point{point !== 1 ? 's' : ''}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -362,56 +315,35 @@ export const CreateTaskForm = ({
               )}
             />
 
-            {watchProjectId && taskOptions.length > 0 && (
+            {watchProjectId && tasks && (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="blockedBy"
+                    name="blockedById"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          Blocked By
-                          {isLoadingTasks && (
-                            <Loader className="h-3 w-3 animate-spin" />
-                          )}
-                        </FormLabel>
+                        <FormLabel className="flex items-center gap-2">Blocked By {isLoadingTasks && <PageLoader />}</FormLabel>
                         <Select
                           value={field.value || "no-blocked-by"}
                           onValueChange={(val) => field.onChange(val === "no-blocked-by" ? "" : val)}
-                          disabled={isLoadingTasks}
+                          disabled={isLoadingTasks || isPending}
                         >
                           <FormControl>
                             <SelectTrigger className="h-11">
-                              {isLoadingTasks ? (
-                                <span className="text-muted-foreground">Loading tasks...</span>
-                              ) : (
-                                <SelectValue placeholder="Select task that blocks this" />
-                              )}
+                              {isLoadingTasks ? <span className="text-muted-foreground">Loading tasks...</span> : <SelectValue placeholder="Select blocking task" />}
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="no-blocked-by">
-                              <div className="flex items-center gap-x-2">
-                                <span className="text-muted-foreground">Not blocked</span>
-                              </div>
-                            </SelectItem>
-                            {taskOptions.map((task) => (
+                            <SelectItem value="no-blocked-by"><span className="text-muted-foreground">Not blocked</span></SelectItem>
+                            {tasks.map((task: any) => (
                               <SelectItem key={task.id} value={task.id}>
-                                <div className="flex items-center justify-between gap-x-2">
-                                  <span className="truncate">{task.name}</span>
-                                  <Badge variant={task.status as any}>{task.status}</Badge>
-                                </div>
+                                <span className="truncate">{task.name}</span>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        {field.value && field.value !== "no-blocked-by" && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            This task will wait for selected task to complete
-                          </p>
-                        )}
                       </FormItem>
                     )}
                   />
@@ -421,56 +353,35 @@ export const CreateTaskForm = ({
                     name="blockingTo"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          Blocking To
-                          {isLoadingTasks && (
-                            <Loader className="h-3 w-3 animate-spin" />
-                          )}
-                        </FormLabel>
+                        <FormLabel className="flex items-center gap-2">Blocking To {isLoadingTasks && <PageLoader />}</FormLabel>
                         <Select
                           value={field.value || "no-blocking-to"}
                           onValueChange={(val) => field.onChange(val === "no-blocking-to" ? "" : val)}
-                          disabled={isLoadingTasks}
+                          disabled={isLoadingTasks || isPending}
                         >
                           <FormControl>
                             <SelectTrigger className="h-11">
-                              {isLoadingTasks ? (
-                                <span className="text-muted-foreground">Loading tasks...</span>
-                              ) : (
-                                <SelectValue placeholder="Select task that this blocks" />
-                              )}
+                              {isLoadingTasks ? <span className="text-muted-foreground">Loading tasks...</span> : <SelectValue placeholder="Select task that this blocks" />}
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="no-blocking-to">
-                              <div className="flex items-center gap-x-2">
-                                <span className="text-muted-foreground">Not blocking</span>
-                              </div>
-                            </SelectItem>
-                            {taskOptions.map((task) => (
+                            <SelectItem value="no-blocking-to"><span className="text-muted-foreground">Not blocking</span></SelectItem>
+                            {tasks.map((task: any) => (
                               <SelectItem key={task.id} value={task.id}>
-                                <div className="flex items-center justify-between gap-x-2">
-                                  <span className="truncate">{task.name}</span>
-                                  <Badge variant={task.status as any}>{task.status}</Badge>
-                                </div>
+                                <span className="truncate">{task.name}</span>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                        {field.value && field.value !== "no-blocking-to" && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Selected task will wait for this task to complete
-                          </p>
-                        )}
                       </FormItem>
                     )}
                   />
                 </div>
 
-                {(watchBlockedBy && watchBlockedBy !== "no-blocked-by" &&
+                {(watchBlockedById && watchBlockedById !== "no-blocked-by" &&
                   watchBlockingTo && watchBlockingTo !== "no-blocking-to" &&
-                  watchBlockedBy === watchBlockingTo) && (
+                  watchBlockedById === watchBlockingTo) && (
                     <Alert variant="destructive" className="py-2">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription className="text-xs">
@@ -486,29 +397,31 @@ export const CreateTaskForm = ({
               name="assigneeId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assignee (Optional)</FormLabel>
-                  <Select
-                    value={field.value || "no-assignee"}
-                    onValueChange={(val) => field.onChange(val === "no-assignee" ? "" : val)}
-                  >
+                  <FormLabel className="flex items-center gap-2">
+                    Assignee (Optional) {isLoadingMembers && <PageLoader />}
+                  </FormLabel>
+                  <Select value={field.value || "no-assignee"} onValueChange={(val) => field.onChange(val === "no-assignee" ? "" : val)} disabled={isPending || isLoadingMembers || !watchProjectId}>
                     <FormControl>
                       <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select Assignee" />
+                        {isLoadingMembers ? (
+                          <span className="text-muted-foreground">Loading members...</span>
+                        ) : !watchProjectId ? (
+                          <span className="text-muted-foreground">Select a project first</span>
+                        ) : (
+                          <SelectValue placeholder="Select Assignee" />
+                        )}
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="no-assignee">
-                        <div className="flex items-center gap-x-2">
-                          <span className="text-muted-foreground">No Assignee</span>
-                        </div>
-                      </SelectItem>
+                      <SelectItem value="no-assignee"><span className="text-muted-foreground">No Assignee</span></SelectItem>
                       {memberOptions.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           <div className="flex items-center gap-x-2">
-                            <MemberAvatar
-                              className="size-6"
-                              name={member.name}
-                            />
+                            <MemberAvatar 
+                              className="size-6" 
+                              name={member.name} 
+                              src={member.image}
+                              />
                             <span>{member.name}</span>
                           </div>
                         </SelectItem>
@@ -520,31 +433,60 @@ export const CreateTaskForm = ({
               )}
             />
 
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
-                        <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
-                        <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={TaskStatus.IN_REVIEW}>In Review</SelectItem>
-                        <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between mt-1">
+                    <FormLabel>Status Column * {isLoadingColumns && <PageLoader />}</FormLabel>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsNewColumn(!isNewColumn);
+                            form.setValue("columnId", "");
+                            form.setValue("newColumnName", "");
+                            form.clearErrors(["columnId", "newColumnName"]);
+                        }}
+                        className="text-[10px] text-primary hover:underline font-semibold"
+                        disabled={isPending || (!columns?.length && !isNewColumn)}
+                    >
+                        {isNewColumn ? "Select Existing" : "+ Add New Column"}
+                    </button>
+                </div>
+                
+                {isNewColumn ? (
+                    <FormField
+                        control={form.control}
+                        name="newColumnName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <Input {...field} placeholder="e.g. In QA" className="h-11" disabled={isPending} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                ) : (
+                    <FormField
+                        control={form.control}
+                        name="columnId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Select value={field.value} onValueChange={field.onChange} disabled={isLoadingColumns || !watchProjectId || isPending}>
+                                    <FormControl>
+                                        <SelectTrigger className="h-11"><SelectValue placeholder="Select Column" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {columns?.map((col: any) => (
+                                            <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 )}
-              />
+              </div>
 
               <FormField
                 control={form.control}
@@ -552,12 +494,8 @@ export const CreateTaskForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Type" />
-                        </SelectTrigger>
-                      </FormControl>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                      <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Type" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value={TaskType.TASK}>Task</SelectItem>
                         <SelectItem value={TaskType.FEATURE}>Feature</SelectItem>
@@ -575,12 +513,8 @@ export const CreateTaskForm = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Priority" />
-                        </SelectTrigger>
-                      </FormControl>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                      <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Priority" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value={TaskPriority.LOW}>Low</SelectItem>
                         <SelectItem value={TaskPriority.MEDIUM}>Medium</SelectItem>
@@ -601,18 +535,11 @@ export const CreateTaskForm = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-medium">Currency</FormLabel>
-                      <FormControl>
-                        <CurrencySelector
-                          value={field.value || "PKR"}
-                          onValueChange={field.onChange}
-                          className="h-10"
-                        />
-                      </FormControl>
+                      <FormControl><CurrencySelector value={field.value || "PKR"} onValueChange={field.onChange} className="h-10" disabled={isPending} /></FormControl>
                     </FormItem>
                   )}
                 />
               </div>
-
               <div className="col-span-2">
                 <FormField
                   control={form.control}
@@ -620,18 +547,7 @@ export const CreateTaskForm = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-medium">Cost Amount</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="1000"
-                          placeholder="0.00"
-                          onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value || ""}
-                          className="h-10"
-                        />
-                      </FormControl>
+                      <FormControl><Input {...field} type="number" min="0" step="1000" placeholder="0.00" onChange={(e) => field.onChange(Number(e.target.value) || 0)} value={field.value || ""} className="h-10" disabled={isPending} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -644,13 +560,7 @@ export const CreateTaskForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Task Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Describe the task details, requirements, and objectives..."
-                      className="min-h-[100px] resize-none"
-                    />
-                  </FormControl>
+                  <FormControl><Textarea {...field} placeholder="Describe the task details, requirements, and objectives..." className="min-h-[100px] resize-none" disabled={isPending} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -658,30 +568,8 @@ export const CreateTaskForm = ({
 
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className={cn(!onCancel && "invisible")}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={isPending}
-                >
-                  {isPending ? (
-                    <>
-                      <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Task"
-                  )}
-                </Button>
+                <Button type="button" variant="outline" onClick={onCancel} className={cn(!onCancel && "invisible")} disabled={isPending}>Cancel</Button>
+                <Button type="submit" size="lg" disabled={isPending}>{isPending ? <><PageLoader /> Creating...</> : "Create Task"}</Button>
               </div>
             </div>
           </form>

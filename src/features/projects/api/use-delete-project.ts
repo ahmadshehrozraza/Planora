@@ -1,28 +1,25 @@
+"use client";
 
 import { toast } from "sonner";
-import { useMutation, useQueryClient  } from "@tanstack/react-query";
-import { InferRequestType, InferResponseType } from "hono"; 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { deleteProjectAction } from "../server/project-actions";
 
 export const useDeleteProject = () => {
-
-
-
     const queryClient = useQueryClient();
-    const mutation = useMutation({
-        mutationFn: async() => {
-
-            return null;
+    
+    return useMutation({
+        mutationFn: async ({ projectId, workspaceId }: { projectId: string, workspaceId: string }) => {
+            const response = await deleteProjectAction(projectId);
+            if (response?.error) throw new Error(response.error);
+            return response;
         },
-        onSuccess: () => {
-            toast.success("Project deleted successfully");
-
-            queryClient.invalidateQueries({ queryKey: ["projects"]});
-            queryClient.invalidateQueries({ queryKey: ["project",  ]});
+        onSuccess: (data, variables) => {
+            toast.success(data.success || "Project deleted");
+            queryClient.invalidateQueries({ queryKey: ["projects", variables.workspaceId] });
+            queryClient.invalidateQueries({ queryKey: ["project", variables.projectId] });
         },
-        onError: () => {
-            toast.error("Failed to delete Project");
+        onError: (error: any) => {
+            toast.error(error.message || "Failed to delete Project");
         }
     });
-
-    return mutation;
 };
