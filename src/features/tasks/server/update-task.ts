@@ -158,7 +158,7 @@ export async function updateTaskAction(values: any) {
             const managers = await prisma.projectMember.findMany({
                 where: {
                     projectId: updatedTask.projectId,
-                    role: { in: ["ADMIN", "PROJECT_MANAGER"] }
+                    role: { in: ["PROJECT_MANAGER"] }
                 },
                 select: { userId: true }
             });

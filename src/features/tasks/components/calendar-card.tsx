@@ -6,7 +6,7 @@ import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useRouter } from "next/navigation";
 
-interface EventCardProps {
+interface TaskCalendarCardProps {
     id: string;
     title: string;
     assignee: any;
@@ -14,13 +14,13 @@ interface EventCardProps {
     status?: any;
 }
 
-export const EventCard = ({
+export const TaskCalendarCard = ({
     id,
     title,
     assignee,
     project,
     status,
-}: EventCardProps) => {
+}: TaskCalendarCardProps) => {
 
     const workspaceId = useWorkspaceId();
     const router = useRouter();

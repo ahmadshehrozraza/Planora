@@ -44,7 +44,7 @@ export const WorkspaceActivityChart = ({ data }: WorkspaceActivityChartProps) =>
     if (!data) return [];
     if (timeRange === "7d") return data.slice(-7);
     if (timeRange === "30d") return data.slice(-30);
-    return data; 
+    return data; // 'all' fallback (Max 90 days from backend)
   }, [data, timeRange]);
 
   if (!data || data.length === 0) {
@@ -61,6 +61,10 @@ export const WorkspaceActivityChart = ({ data }: WorkspaceActivityChartProps) =>
     );
   }
 
+  const totalDays = data.length;
+  const show30DaysOption = totalDays > 7;
+  const show3MonthsOption = totalDays > 30;
+
   return (
     <Card className="bg-card border-border shadow-sm col-span-1 xl:col-span-2">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
@@ -70,22 +74,28 @@ export const WorkspaceActivityChart = ({ data }: WorkspaceActivityChartProps) =>
         </div>
         
         <div className="flex items-center rounded-md border border-border bg-muted/20 p-0.5">
-          <button
-            onClick={() => setTimeRange("3m")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
-              timeRange === "3m" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Last 3 months
-          </button>
-          <button
-            onClick={() => setTimeRange("30d")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
-              timeRange === "30d" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Last 30 days
-          </button>
+          {show3MonthsOption && (
+            <button
+              onClick={() => setTimeRange("all")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
+                timeRange === "all" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Last 3 months
+            </button>
+          )}
+          
+          {show30DaysOption && (
+            <button
+              onClick={() => setTimeRange("30d")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${
+                timeRange === "30d" ? "bg-muted text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Last 30 days
+            </button>
+          )}
+
           <button
             onClick={() => setTimeRange("7d")}
             className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-all ${

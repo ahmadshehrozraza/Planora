@@ -20,13 +20,14 @@ import {
 
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { Badge } from "@/components/ui/badge";
-import { MemberRole } from "@/features/members/types";
 import { dateFormatter } from '@/components/date-indicator';
 import { useConfirm } from "@/hooks/use-confirm";
 
 import { useUpdateProjectMember } from "@/features/projects/api/use-update-project-member";
 import { useDeleteProjectMember } from "@/features/projects/api/use-delete-project-member";
 import { useProjectId } from '../hooks/use-project-id';
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 import { VelocityChart } from '@/components/velocity-chart';
 import { VerticalBarChart } from '@/features/dashboard/components/vertical-bar-chart';
@@ -46,6 +47,9 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
   const projectId = useProjectId();
+  const workspaceId = useWorkspaceId();
+
+  const { data: permissions } = useGetPermissions(workspaceId, projectId);
 
   const { 
     meta, stats, contribution, currentWork, 
@@ -80,6 +84,16 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
       { onSuccess: () => router.back() }
     );
   };
+
+  const isCurrentUserAdmin = permissions?.workspaceAdmin;
+  const isCurrentUserManager = permissions?.projectManager;
+
+  const isTargetOwner = meta.workspaceRole === "ADMIN";
+  const isTargetManager = meta.role === "PROJECT_MANAGER";
+
+  const canChangeRole = isCurrentUserAdmin && !isTargetOwner;
+  const canRemove = (isCurrentUserAdmin && !isTargetOwner) || (isCurrentUserManager && !isTargetOwner && !isTargetManager);
+  const canManageAtAll = canChangeRole || canRemove;
 
   const memberPoints = contribution.memberPoints || 0;
   const projectTotalPoints = contribution.projectTotalPoints || 1; 
@@ -137,27 +151,39 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
             </div>
           </div>
 
-          <div className="w-full sm:w-auto flex justify-center sm:justify-end shrink-0 mt-2 sm:mt-0">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="shadow-sm" disabled={isUpdating || isDeleting}>
-                  <Shield className="size-4 mr-2" /> Manage Access
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border">
-                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Project Role</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={role} onValueChange={handleRoleChange}>
-                  <DropdownMenuRadioItem value={"PROJECT_MANAGER"} className="cursor-pointer font-medium">Project Manager</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value={"MEMBER"} className="cursor-pointer font-medium">Member</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleRemoveMember} className="text-destructive font-medium cursor-pointer">
-                  <Trash2 className="size-4 mr-2" /> Remove from Project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          {canManageAtAll && (
+            <div className="w-full sm:w-auto flex justify-center sm:justify-end shrink-0 mt-2 sm:mt-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="shadow-sm" disabled={isUpdating || isDeleting}>
+                    <Shield className="size-4 mr-2" /> Manage Access
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-border">
+                  
+                  {canChangeRole && (
+                    <>
+                      <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Project Role</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuRadioGroup value={role} onValueChange={handleRoleChange}>
+                        <DropdownMenuRadioItem value={"PROJECT_MANAGER"} className="cursor-pointer font-medium">Project Manager</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value={"MEMBER"} className="cursor-pointer font-medium">Member</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </>
+                  )}
+
+                  {canChangeRole && canRemove && <DropdownMenuSeparator />}
+
+                  {canRemove && (
+                    <DropdownMenuItem onClick={handleRemoveMember} className="text-destructive font-medium cursor-pointer">
+                      <Trash2 className="size-4 mr-2" /> Remove from Project
+                    </DropdownMenuItem>
+                  )}
+
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -244,10 +270,6 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                 data={mappedVelocityData} 
               />
             </div>
-          </div>
-
-          <div className="mt-6">
-            <VerticalBarChart data={segmentChartData} />
           </div>
         </TabsContent>
 

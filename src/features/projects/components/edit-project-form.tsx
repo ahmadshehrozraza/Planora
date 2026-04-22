@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CurrencySelector } from "@/components/currency-selector";
 import { DatePicker } from "@/components/date-picker";
 import { Textarea } from "@/components/ui/textarea";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
 interface EditProjectFormProps {
     onCancel?: () => void;
@@ -44,6 +45,9 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
     const workspaceId = useWorkspaceId();
     const router = useRouter();
     const { mutate, isPending } = useUpdateProject();
+
+    const { data: permissions } = useGetPermissions(workspaceId);
+    const allowed = permissions?.workspaceAdmin;
 
     const {
         mutate: deleteProject,
@@ -410,6 +414,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                 </CardContent>
             </Card>
 
+    {allowed && (
       <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
         <CardHeader>
           <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
@@ -433,6 +438,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
           </Button>
         </CardFooter>
       </Card>
+      )}
         </div>
     )
 };

@@ -40,6 +40,7 @@ export async function getSegmentsAction(projectId: string) {
 
         const segments = await prisma.segment.findMany({
             where: { projectId },
+            include: { tasks: true }, 
             orderBy: { createdAt: "desc" }
         });
 

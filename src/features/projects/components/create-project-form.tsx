@@ -4,7 +4,7 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { ImageIcon } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,13 +48,11 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [imageSizeError, setImageSizeError] = useState(false);
 
-    if (!workspaceId) return;
-
     const form = useForm<z.infer<typeof createProjectSchema>>({
         resolver: zodResolver(createProjectSchema),
         defaultValues: {
             name: "",
-            workspaceId,
+            workspaceId: workspaceId || "",
             status: ProjectStatus.ACTIVE, 
             currency: "PKR", 
             startDate: new Date(),
@@ -64,6 +62,17 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
             budget: 0,
         },
     });
+
+    const startDate = form.watch("startDate");
+
+    useEffect(() => {
+        const currentDueDate = form.getValues("dueDate");
+        if (startDate && currentDueDate && startDate > currentDueDate) {
+            form.setValue("dueDate", startDate);
+        }
+    }, [startDate, form]);
+
+    if (!workspaceId) return null;
 
     const onSubmit = (values: z.infer<typeof createProjectSchema>) => {
         if (imageSizeError) return;
@@ -107,7 +116,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                 <Separator />
             </div>
 
-            <CardContent className="">
+            <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <div className="mt-2 w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -328,6 +337,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                                                     {...field}
                                                     disabled={isPending}
                                                     placeholder="Select due date"
+                                                    fromDate={startDate}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -357,7 +367,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                                     control={form.control}
                                     name="description"
                                     render={({ field }) => (
-                                        <FormItem className="">
+                                        <FormItem>
                                             <FormLabel>Project Description</FormLabel>
                                             <FormControl>
                                                 <Textarea

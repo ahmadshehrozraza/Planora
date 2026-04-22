@@ -118,7 +118,8 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     budget: project.budget,
                     progress: projectProgress,
                     startDate: project.startDate,
-                    dueDate: project.dueDate
+                    dueDate: project.dueDate,
+                    ImageUrl: project.imageUrl,
                 },
                 kpi: {
                     totalTasks,
@@ -130,13 +131,16 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                 segments: segments.map(seg => {
                     const segTasks = tasks.filter(t => t.segmentId === seg.id);
                     const spent = segTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
-                    const completed = segTasks.filter(t => t.progress === 100).length;
+
+                    const totalProgressSum = segTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+                    const avgProgress = segTasks.length > 0 ? Math.round(totalProgressSum / segTasks.length) : 0;
+                    
                     return {
                         id: seg.id,
                         name: seg.name,
                         status: seg.status,
                         spent,
-                        progress: segTasks.length > 0 ? Math.round((completed / segTasks.length) * 100) : 0
+                        progress: avgProgress 
                     };
                 }),
                 members: projectMembers.map(member => {
@@ -159,6 +163,7 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     priority: t.priority,
                     progress: t.progress,
                     budget: t.budget,
+                    effortPoints: t.effortPoints,
                     column: { name: t.column?.name || "Unmapped" }
                 })),
                 charts: {

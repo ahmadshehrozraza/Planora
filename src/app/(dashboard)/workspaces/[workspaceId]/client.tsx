@@ -34,7 +34,8 @@ export const DashboardClient = () => {
     return <PageError message="Failed to load dashboard data" />;
   }
 
-  const { urgentTasks, urgentProjects, upcomingEvents, activityData, memberVelocity, memberBurndown } = data;
+  // ✨ FIX 3: Extracted activeProjects from data
+  const { urgentTasks, urgentProjects, activeProjects, upcomingEvents, activityData, memberVelocity, memberBurndown } = data;
 
   const isAdmin = permissions?.workspaceAdmin ?? false;
   const isManager = permissions?.isManagerAnywhere ?? false;
@@ -64,7 +65,7 @@ export const DashboardClient = () => {
 
       {showWorkspaceCharts && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <WorkspaceProgressChart projects={urgentProjects} />
+          <WorkspaceProgressChart projects={activeProjects} />
           <WorkspaceActivityChart data={activityData} /> 
         </div>
       )}

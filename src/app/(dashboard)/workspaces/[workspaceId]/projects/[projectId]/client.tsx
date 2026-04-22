@@ -18,6 +18,8 @@ import { CreateSegmentModal } from "@/features/segments/components/create-segmen
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { ActivityTimeline } from "@/features/activity-logs/components/activity-timeline";
+import { useGetProjectLogs } from "@/features/activity-logs/api/use-get-project-logs";
 
 const EditProjectForm = dynamic(() => import("@/features/projects/components/edit-project-form").then(mod => mod.EditProjectForm), { loading: () => <div className="p-8 flex justify-center"><PageLoader /></div> });
 const ProjectAnalytics = dynamic(() => import("@/features/projects/components/project-analytics"), { ssr: false, loading: () => <div className="p-8 flex justify-center"><PageLoader /></div> });
@@ -28,6 +30,8 @@ export const ProjectIdClient = () => {
     const workspaceId = useWorkspaceId();
     const projectId = useProjectId();
     const { data: project, isLoading: isLoadingProject } = useGetProject({ projectId });
+
+    const { data: projectLogs } = useGetProjectLogs(projectId);
 
     const { data: permissions } = useGetPermissions(workspaceId, projectId);
     const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
@@ -113,6 +117,7 @@ export const ProjectIdClient = () => {
                             <TabsTrigger value="projectAnalytics" className="px-5 text-sm data-[state=active]:shadow-sm">Analytics</TabsTrigger>
                             <TabsTrigger value="projectMembers" className="px-5 text-sm data-[state=active]:shadow-sm">Members</TabsTrigger>
                             <TabsTrigger value="projectSettings" className="px-5 text-sm data-[state=active]:shadow-sm">Settings</TabsTrigger>
+                            <TabsTrigger value="projectLogs" className="px-5 text-sm data-[state=active]:shadow-sm">Logs</TabsTrigger>
                             </>
                             )}
                         </TabsList>
@@ -129,6 +134,10 @@ export const ProjectIdClient = () => {
                 <div className="flex-1 w-full relative">
                     <TabsContent value="segments" className="m-0 border-none outline-none h-full">
                         <SegmentsPage />
+                    </TabsContent>
+
+                    <TabsContent value="projectLogs" className="m-0 border-none outline-none p-4 h-full">
+                        <ActivityTimeline logs={projectLogs || []} />
                     </TabsContent>
 
                     <TabsContent value="projectAnalytics" className="m-0 p-6">

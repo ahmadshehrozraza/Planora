@@ -85,17 +85,8 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4 border-none">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-        <Input
-          placeholder="Search tasks by name..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm h-9"
-        />
 
-        <div className="flex items-center gap-2">
+        <div className="flex justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9">
@@ -126,7 +117,7 @@ export function DataTable<TData, TValue>({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+
 
       <div className="rounded-md border overflow-auto">
         <div className="w-full">

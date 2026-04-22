@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { cn, daysSinceStart, daysUntilDue, snakeCaseToTitleCase } from "@/lib/utils";
 import { ProgressBar } from "@/components/Progress-bar";
-import { Segment, SegmentStatus } from "../types";
+import { SegmentStatus } from "../types";
 import { DateIndicator, dateFormatter } from "@/components/date-indicator";
 import { Layers } from "lucide-react"; 
 
@@ -23,12 +23,10 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
 }) => {
 
   const { statusLabel, remainingText, remainingVariant } = useMemo(() => {
-    // ✨ FIX: endingDate ko dueDate kar diya
     const daysRemaining = segment.dueDate ? daysUntilDue(segment.dueDate) : 0;
     let text = "";
     let variant = "outline";
 
-    // ✨ FIX: segmentStatus ko status kar diya
     if (segment.status === SegmentStatus.ACTIVE) {
         text = segment.dueDate ? `${daysRemaining} days remaining` : "No due date";
         variant = "ACTIVE";
@@ -41,21 +39,24 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
     }
 
     return {
-        // ✨ FIX: segmentStatus ko status kar diya
         statusLabel: segment.status ? snakeCaseToTitleCase(segment.status) : "Unknown",
         remainingText: text,
         remainingVariant: variant,
     };
   }, [segment.status, segment.dueDate]);
 
-  // ✨ FIX: startingDate ko startDate kar diya
   const formattedStartDate = useMemo(() => dateFormatter(segment.startDate || null), [segment.startDate]);
   const daysSince = useMemo(() => segment.startDate ? daysSinceStart(segment.startDate) : "N/A", [segment.startDate]);
 
-  // ✨ TEMP FIX: Tasks ka data abhi relation mein nahi hai
-  const completedTasks = 0;
-  const totalTasks = 0;
-  const progress = 0;
+  const tasks = segment.tasks || [];
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t: any) => t.progress === 100).length;
+  
+  const progress = useMemo(() => {
+    if (totalTasks === 0) return 0;
+    const totalProgressSum = tasks.reduce((sum: number, t: any) => sum + (t.progress || 0), 0);
+    return Math.round(totalProgressSum / totalTasks);
+  }, [tasks, totalTasks]);
 
   if (view === "list") {
       return (
@@ -86,7 +87,6 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      {/* ✨ FIX: segmentStatus ko status kar diya */}
                       <Badge variant={segment.status as any}>{statusLabel}</Badge>
                       {remainingText && (
                           <span className={cn("text-[10px] font-bold uppercase tracking-wider", segment.status === 'OVER_DUE' ? 'text-destructive' : 'text-muted-foreground')}>
@@ -110,7 +110,6 @@ const SegmentCardComponent: React.FC<SegmentCardProps> = ({
           <Layers className="size-4 text-primary shrink-0" />
           <h2 className="truncate font-bold text-foreground text-[15px]">{segment.name}</h2>
         </div>
-        {/* ✨ FIX: segmentStatus ko status kar diya */}
         <Badge variant={segment.status as any} className="shrink-0 ml-2">
           {statusLabel}
         </Badge>

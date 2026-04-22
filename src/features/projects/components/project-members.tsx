@@ -46,7 +46,11 @@ interface ProjectMembersProps {
 export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
   const workspaceId = useWorkspaceId();
   const { data: permissions } = useGetPermissions(workspaceId, projectId);
-  const isAllowedToManage = permissions?.workspaceAdmin || permissions?.projectManager;
+  
+  const isWorkspaceAdmin = permissions?.workspaceAdmin || false;
+  const isProjectManager = permissions?.projectManager || false;
+  
+  const canInviteByLink = isWorkspaceAdmin || isProjectManager;
 
   const [ConfirmDialog, confirm] = useConfirm(
     "Remove member",
@@ -128,13 +132,13 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
               <div className="flex items-center gap-2">
                 <Input readOnly value={fullInviteLink} className="h-9 bg-muted/50 text-xs" />
                 <Button onClick={() => { navigator.clipboard.writeText(fullInviteLink); toast.success("Copied!"); }} variant="secondary" size="sm" className="h-9 px-3 shrink-0"><CopyIcon className="size-4" /></Button>
-                {permissions?.workspaceAdmin && (
+                {isWorkspaceAdmin && (
                   <Button variant="outline" size="sm" onClick={async () => { if (await confirmReset()) resetInviteCode({ projectId, workspaceId }); }} className="text-destructive h-9 shrink-0"><RefreshCcw className={`size-4 ${isResettingLink ? "animate-spin" : ""}`} /></Button>
                 )}
               </div>
             </div>
 
-            {isAllowedToManage && (
+            {isWorkspaceAdmin && (
               <>
                 <Separator />
                 <div className="space-y-2">
@@ -184,7 +188,9 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="pl-9 h-9" />
           </div>
-          <Button size="sm" className="h-9" onClick={() => setIsAddModalOpen(true)}><PlusIcon className="size-4 mr-2" /> Add</Button>
+          {canInviteByLink && (
+            <Button size="sm" className="h-9" onClick={() => setIsAddModalOpen(true)}><PlusIcon className="size-4 mr-2" /> Add</Button>
+          )}
         </div>
       </div>
 
@@ -194,7 +200,7 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
           <ProjectMemberCard 
             key={member.id} 
             member={member} 
-            isAdmin={isAllowedToManage || false}
+            isAdmin={isWorkspaceAdmin} 
             disabled={isUpdatingMember || isDeletingMember}
             onAction={handleAction}
             onClick={() => {}} 

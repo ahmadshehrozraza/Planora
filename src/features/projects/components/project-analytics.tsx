@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { 
   Banknote, TrendingUp, AlertTriangle, 
-  Calendar, AlertOctagon, Target, Layers
+  Calendar, AlertOctagon, Target, Layers, Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -22,6 +22,7 @@ import { VelocityChart } from "@/components/velocity-chart";
 import { VerticalBarChart } from "@/features/dashboard/components/vertical-bar-chart";
 import { useGetProjectAnalytics } from "@/features/projects/api/use-get-project-analytics";
 import { useProjectEstimations } from "../hooks/use-project-estimations";
+import { ProjectAvatar } from "./project-avatar";
 
 const PIE_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#64748b", "#a855f7", "#ef4444"];
 
@@ -80,7 +81,15 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-8 print:border-black">
         <div>
-          <h1 className="text-4xl font-bold text-foreground tracking-tight print:text-black">{meta.name}</h1>
+          <div className="flex items-center gap-3">
+            <ProjectAvatar 
+              name={meta.name} 
+              className="size-12" 
+              image={meta.ImageUrl}
+            />
+            <h1 className="text-2xl font-bold text-foreground print:text-black">{meta.name}</h1>
+          </div>
+          
           <div className="flex items-center gap-3 mt-3 text-muted-foreground print:text-gray-800">
               <Badge variant="outline" className="text-sm px-3 py-1 font-medium print:text-black print:border-black">{meta.projectStatus.replace(/_/g, " ")}</Badge>
               <span>•</span>
@@ -102,11 +111,20 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className={`border-l-4 ${predictions.isDelayed ? 'border-l-rose-500 bg-rose-500/5' : 'border-l-emerald-500 bg-emerald-500/5'} shadow-sm print:break-inside-avoid print:border-black print:bg-transparent`}>
+
+        <Card className={`border-l-4 ${predictions.isDelayed ? 'border-l-rose-500 bg-rose-500/5' : 'border-l-emerald-500 bg-emerald-500/5'} shadow-sm print:break-inside-avoid print:border-black print:bg-transparent relative overflow-hidden`}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2 print:text-black">
               <Calendar className="size-4" /> Timeline Forecast
             </CardTitle>
+            {predictions.isAiPowered && (
+              <Badge variant="outline" className="absolute top-4 right-4 bg-primary/10 text-primary border-primary/20 text-[9px] uppercase  ">
+                <span className="flex justify-center gap-1.5">
+                  <Sparkles className="size-3 shrink-0" /> 
+                  AI Predicted • {predictions.aiConfidence}% Sure
+                  </span>
+              </Badge>
+            )}
           </CardHeader>
           <CardContent>
             <div className="mt-1">
@@ -118,11 +136,16 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
           </CardContent>
         </Card>
 
-        <Card className={`border-l-4 ${predictions.projectedBudgetVariance < 0 ? 'border-l-rose-500 bg-rose-500/5' : 'border-l-blue-500 bg-blue-500/5'} shadow-sm print:break-inside-avoid print:border-black print:bg-transparent`}>
+        <Card className={`border-l-4 ${predictions.budgetRisk === 'CRITICAL' ? 'border-l-rose-500 bg-rose-500/5' : predictions.budgetRisk === 'WARNING' ? 'border-l-amber-500 bg-amber-500/5' : 'border-l-blue-500 bg-blue-500/5'} shadow-sm print:break-inside-avoid print:border-black print:bg-transparent relative overflow-hidden`}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2 print:text-black">
               <Banknote className="size-4" /> Budget Health
             </CardTitle>
+            {predictions.isAiPowered && (
+               <Badge variant="outline" className={`absolute top-4 right-4 text-[9px] uppercase font-bold ${predictions.budgetRisk === 'CRITICAL' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' : predictions.budgetRisk === 'WARNING' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'}`}>
+                 Risk: {predictions.budgetRisk}
+               </Badge>
+            )}
           </CardHeader>
           <CardContent>
             <div className="mt-1">
@@ -145,9 +168,11 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
           <CardContent>
             <div className="mt-1">
               <h3 className="text-2xl font-bold text-foreground print:text-black">
-                {predictions.velocity.toFixed(1)} <span className="text-sm font-semibold text-muted-foreground print:text-black">tasks / day</span>
+                {predictions.velocity.toFixed(1)} <span className="text-sm font-semibold text-muted-foreground print:text-black">points / day</span>
               </h3>
-              <p className="text-sm text-muted-foreground mt-1 font-medium print:text-black">{predictions.tasksRemaining} Tasks Remaining</p>
+              <p className="text-sm text-muted-foreground mt-1 font-medium print:text-black">
+                {predictions.pointsRemaining} Effort Points Remaining
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -221,90 +246,6 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
                   <div className="p-8 text-center text-sm text-muted-foreground print:text-black">No budget assigned to tasks yet.</div>
                 )}
              </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="shadow-sm border-border overflow-hidden col-span-1 lg:col-span-2 print:break-inside-avoid">
-          <CardHeader className="bg-muted/30 border-b border-border print:bg-transparent print:border-black">
-            <CardTitle className="print:text-black">Team Performance Matrix</CardTitle>
-            <CardDescription className="print:text-black">Contribution vs Efficiency analysis</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left border-collapse">
-                <thead className="bg-muted/50 border-b border-border print:bg-transparent print:border-black">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground whitespace-nowrap print:text-black">Member</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground whitespace-nowrap print:text-black">Role</th>
-                    <th className="px-4 py-3 text-center font-semibold text-muted-foreground whitespace-nowrap print:text-black">Tasks Done</th>
-                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground whitespace-nowrap print:text-black">Points Earned</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border bg-card print:divide-black print:bg-transparent">
-                  {members.map((m: any, index: number) => (
-                    <tr key={index} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <MemberAvatar name={m.name || "Unknown"} src={m.image} className="size-8 shadow-sm" />
-                          <span className="font-semibold text-foreground print:text-black">{m.name || "Unknown"}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="secondary" className="font-medium print:bg-transparent print:text-black print:border-black">{m.role || "MEMBER"}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <span className="font-bold text-foreground print:text-black">{m.tasksCompleted || 0}</span>
-                        <span className="text-muted-foreground font-medium text-xs mx-1 print:text-black">/</span>
-                        <span className="text-muted-foreground font-medium text-xs print:text-black">{m.totalTasks || 0}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="font-bold text-primary px-2 py-1 bg-primary/10 rounded print:bg-transparent print:text-black print:border print:border-black">
-                          {m.pointsEarned || 0} pts
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card shadow-sm col-span-1 print:break-inside-avoid print:border-black">
-          <CardHeader className="bg-rose-500/5 border-b border-border pb-4 print:bg-transparent print:border-black">
-            <CardTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400 print:text-black">
-              <AlertOctagon className="size-5 print:text-black" /> Critical Attention
-            </CardTitle>
-            <CardDescription className="text-muted-foreground print:text-black">High priority tasks that are not 100% completed.</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4 p-0">
-            <div className="space-y-0 divide-y divide-border print:divide-black">
-              {criticalStuckTasks.length > 0 ? (
-                criticalStuckTasks.slice(0, 5).map((task: any) => (
-                  <div key={task.id} className="flex items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors print:bg-transparent">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="mt-0.5"><AlertTriangle className="size-4 text-rose-500 print:text-black" /></div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground line-clamp-1 print:text-black">{task.name}</p>
-                        <p className="text-xs font-medium text-muted-foreground mt-0.5 truncate print:text-black">Progress: {task.progress}%</p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 font-bold text-[10px] uppercase tracking-wider print:bg-transparent print:text-black print:border-black">
-                          {task.column?.name || "Pending"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-12 flex flex-col items-center justify-center text-center">
-                  <div className="p-3 bg-emerald-500/10 rounded-full mb-3 print:bg-transparent print:border print:border-black"><TrendingUp className="size-6 text-emerald-600 dark:text-emerald-400 print:text-black" /></div>
-                  <p className="text-sm font-medium text-muted-foreground print:text-black">All high priority tasks are completed.</p>
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
       </div>

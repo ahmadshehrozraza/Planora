@@ -39,8 +39,10 @@ interface ProjectMemberCardProps {
 
 export const ProjectMemberCard = ({ member, isAdmin, disabled, onAction, onClick }: ProjectMemberCardProps) => {
   const progressVal = member.totalTasks > 0 ? Math.round((member.completedTasks / member.totalTasks) * 100) : 0;
+  
   const isOwner = member.workspaceRole === "ADMIN";
   const isManager = isOwner || member.role === "PROJECT_MANAGER";
+  
   const canBeManaged = isAdmin && !isOwner;
 
   return (
@@ -113,5 +115,5 @@ export const ProjectMemberCard = ({ member, isAdmin, disabled, onAction, onClick
         <span>Joined {dateFormatter(member.createdAt)}</span>
       </div>
     </div>
-  );
-};
+  )
+}

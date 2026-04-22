@@ -70,6 +70,7 @@ export const CreateTaskForm = ({
   const watchProjectId = form.watch("projectId");
   const watchBlockedById = form.watch("blockedById");
   const watchBlockingTo = form.watch("blockingTo");
+  const watchStartDate = form.watch("startDate");
   
   const { data: columns, isLoading: isLoadingColumns } = useGetProjectColumns(watchProjectId);
   const { data: segments, isLoading: isLoadingSegments } = useGetSegments(watchProjectId);
@@ -113,6 +114,20 @@ export const CreateTaskForm = ({
       }
   }, [columns, form, isNewColumn]);
 
+  useEffect(() => {
+      const currentDueDate = form.getValues("dueDate");
+      if (watchStartDate && currentDueDate) {
+          const start = new Date(watchStartDate);
+          start.setHours(0, 0, 0, 0);
+          const due = new Date(currentDueDate);
+          due.setHours(0, 0, 0, 0);
+
+          if (start > due) {
+              form.setValue("dueDate", watchStartDate);
+          }
+      }
+  }, [watchStartDate, form]);
+
   const validateCircularDependency = () => {
     const blockedById = form.getValues("blockedById");
     const blockingTo = form.getValues("blockingTo");
@@ -137,6 +152,19 @@ export const CreateTaskForm = ({
 
     if (isNewColumn && (!values.newColumnName || values.newColumnName.trim() === "")) {
         form.setError("newColumnName", { type: "manual", message: "Column name is required" });
+        return;
+    }
+
+    const startVal = new Date(values.startDate);
+    startVal.setHours(0, 0, 0, 0);
+    const dueVal = new Date(values.dueDate);
+    dueVal.setHours(0, 0, 0, 0);
+
+    if (dueVal < startVal) {
+        form.setError("dueDate", { 
+            type: "manual", 
+            message: "Due date cannot be before Start date" 
+        });
         return;
     }
 
@@ -286,7 +314,7 @@ export const CreateTaskForm = ({
                   <FormItem>
                     <FormLabel>Due Date *</FormLabel>
                     <FormControl>
-                      <DatePicker {...field} placeholder="Select due date" className="h-11" disabled={isPending} />
+                      <DatePicker {...field} placeholder="Select due date" className="h-11" disabled={isPending} fromDate={watchStartDate} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

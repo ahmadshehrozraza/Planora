@@ -64,6 +64,16 @@ export const SegmentFiles = ({ segmentId }: SegmentFilesProps) => {
   const processFiles = async (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      if (selectedFiles[i].size > MAX_FILE_SIZE) {
+        toast.error(`"${selectedFiles[i].name}" is larger than 10MB. Upload cancelled.`);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+    }
+
     setIsUploading(true);
 
     try {

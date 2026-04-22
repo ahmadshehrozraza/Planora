@@ -28,7 +28,7 @@ export const SegmentsPage = () => {
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const filteredSegments = useMemo(() => {
-    return data.filter((segment) => {
+    return data.filter((segment: any) => {
       const matchesSearch = searchQuery === "" || segment.name.toLowerCase().includes(searchQuery.toLowerCase()) || (segment.description && segment.description.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesStatus = statusFilter === "all" || segment.status?.toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
@@ -36,7 +36,7 @@ export const SegmentsPage = () => {
   }, [data, searchQuery, statusFilter]);
 
   const stats = useMemo(() => {
-    return data.reduce((acc, segment) => {
+    return data.reduce((acc: any, segment: any) => {
       acc.total += 1;
       if (segment.status === "ACTIVE") acc.active += 1;
       else if (segment.status === "COMPLETED") acc.completed += 1;
@@ -130,7 +130,7 @@ export const SegmentsPage = () => {
                 {filteredSegments.length === 0 ? (
                   <div className="col-span-full p-8 text-center text-muted-foreground font-medium">No segments match your search.</div>
                 ) : (
-                  filteredSegments.map((segment) => (
+                  filteredSegments.map((segment: any) => (
                     <Link
                       key={segment.id}
                       href={`/workspaces/${workspaceId}/projects/${projectId}/segments/${segment.id}`} 

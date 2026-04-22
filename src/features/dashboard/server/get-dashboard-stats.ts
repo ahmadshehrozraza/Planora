@@ -14,7 +14,8 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
         });
         if (!user) return null;
 
-        const [workspaceMember, userProjects] = await Promise.all([
+        const [workspace, workspaceMember, userProjects] = await Promise.all([
+            prisma.workspace.findUnique({ where: { id: workspaceId }, select: { createdAt: true } }), // Added workspace creation date
             prisma.workspaceMember.findUnique({
                 where: { userId_workspaceId: { userId: user.id, workspaceId } }
             }),
@@ -24,11 +25,11 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             })
         ]);
 
-        if (!workspaceMember) return null;
+        if (!workspaceMember || !workspace) return null;
 
         const isAdmin = workspaceMember.role === "ADMIN";
         const allowedProjectIds = userProjects.map(p => p.projectId);
-        const managedProjectIds = userProjects.filter(p => p.role === "PROJECT_MANAGER" || p.role === "ADMIN").map(p => p.projectId);
+        const managedProjectIds = userProjects.filter(p => p.role === "PROJECT_MANAGER").map(p => p.projectId);
         const isManagerAnywhere = managedProjectIds.length > 0;
 
         const today = new Date();
@@ -62,11 +63,17 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             status: { not: "COMPLETED" }
         };
 
+        const activeProjectWhere: any = {
+            workspaceId,
+            status: { not: "COMPLETED" }
+        };
+
         if (!isAdmin) {
             projectWhere.id = { in: allowedProjectIds };
+            activeProjectWhere.id = { in: allowedProjectIds };
         }
 
-        const [urgentTasks, urgentProjectsRaw, upcomingEvents, activityTasks] = await Promise.all([
+        const [urgentTasks, urgentProjectsRaw, activeProjectsRaw, upcomingEvents, activityTasks] = await Promise.all([
             prisma.task.findMany({
                 where: taskWhere,
                 include: {
@@ -81,6 +88,13 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
                 include: { tasks: { select: { progress: true } } },
                 orderBy: { dueDate: 'asc' },
                 take: 5
+            }),
+            // ✨ FIX 1: Fetch all active projects for the chart, not just urgent ones
+            prisma.project.findMany({
+                where: activeProjectWhere,
+                include: { tasks: { select: { progress: true } } },
+                orderBy: { updatedAt: 'desc' },
+                take: 10
             }),
             prisma.event.findMany({
                 where: {
@@ -106,9 +120,23 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             return { ...project, totalTasks, completedTasks, progress };
         });
 
+        const activeProjects = activeProjectsRaw.map((project) => {
+            const totalTasks = project.tasks.length;
+            const completedTasks = project.tasks.filter(t => t.progress === 100).length;
+            const totalProgressSum = project.tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
+            const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
+            return { ...project, totalTasks, completedTasks, progress };
+        });
+
+        // ✨ FIX 2: Dynamic Activity Timeline
+        // Ab chart 90 din purana nahi jayega agar workspace naya hai.
+        const timeDiff = today.getTime() - workspace.createdAt.getTime();
+        const daysSinceCreation = Math.floor(timeDiff / (1000 * 3600 * 24));
+        const loopStart = Math.max(6, Math.min(89, daysSinceCreation)); // Minimum 7 din ka graph, max 90 din ka
+
         const activityDict: Record<string, { assigned: number; completed: number }> = {};
-        for (let i = 89; i >= 0; i--) {
-            const d = new Date();
+        for (let i = loopStart; i >= 0; i--) {
+            const d = new Date(today);
             d.setDate(d.getDate() - i);
             activityDict[d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })] = { assigned: 0, completed: 0 };
         }
@@ -184,6 +212,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             isManager: isManagerAnywhere,
             urgentTasks,
             urgentProjects,
+            activeProjects, // Added this
             upcomingEvents,
             activityData,
             memberVelocity,
