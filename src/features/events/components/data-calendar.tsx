@@ -4,19 +4,21 @@ import {
     format,
     getDay,
     parse,
+    parseISO,
     startOfWeek,
     addMonths,
     subMonths,
 } from "date-fns";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { enUS } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react"; 
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./data-calendar.css";
 import { EventsCard } from "./events-card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { EventTypes } from "../types";
+import { useEventFilters } from "../hooks/use-event-filters"; // ✨ Hook import kiya hai
 
 const locales = {
     "en-US": enUS
@@ -76,9 +78,17 @@ export const DataCalendar = ({
     data,
 }: DataCalendarProps) => {
 
+    const [{ date: filterDate }] = useEventFilters(); 
+
     const [value, setValue] = useState(
-        data.length > 0 ? new Date(data[0].date) : new Date()
+        filterDate ? parseISO(filterDate) : new Date()
     );
+
+    useEffect(() => {
+        if (filterDate) {
+            setValue(parseISO(filterDate));
+        }
+    }, [filterDate]);
 
     const events = data.map((event) => ({
         id: event.id,

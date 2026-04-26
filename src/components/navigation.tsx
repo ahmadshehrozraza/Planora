@@ -26,6 +26,7 @@ import {
   HiChartBar,
 } from "react-icons/hi";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { ActivityIcon } from "lucide-react";
 
 const routes = [
   { 
@@ -69,6 +70,13 @@ const routes = [
     icon: HiOutlineCog, 
     activeIcon: HiCog,
     requireAdmin: true, 
+  },
+  {
+    label: "Activity Logs",
+    href: "/activity",
+    icon: ActivityIcon, 
+    activeIcon: ActivityIcon,
+    requireAdmin: true,       
   }
 ];
 

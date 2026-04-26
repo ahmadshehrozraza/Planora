@@ -41,8 +41,11 @@ export const TaskViewSwitcher = () => {
   const workspaceId = useWorkspaceId();
   const paramProjectId = useProjectId();
 
-   const { data: permissions } = useGetPermissions( workspaceId );
-   const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+   const { data: permissions } = useGetPermissions( workspaceId, paramProjectId as string );
+   
+   const allowed = paramProjectId 
+      ? permissions?.canManageProject 
+      : (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
   
   const params = useParams();
   const paramSegmentId = params.segmentId as string | undefined;
@@ -122,6 +125,7 @@ export const TaskViewSwitcher = () => {
                       </a>
                   </Button>
               )}
+              
             {allowed && (
               <Button onClick={open} size="sm" className="w-full lg:w-auto h-11 shadow-sm">
                 <PlusIcon className="size-4 mr-2" />

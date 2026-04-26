@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Activity } from "lucide-react";
 
@@ -36,6 +36,7 @@ export const ActivityTimeline = ({ logs, isLoading }: ActivityTimelineProps) => 
       <ul className="relative space-y-4">
         {logs.map((log, index) => {
           const isLast = index === logs.length - 1;
+          const logDate = new Date(log.createdAt); // Parse once
 
           return (
             <li key={log.id} className="relative flex gap-x-4">
@@ -57,7 +58,7 @@ export const ActivityTimeline = ({ logs, isLoading }: ActivityTimelineProps) => 
               </div>
 
               <div className="flex-auto pt-1.5">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-y-1 gap-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-y-1 gap-x-4">
                   
                   <div className="text-sm text-muted-foreground">
                     <span className="font-semibold text-foreground mr-1.5">
@@ -66,9 +67,14 @@ export const ActivityTimeline = ({ logs, isLoading }: ActivityTimelineProps) => 
                     <span>{log.metadata?.message?.toLowerCase() || "performed an action"}</span>
                   </div>
 
-                  <time className="flex-none text-[11px] text-muted-foreground font-medium">
-                    {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                  </time>
+                  <div className="flex-none flex flex-col sm:items-end gap-0.5">
+                    <time className="text-[11px] text-muted-foreground font-medium whitespace-nowrap">
+                      {formatDistanceToNow(logDate, { addSuffix: true })}
+                    </time>
+                    <time className="text-[9px] text-muted-foreground/60 font-medium whitespace-nowrap">
+                      {format(logDate, "MMM d, yyyy • h:mm a")}
+                    </time>
+                  </div>
 
                 </div>
               </div>

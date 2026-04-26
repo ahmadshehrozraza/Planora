@@ -5,7 +5,16 @@ export default auth((req) => {
     const isLoggedIn = !!req.auth; 
     const url = req.nextUrl;
 
-    const isPublicPage = ["/", "/sign-in", "/sign-up", "/forget-password", "/reset-password"].includes(url.pathname);
+    const isPublicPage = [
+        "/", "/sign-in",
+        "/sign-up", 
+        "/forget-password", 
+        "/reset-password",
+        "/docs",
+        "/privacy",
+        "/terms",
+        "/community",
+    ].includes(url.pathname);
 
     if (isPublicPage) {
         if (isLoggedIn && url.pathname !== "/") { 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   CalendarIcon,
   ArrowRight,
@@ -32,12 +32,12 @@ const EventsClientPage = () => {
   const router = useRouter();
   const workspaceId = useWorkspaceId();
 
-  const [{ projectId, segmentId, date }] = useEventFilters();
+  const [{ projectId, date }] = useEventFilters();
 
   const { data, isLoading, isError } = useGetEvents({
     workspaceId,
     projectId,
-    segmentId,
+    // segmentId 
   });
 
   const { data: permissions } = useGetPermissions( workspaceId );
@@ -54,7 +54,8 @@ const EventsClientPage = () => {
   const displayedEvents = useMemo(() => {
     if (!events.length) return [];
 
-    const targetDate = date || new Date();
+    // Safely parse the URL date string to a Date object, fallback to today
+    const targetDate = date ? parseISO(date) : new Date();
 
     if (view === "TODAY") {
       return events.filter((event) => {
@@ -126,7 +127,7 @@ const EventsClientPage = () => {
                 </CardTitle>
                 <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">
                   {view === "TODAY"
-                    ? format(date || new Date(), "EEEE, MMM do")
+                    ? format(date ? parseISO(date) : new Date(), "EEEE, MMM do")
                     : `${events.length} Events Total`}
                 </p>
               </div>
@@ -164,7 +165,7 @@ const EventsClientPage = () => {
                         time={event.time}
                         description={event.description || undefined}
                         project={event.project || undefined}
-                        segment={event.segment || undefined}
+                        segment={event.segment || undefined} 
                         eventCreator={event.eventCreator}
                         opened={event.opened}
                         variant="default"

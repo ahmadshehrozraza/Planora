@@ -16,8 +16,7 @@ import { DatePicker } from "@/components/date-picker";
 import { ScrollTimePicker } from "@/components/time-picker";
 import { createEventSchema } from "../schemas";
 
-import { useGetSegments } from "@/features/segments/api/use-get-segments";
-import { useCreateEvent } from "@/features/events/api/use-create-event"; // Adjust path if needed
+import { useCreateEvent } from "@/features/events/api/use-create-event";
 
 interface CreateEventFormProps {
   onCancel?: () => void;
@@ -36,25 +35,14 @@ export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEvent
       date: new Date(), 
       workspaceId: workspaceId,
       projectId: "none", 
-      segmentId: "none", 
       description: "",
     },
   });
 
-  const selectedProjectId = form.watch("projectId");
-
-const { data: segmentsData, isLoading: isLoadingSegments } = useGetSegments(
-     selectedProjectId === "none" ? "" : (selectedProjectId || "")
-  );
-  
-  const segments = segmentsData;
-
   const onSubmit = (values: z.infer<typeof createEventSchema>) => {
-
     const finalPayload = {
       ...values,
       projectId: values.projectId === "none" ? undefined : values.projectId,
-      segmentId: values.segmentId === "none" ? undefined : values.segmentId,
     };
 
     createEvent(finalPayload, { 
@@ -136,74 +124,37 @@ const { data: segmentsData, isLoading: isLoadingSegments } = useGetSegments(
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="projectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Scope (Project)</FormLabel>
-                    <Select
-                      onValueChange={(val) => {
-                        field.onChange(val);
-                        form.setValue("segmentId", "none");
-                      }}
-                      value={field.value}
-                      disabled={isPending}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
-                          Entire Workspace
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Scope (Project)</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isPending}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-muted-foreground font-medium italic">
+                        Entire Workspace
+                      </SelectItem>
+                      {projects?.map((proj) => (
+                        <SelectItem key={proj.id} value={proj.id}>
+                          {proj.name}
                         </SelectItem>
-                        {projects?.map((proj) => (
-                          <SelectItem key={proj.id} value={proj.id}>
-                            {proj.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="segmentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Scope (Segment)</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isPending || isLoadingSegments || !selectedProjectId || selectedProjectId === "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingSegments ? "Loading..." : "Select segment"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
-                          Entire Project
-                        </SelectItem>
-                        {segments?.map((seg: any) => (
-                          <SelectItem key={seg.id} value={seg.id}>
-                            {seg.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

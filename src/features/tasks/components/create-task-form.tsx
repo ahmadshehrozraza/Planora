@@ -28,6 +28,8 @@ import { PageLoader } from "@/components/page-loader";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+
 interface CreateTaskFormProps {
   onCancel?: () => void;
   projectOptions: { id: string, name: string, imageUrl: string }[];
@@ -71,6 +73,9 @@ export const CreateTaskForm = ({
   const watchBlockedById = form.watch("blockedById");
   const watchBlockingTo = form.watch("blockingTo");
   const watchStartDate = form.watch("startDate");
+
+  const { data: projectPerms, isLoading: isLoadingPerms } = useGetPermissions(workspaceId, watchProjectId);
+  const canManageSelectedProject = projectPerms?.canManageProject ?? false;
   
   const { data: columns, isLoading: isLoadingColumns } = useGetProjectColumns(watchProjectId);
   const { data: segments, isLoading: isLoadingSegments } = useGetSegments(watchProjectId);
@@ -145,6 +150,12 @@ export const CreateTaskForm = ({
   };
 
   const onSubmit = (values: z.infer<typeof createTaskSchema>) => {
+    
+    if (watchProjectId && !canManageSelectedProject) {
+        form.setError("projectId", { type: "manual", message: "You don't have manager permissions for this project." });
+        return;
+    }
+
     if (!isNewColumn && (!values.columnId || values.columnId === "")) {
         form.setError("columnId", { type: "manual", message: "Status column is required" });
         return;
@@ -195,6 +206,8 @@ export const CreateTaskForm = ({
 
   if (!workspaceId) return null;
 
+  const isSubmissionDisabled = isPending || (!!watchProjectId && !canManageSelectedProject && !isLoadingPerms);
+
   return (
     <Card className="w-full h-full border-none shadow-none">
       <CardHeader className="flex p-2">
@@ -229,10 +242,10 @@ export const CreateTaskForm = ({
               name="projectId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Project *</FormLabel>
+                  <FormLabel>Project * {isLoadingPerms && <PageLoader />}</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
                     <FormControl>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger className={cn("h-11", (!canManageSelectedProject && watchProjectId && !isLoadingPerms) && "border-destructive/80 bg-destructive/10")}>
                         <SelectValue placeholder="Select Project" />
                       </SelectTrigger>
                     </FormControl>
@@ -251,6 +264,13 @@ export const CreateTaskForm = ({
                       )}
                     </SelectContent>
                   </Select>
+
+                  {(!canManageSelectedProject && watchProjectId && !isLoadingPerms) && (
+                      <p className="text-[12px] text-destructive font-semibold mt-1 flex items-center gap-1">
+                          <AlertCircle className="size-3" /> You are not a manager in this project.
+                      </p>
+                  )}
+                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -575,7 +595,12 @@ export const CreateTaskForm = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-medium">Cost Amount</FormLabel>
-                      <FormControl><Input {...field} type="number" min="0" step="1000" placeholder="0.00" onChange={(e) => field.onChange(Number(e.target.value) || 0)} value={field.value || ""} className="h-10" disabled={isPending} /></FormControl>
+                      <FormControl><Input {...field} 
+                      type="number" 
+                      min="0" 
+                      // step="1000" 
+                      placeholder="0.00" 
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)} value={field.value || ""} className="h-10" disabled={isPending} /></FormControl>
                     </FormItem>
                   )}
                 />
@@ -597,7 +622,10 @@ export const CreateTaskForm = ({
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
                 <Button type="button" variant="outline" onClick={onCancel} className={cn(!onCancel && "invisible")} disabled={isPending}>Cancel</Button>
-                <Button type="submit" size="lg" disabled={isPending}>{isPending ? <><PageLoader /> Creating...</> : "Create Task"}</Button>
+
+                <Button type="submit" size="lg" disabled={isSubmissionDisabled}>
+                    {isPending ? <><PageLoader /> Creating...</> : "Create Task"}
+                </Button>
               </div>
             </div>
           </form>
