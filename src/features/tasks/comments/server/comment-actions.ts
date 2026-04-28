@@ -6,18 +6,14 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { revalidatePath } from "next/cache";
 
 export async function getCommentsAction(taskId: string) {
     try {
         const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error("Unauthorized");
         
-        const user = await prisma.user.findUnique({ 
-            where: { email: session.user.email },
-            select: { id: true }
-        });
-        if (!user) throw new Error("User not found");
-
         const comments = await prisma.comment.findMany({
             where: { taskId },
             include: {
@@ -27,7 +23,7 @@ export async function getCommentsAction(taskId: string) {
             orderBy: { createdAt: "desc" }
         });
 
-        return { data: comments, currentUserId: user.id };
+        return { data: comments, currentUserId: userId };
     } catch (error: any) {
         return { error: error.message || "Failed to fetch comments" };
     }
@@ -36,13 +32,8 @@ export async function getCommentsAction(taskId: string) {
 export async function createCommentAction({ taskId, text, parentId }: { taskId: string, text: string, parentId?: string }) {
     try {
         const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
-
-        const user = await prisma.user.findUnique({ 
-            where: { email: session.user.email },
-            select: { id: true }
-        });
-        if (!user) throw new Error("User not found");
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error("Unauthorized");
 
         const task = await prisma.task.findUnique({
             where: { id: taskId },
@@ -52,7 +43,7 @@ export async function createCommentAction({ taskId, text, parentId }: { taskId: 
         if (!task) throw new Error("Task not found");
 
         const newComment = await prisma.comment.create({
-            data: { text, taskId, authorId: user.id, parentId: parentId || null }
+            data: { text, taskId, authorId: userId, parentId: parentId || null }
         });
 
         await createAuditLog({
@@ -85,7 +76,7 @@ export async function createCommentAction({ taskId, text, parentId }: { taskId: 
         if (usersToNotify.size > 0) {
             await createNotification({
                 userIds: Array.from(usersToNotify),
-                actorId: user.id,
+                actorId: userId,
                 workspaceId: task.workspaceId,
                 projectId: task.projectId,
                 entityId: taskId,
@@ -97,6 +88,7 @@ export async function createCommentAction({ taskId, text, parentId }: { taskId: 
         }
 
         eventEmitter.emit('invalidate');
+        revalidatePath('/workspaces', 'layout');
 
         return { success: true };
     } catch (error: any) { 
@@ -107,13 +99,8 @@ export async function createCommentAction({ taskId, text, parentId }: { taskId: 
 export async function updateCommentAction({ commentId, text }: { commentId: string, text: string }) {
     try {
         const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
-
-        const user = await prisma.user.findUnique({ 
-            where: { email: session.user.email },
-            select: { id: true }
-        });
-        if (!user) throw new Error("User not found");
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error("Unauthorized");
 
         const existingComment = await prisma.comment.findUnique({
             where: { id: commentId },
@@ -121,7 +108,7 @@ export async function updateCommentAction({ commentId, text }: { commentId: stri
         });
 
         if (!existingComment) throw new Error("Comment not found");
-        if (existingComment.authorId !== user.id) throw new Error("You can only edit your own comments");
+        if (existingComment.authorId !== userId) throw new Error("You can only edit your own comments");
 
         const updatedComment = await prisma.comment.update({ 
             where: { id: commentId }, 
@@ -141,6 +128,7 @@ export async function updateCommentAction({ commentId, text }: { commentId: stri
         });
 
         eventEmitter.emit('invalidate');
+        revalidatePath('/workspaces', 'layout');
 
         return { success: true };
     } catch (error: any) { 
@@ -151,13 +139,8 @@ export async function updateCommentAction({ commentId, text }: { commentId: stri
 export async function deleteCommentAction(commentId: string) {
     try {
         const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
-
-        const user = await prisma.user.findUnique({ 
-            where: { email: session.user.email },
-            select: { id: true }
-        });
-        if (!user) throw new Error("User not found");
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error("Unauthorized");
 
         const commentToDelete = await prisma.comment.findUnique({
             where: { id: commentId },
@@ -165,7 +148,7 @@ export async function deleteCommentAction(commentId: string) {
         });
 
         if (!commentToDelete) throw new Error("Comment not found");
-        if (commentToDelete.authorId !== user.id) throw new Error("You can only delete your own comments");
+        if (commentToDelete.authorId !== userId) throw new Error("You can only delete your own comments");
 
         await prisma.comment.delete({ where: { id: commentId } });
 
@@ -181,6 +164,7 @@ export async function deleteCommentAction(commentId: string) {
         });
 
         eventEmitter.emit('invalidate');
+        revalidatePath('/workspaces', 'layout');
 
         return { success: true };
     } catch (error: any) { 
@@ -191,13 +175,8 @@ export async function deleteCommentAction(commentId: string) {
 export async function toggleLikeCommentAction(commentId: string) {
     try {
         const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
-
-        const user = await prisma.user.findUnique({ 
-            where: { email: session.user.email },
-            select: { id: true }
-        });
-        if (!user) throw new Error("User not found");
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error("Unauthorized");
 
         const comment = await prisma.comment.findUnique({
             where: { id: commentId }, 
@@ -209,23 +188,23 @@ export async function toggleLikeCommentAction(commentId: string) {
 
         if (!comment) throw new Error("Comment not found");
 
-        const hasLiked = comment.likedBy.some(u => u.id === user.id);
+        const hasLiked = comment.likedBy.some(u => u.id === userId);
 
         if (hasLiked) {
             await prisma.comment.update({ 
                 where: { id: commentId }, 
-                data: { likedBy: { disconnect: { id: user.id } } } 
+                data: { likedBy: { disconnect: { id: userId } } } 
             });
         } else {
             await prisma.comment.update({ 
                 where: { id: commentId }, 
-                data: { likedBy: { connect: { id: user.id } } } 
+                data: { likedBy: { connect: { id: userId } } } 
             });
 
-            if (comment.authorId !== user.id) {
+            if (comment.authorId !== userId) {
                 await createNotification({
                     userIds: [comment.authorId],
-                    actorId: user.id,
+                    actorId: userId,
                     workspaceId: comment.task.workspaceId,
                     projectId: comment.task.projectId,
                     entityId: comment.task.id,
@@ -238,6 +217,7 @@ export async function toggleLikeCommentAction(commentId: string) {
         }
 
         eventEmitter.emit('invalidate');
+        revalidatePath('/workspaces', 'layout');
 
         return { success: true };
     } catch (error: any) { 

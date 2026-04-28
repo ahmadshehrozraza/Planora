@@ -15,7 +15,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
         if (!user) return null;
 
         const [workspace, workspaceMember, userProjects] = await Promise.all([
-            prisma.workspace.findUnique({ where: { id: workspaceId }, select: { createdAt: true } }), // Added workspace creation date
+            prisma.workspace.findUnique({ where: { id: workspaceId }, select: { createdAt: true } }),
             prisma.workspaceMember.findUnique({
                 where: { userId_workspaceId: { userId: user.id, workspaceId } }
             }),
@@ -77,7 +77,8 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             prisma.task.findMany({
                 where: taskWhere,
                 include: {
-                    project: { select: { name: true, imageUrl: true } },
+                    // Added explicitly to support future dynamic currency on tasks as well
+                    project: { select: { name: true, imageUrl: true, currency: true } }, 
                     column: { select: { name: true } }
                 },
                 orderBy: { dueDate: 'asc' },
@@ -89,7 +90,6 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
                 orderBy: { dueDate: 'asc' },
                 take: 5
             }),
-            // ✨ FIX 1: Fetch all active projects for the chart, not just urgent ones
             prisma.project.findMany({
                 where: activeProjectWhere,
                 include: { tasks: { select: { progress: true } } },
@@ -117,7 +117,8 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             const completedTasks = project.tasks.filter(t => t.progress === 100).length;
             const totalProgressSum = project.tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
             const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
-            return { ...project, totalTasks, completedTasks, progress };
+            // All scalar fields (currency, repoUrl, commitId) are safely spread here
+            return { ...project, totalTasks, completedTasks, progress }; 
         });
 
         const activeProjects = activeProjectsRaw.map((project) => {
@@ -125,14 +126,14 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             const completedTasks = project.tasks.filter(t => t.progress === 100).length;
             const totalProgressSum = project.tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
             const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
+            // All scalar fields (currency, repoUrl, commitId) are safely spread here
             return { ...project, totalTasks, completedTasks, progress };
         });
 
-        // ✨ FIX 2: Dynamic Activity Timeline
-        // Ab chart 90 din purana nahi jayega agar workspace naya hai.
+        // Dynamic Activity Timeline
         const timeDiff = today.getTime() - workspace.createdAt.getTime();
         const daysSinceCreation = Math.floor(timeDiff / (1000 * 3600 * 24));
-        const loopStart = Math.max(6, Math.min(89, daysSinceCreation)); // Minimum 7 din ka graph, max 90 din ka
+        const loopStart = Math.max(6, Math.min(89, daysSinceCreation));
 
         const activityDict: Record<string, { assigned: number; completed: number }> = {};
         for (let i = loopStart; i >= 0; i--) {
@@ -212,7 +213,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             isManager: isManagerAnywhere,
             urgentTasks,
             urgentProjects,
-            activeProjects, // Added this
+            activeProjects,
             upcomingEvents,
             activityData,
             memberVelocity,

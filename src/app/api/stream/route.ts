@@ -11,7 +11,7 @@ export async function GET(req: Request) {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch (error) {
-          console.error("Error sending SSE:", error);
+          console.error(error);
         }
       };
 
@@ -26,8 +26,9 @@ export async function GET(req: Request) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
+      'Cache-Control': 'no-cache, no-transform, must-revalidate',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

@@ -31,35 +31,18 @@ export const LandingHero = () => {
           </Button>
         </div>
 
-        {/* MOCKUP */}
-        <div className="mt-20 mx-auto max-w-5xl rounded-xl border border-border bg-card shadow-2xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 top-2/3" />
-          <div className="h-10 border-b border-border bg-muted/30 flex items-center px-4 gap-2">
-            <div className="flex gap-1.5">
-              <div className="size-3 rounded-full bg-rose-500/80" />
-              <div className="size-3 rounded-full bg-amber-500/80" />
-              <div className="size-3 rounded-full bg-emerald-500/80" />
-            </div>
-          </div>
-          <div className="p-4 bg-muted/10 grid grid-cols-4 gap-4 h-[400px]">
-            <div className="col-span-1 border border-border bg-card rounded-lg hidden md:block p-4 space-y-3">
-                <div className="h-4 w-20 bg-muted rounded" />
-                <div className="h-4 w-full bg-muted/50 rounded" />
-                <div className="h-4 w-2/3 bg-muted/50 rounded" />
-            </div>
-            <div className="col-span-4 md:col-span-3 border border-border bg-card rounded-lg flex flex-col p-4 gap-4">
-              <div className="h-8 w-1/3 bg-muted rounded-md" />
-              <div className="flex gap-4">
-                <div className="h-64 flex-1 bg-muted/50 rounded-md border border-border shadow-sm p-3">
-                    <div className="h-20 bg-background rounded border border-border mb-2" />
-                    <div className="h-20 bg-background rounded border border-border" />
-                </div>
-                <div className="h-64 flex-1 bg-muted/50 rounded-md border border-border shadow-sm p-3">
-                    <div className="h-20 bg-background rounded border border-border" />
-                </div>
-                <div className="h-64 flex-1 bg-muted/50 rounded-md border border-border shadow-sm p-3" />
-              </div>
-            </div>
+        <div className="mt-16 mx-auto max-w-5xl rounded-2xl border border-border/50 bg-black shadow-2xl overflow-hidden relative aspect-video ring-1 ring-white/10">
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-background/20 z-10 pointer-events-none" />
+          
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <iframe 
+              className="w-[115%] h-[115%] object-cover pointer-events-none scale-[1.15]"
+              src="https://www.youtube.com/embed/A3GIWJvWqaM?autoplay=1&mute=1&loop=1&controls=0&playlist=A3GIWJvWqaM&showinfo=0&modestbranding=1&disablekb=1&iv_load_policy=3" 
+              title="Planora Platform Demo" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen
+            />
           </div>
         </div>
       </div>

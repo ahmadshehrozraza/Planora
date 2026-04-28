@@ -18,13 +18,16 @@ export const useGetComments = (taskId: string) => {
             return response;
         },
         enabled: !!taskId,
+        staleTime: 0,
     });
 };
 
 export const useCommentMutations = (taskId: string) => {
     const queryClient = useQueryClient();
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+    const invalidate = async () => {
+        await queryClient.invalidateQueries({ queryKey: ["comments"] });
+    };
 
     const createComment = useMutation({
         mutationFn: async (values: { taskId: string, text: string, parentId?: string }) => {
@@ -32,11 +35,9 @@ export const useCommentMutations = (taskId: string) => {
             if (response.error) throw new Error(response.error);
             return response;
         },
-        onSuccess: () => { 
-            invalidate(); 
-            toast.success("Comment posted"); 
-        },
-        onError: (error: any) => toast.error(error.message || "Failed to post comment")
+        onSuccess: () => toast.success("Comment posted"),
+        onError: (error: any) => toast.error(error.message || "Failed to post comment"),
+        onSettled: () => invalidate()
     });
 
     const updateComment = useMutation({
@@ -45,11 +46,9 @@ export const useCommentMutations = (taskId: string) => {
             if (response.error) throw new Error(response.error);
             return response;
         },
-        onSuccess: () => { 
-            invalidate(); 
-            toast.success("Comment updated"); 
-        },
-        onError: (error: any) => toast.error(error.message || "Failed to update comment")
+        onSuccess: () => toast.success("Comment updated"),
+        onError: (error: any) => toast.error(error.message || "Failed to update comment"),
+        onSettled: () => invalidate()
     });
 
     const deleteComment = useMutation({
@@ -58,11 +57,9 @@ export const useCommentMutations = (taskId: string) => {
             if (response.error) throw new Error(response.error);
             return response;
         },
-        onSuccess: () => { 
-            invalidate(); 
-            toast.success("Comment deleted"); 
-        },
-        onError: (error: any) => toast.error(error.message || "Failed to delete comment")
+        onSuccess: () => toast.success("Comment deleted"),
+        onError: (error: any) => toast.error(error.message || "Failed to delete comment"),
+        onSettled: () => invalidate()
     });
 
     const toggleLike = useMutation({
@@ -71,8 +68,8 @@ export const useCommentMutations = (taskId: string) => {
             if (response.error) throw new Error(response.error);
             return response;
         },
-        onSuccess: () => invalidate(),
-        onError: (error: any) => toast.error(error.message || "Failed to toggle like")
+        onError: (error: any) => toast.error(error.message || "Failed to toggle like"),
+        onSettled: () => invalidate()
     });
 
     return { createComment, updateComment, deleteComment, toggleLike };

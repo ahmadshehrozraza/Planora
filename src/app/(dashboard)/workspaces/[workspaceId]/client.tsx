@@ -34,7 +34,6 @@ export const DashboardClient = () => {
     return <PageError message="Failed to load dashboard data" />;
   }
 
-  // ✨ FIX 3: Extracted activeProjects from data
   const { urgentTasks, urgentProjects, activeProjects, upcomingEvents, activityData, memberVelocity, memberBurndown } = data;
 
   const isAdmin = permissions?.workspaceAdmin ?? false;

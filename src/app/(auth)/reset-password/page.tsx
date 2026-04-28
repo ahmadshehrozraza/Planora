@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ResetPasswordForm } from "@/features/auth/components/reset-password-form";
 import { PageError } from "@/components/page-error";
 
-export const ResetPasswordPage = () => {
+const ResetPasswordContent = () => {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
 
@@ -16,6 +17,14 @@ export const ResetPasswordPage = () => {
         <div>
             <ResetPasswordForm token={token} />
         </div>
+    )
+}
+
+export const ResetPasswordPage = () => {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ResetPasswordContent />
+        </Suspense>
     )
 };
 

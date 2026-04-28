@@ -10,58 +10,32 @@ export const useSSE = () => {
     useEffect(() => {
         const eventSource = new EventSource('/api/stream');
         
-        let debounceTimer: NodeJS.Timeout;
-
-        eventSource.onmessage = (event) => {
+        eventSource.onmessage = async (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("SSE Signal Received:", data);
+                
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false }),
+                    queryClient.invalidateQueries({ queryKey: ["projects"], exact: false }),
+                    queryClient.invalidateQueries({ queryKey: ["notifications"], exact: false }),
+                    queryClient.invalidateQueries({ queryKey: ["workspace-members"], exact: false }),
+                    queryClient.invalidateQueries({ queryKey: ["comments"], exact: false })
+                ]);
 
-                if (debounceTimer) clearTimeout(debounceTimer);
-
-                debounceTimer = setTimeout(async () => {
-
-                    await queryClient.invalidateQueries({
-                        queryKey: ["tasks"],
-                        exact: false, 
-                    });
-
-                    await queryClient.invalidateQueries({
-                        queryKey: ["projects"],
-                        exact: false,
-                    });
-
-                    await queryClient.invalidateQueries({
-                        queryKey: ["notifications"],
-                        exact: false,
-                    });
-
-                    await queryClient.invalidateQueries({
-                        queryKey: ["workspace-members"],
-                        exact: false,
-                    });
-
-                    queryClient.refetchQueries({ type: 'active' });
-
-                    toast.info("Board updated in real-time", {
-                        duration: 2000,
-                        id: "sse-update",
-                    });
-
-                    console.log("Selective Cache invalidated and refetch triggered");
-                }, 400);
-
+                toast.info("Board updated", {
+                    duration: 2000,
+                    id: "sse-update",
+                });
             } catch (error) {
-                console.error("Failed to parse SSE data", error);
+                console.error(error);
             }
         };
 
-        eventSource.onerror = (error) => {
-            console.error("SSE Connection Lost. Reconnecting...");
+        eventSource.onerror = () => {
+            console.error("SSE Error");
         };
 
         return () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
             eventSource.close();
         };
     }, [queryClient]);

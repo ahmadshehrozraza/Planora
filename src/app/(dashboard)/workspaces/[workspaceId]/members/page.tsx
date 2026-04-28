@@ -1,5 +1,4 @@
 
-import { redirect } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { WorkspaceMembersClient } from "./client";
 

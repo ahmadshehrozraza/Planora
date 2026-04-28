@@ -9,7 +9,6 @@ import {
   Layers,
   Plus,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { DataCalendar } from "@/features/events/components/data-calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,6 @@ import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions
 
 const EventsClientPage = () => {
   const { open } = useCreateEventModal();
-  const router = useRouter();
   const workspaceId = useWorkspaceId();
 
   const [{ projectId, date }] = useEventFilters();
@@ -37,7 +35,6 @@ const EventsClientPage = () => {
   const { data, isLoading, isError } = useGetEvents({
     workspaceId,
     projectId,
-    // segmentId 
   });
 
   const { data: permissions } = useGetPermissions( workspaceId );

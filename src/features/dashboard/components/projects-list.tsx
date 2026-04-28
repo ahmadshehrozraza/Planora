@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCreateProjectModal } from "@/features/projects/hooks/use-create-project-modal";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
-import { PlusIcon, Calendar, CheckCircle, ListTodo, Banknote, FolderGit2 } from "lucide-react";
+import { PlusIcon, Calendar, CheckCircle, ListTodo, Banknote, FolderGit2, Github } from "lucide-react";
 import Link from "next/link";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ export const ProjectsList = ({ data }: ProjectsListProps) => {
 
     const { data: permissions } = useGetPermissions(workspaceId);
 
-    const isAdmin = permissions?.workspaceAdmin?? false;
+    const isAdmin = permissions?.workspaceAdmin ?? false;
 
     return (
         <div className="flex flex-col gap-y-4 col-span-1">
@@ -88,9 +88,15 @@ export const ProjectsList = ({ data }: ProjectsListProps) => {
                                                     {project.budget ? (
                                                         <div className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
                                                             <Banknote className="size-3.5" />
-                                                            <span>${project.budget.toLocaleString()}</span>
+                                                            <span>{project.currency || "$"}{project.budget.toLocaleString()}</span>
                                                         </div>
                                                     ) : null}
+
+                                                    {project.githubRepoUrl && (
+                                                        <div className="flex items-center gap-x-2 text-xs text-muted-foreground border-l border-border pl-3">
+                                                            <Github className="size-3.5" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 {project.dueDate && (

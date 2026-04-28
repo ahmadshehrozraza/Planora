@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  isServer,
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query'
+import { isServer, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
 function makeQueryClient() {
@@ -13,6 +9,8 @@ function makeQueryClient() {
       queries: {
         staleTime: 0,
         refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        retry: 1,
       },
     },
   })
@@ -35,7 +33,7 @@ interface QueryProviderProps {
 
 export const QueryProviders = ({ children }: QueryProviderProps) => {
   const queryClient = getQueryClient()
- 
+  
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )

@@ -193,12 +193,7 @@ export const TaskOverview = ({
                         <p className="text-lg font-semibold flex items-center gap-2 text-foreground">
                             {task.name}
                         </p>
-                        <div className="flex items-center gap-3 mt-1">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Hash className="size-3" />
-                                ID: {task.id.slice(-6)}
-                            </p>
-                            
+                        <div className="flex items-center gap-3 mt-1">                        
                             {task.branchName && projectRepoUrl && (
                                 <>
                                     <span className="text-muted-foreground/30 text-xs">•</span>

@@ -39,7 +39,7 @@ export const WorkspaceMembersClient = () => {
         updateMember({ memberId, role }); 
     }, [updateMember]);
 
-    const handleDeleteMember = useCallback(async (memberId: string, memberName: string) => {
+    const handleDeleteMember = useCallback(async (memberId: string) => {
         const ok = await confirm();
         if (!ok) return;
         deleteMember({ memberId }); 

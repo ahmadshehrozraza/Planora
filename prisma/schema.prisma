@@ -215,8 +215,7 @@ model Segment {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks   Task[]
   events Event[]
-  attachments Attachment[]
-  // members    SegmentMember[]  
+  attachments Attachment[]  
 }
 
 

@@ -6,10 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCreateTaskModal } from "@/features/tasks/hooks/use-create-task-modal";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
-import { PlusIcon, CalendarIcon, ListTodo } from "lucide-react";
+import { PlusIcon, CalendarIcon, ListTodo, GitBranch } from "lucide-react";
 import Link from "next/link";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
-import { snakeCaseToTitleCase } from "@/lib/utils";
 import { DateIndicator } from "@/components/date-indicator";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 
@@ -50,9 +49,17 @@ export const TasksList = ({ data }: { data: any[] }) => {
                                         <CardContent className="p-3">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-base font-semibold text-foreground truncate">
-                                                        {task.name}
-                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-base font-semibold text-foreground truncate">
+                                                            {task.name}
+                                                        </p>
+                                                        {task.branchName && (
+                                                            <div className="flex items-center gap-1 text-muted-foreground ml-1">
+                                                                <GitBranch className="size-3.5" />
+                                                                <span className="font-mono text-[10px] truncate max-w-[80px]">{task.branchName}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center px-2 rounded-md text-xs font-medium shrink-0">
                                                     <Badge variant="outline">
