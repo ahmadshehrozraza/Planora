@@ -11,7 +11,7 @@ export const useCreateWorkspace = () => {
     const router = useRouter();
 
     const mutation = useMutation({
-        mutationFn: async (values: { name: string, inviteCode: string, imageFile?: File | null }) => {
+        mutationFn: async (values: { name: string, imageFile?: File | null }) => {
             let imageUrl = undefined;
 
             if (values.imageFile) {
@@ -28,7 +28,6 @@ export const useCreateWorkspace = () => {
 
             const response = await createWorkspaceAction({
                 name: values.name,
-                inviteCode: values.inviteCode,
                 imageUrl: imageUrl
             });
 

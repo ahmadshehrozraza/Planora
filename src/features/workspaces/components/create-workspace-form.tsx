@@ -16,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateWorkspace } from "../api/use-create-workspace";
-import { generateInviteCode } from "@/lib/utils";
 
 interface CreateWorkspaceFormProps {
     onCancel?: () => void;
@@ -24,7 +23,6 @@ interface CreateWorkspaceFormProps {
 
 export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
     const { mutate, isPending } = useCreateWorkspace();
-    const inviteCode = generateInviteCode(10);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm<z.infer<typeof createWorkspaceSchema>>({
@@ -35,13 +33,10 @@ export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
     });
 
     const onSubmit = (values: z.infer<typeof createWorkspaceSchema>) => {
-
         mutate({
             name: values.name,
-            inviteCode: inviteCode,
             imageFile: values.imageUrl instanceof File ? values.imageUrl : null,
         }); 
-
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

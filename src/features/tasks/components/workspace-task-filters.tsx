@@ -2,15 +2,16 @@
 
 import { useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation"; 
-import { FolderIcon, Layers, ListCheckIcon, UserIcon, X, SearchIcon } from "lucide-react";
+import { FolderIcon, Layers, ListCheckIcon, UserIcon, X, SearchIcon, TagIcon } from "lucide-react";
 
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useTaskFilters } from "../hooks/use-task-filters";
 import { useGetProjects } from "@/features/projects/api/use-get-projects";
 import { useGetWorkspaceMembers } from "@/features/workspaces/api/use-get-workspace-members";
 import { useGetProjectMembers } from "@/features/members/api/use-get-project-members";
-import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useGetSprints } from "@/features/sprints/api/use-get-sprints";
 import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
+import { useGetTags } from "@/features/tasks/api/use-task-tags";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select";
 import { DatePicker } from "@/components/date-picker";
@@ -25,15 +26,16 @@ export const WorkspaceTaskFilters = () => {
     const searchParams = useSearchParams();
 
     const [filters, setFilters] = useTaskFilters();
-    const { status, assigneeId, projectId, segmentId, dueDate, search } = filters;
+    const { status, assigneeId, projectId, sprintId, dueDate, search, tagId } = filters;
     const isProjectSelected = !!projectId && projectId !== "all";
 
     const { data: projectsData, isLoading: isLoadingProjects } = useGetProjects({ workspaceId });
     const { data: workspaceMembersData, isLoading: isLoadingWorkspaceMembers } = useGetWorkspaceMembers( workspaceId );
     
     const { data: projectMembersData } = useGetProjectMembers(isProjectSelected ? projectId : undefined);
-    const { data: segmentsData } = useGetSegments(isProjectSelected ? projectId : "all");
+    const { data: sprintsData } = useGetSprints(isProjectSelected ? projectId : "all");
     const { data: columnsData } = useGetProjectColumns(isProjectSelected ? projectId : undefined);
+    const { data: tagsData } = useGetTags(isProjectSelected ? projectId : undefined);
 
     const isLoading = isLoadingProjects || isLoadingWorkspaceMembers;
 
@@ -46,8 +48,9 @@ export const WorkspaceTaskFilters = () => {
     };
 
     const projectOptions = useMemo(() => extractArray(projectsData).map((p: any) => ({ value: p.id, label: p.name })), [projectsData]);
-    const segmentOptions = useMemo(() => extractArray(segmentsData).map((s: any) => ({ value: s.id, label: s.name })), [segmentsData]);
+    const sprintOptions = useMemo(() => extractArray(sprintsData).map((s: any) => ({ value: s.id, label: s.name })), [sprintsData]);
     const statusOptions = useMemo(() => extractArray(columnsData).map((c: any) => ({ value: c.id, label: c.name })), [columnsData]);
+    const tagOptions = useMemo(() => extractArray(tagsData).map((t: any) => ({ value: t.id, label: t.name, color: t.color })), [tagsData]);
 
     const memberOptions = useMemo(() => {
         if (isProjectSelected) {
@@ -62,12 +65,13 @@ export const WorkspaceTaskFilters = () => {
         (projectId && projectId !== "all") ||
         (status && status !== "all") || 
         (assigneeId && assigneeId !== "all-tasks") || 
-        (segmentId && segmentId !== "all") || 
+        (sprintId && sprintId !== "all") || 
+        (tagId && tagId !== "all") ||
         !!dueDate || 
         !!search;
 
     const resetFilters = () => {
-        setFilters({ status: null, assigneeId: null, projectId: null, segmentId: null, dueDate: null, search: null });
+        setFilters({ status: null, assigneeId: null, projectId: null, sprintId: null, dueDate: null, search: null, tagId: null });
     };
 
     const onProjectChange = (val: string) => {
@@ -80,8 +84,9 @@ export const WorkspaceTaskFilters = () => {
         }
 
         current.delete("status");
-        current.delete("segmentId");
+        current.delete("sprintId");
         current.delete("assigneeId");
+        current.delete("tagId");
 
         const searchStr = current.toString();
         const query = searchStr ? `?${searchStr}` : "";
@@ -123,15 +128,15 @@ export const WorkspaceTaskFilters = () => {
                 </SelectContent>
             </Select>
 
-            <Select value={segmentId || "all"} onValueChange={(val) => setFilters({ segmentId: val === "all" ? null : val })}>
+            <Select value={sprintId || "all"} onValueChange={(val) => setFilters({ sprintId: val === "all" ? null : val })}>
                 <SelectTrigger className="w-full lg:w-auto h-8">
-                    <div className="flex items-center pr-2"><Layers className="size-4 mr-2" /><SelectValue placeholder="All Segments" /></div>
+                    <div className="flex items-center pr-2"><Layers className="size-4 mr-2" /><SelectValue placeholder="All Sprints" /></div>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Segments</SelectItem>
-                    <SelectItem value="no-segment">No Segment</SelectItem>
+                    <SelectItem value="all">All Sprints</SelectItem>
+                    <SelectItem value="no-sprint">No Sprint</SelectItem>
                     <SelectSeparator />
-                    {segmentOptions.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                    {sprintOptions.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
                 </SelectContent>
             </Select>
 
@@ -144,6 +149,24 @@ export const WorkspaceTaskFilters = () => {
                     <SelectItem value="no-assignee">No Assignee</SelectItem>
                     <SelectSeparator />
                     {memberOptions.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
+                </SelectContent>
+            </Select>
+
+            <Select value={tagId || "all"} onValueChange={(val) => setFilters({ tagId: val === "all" ? null : val })} disabled={!isProjectSelected}>
+                <SelectTrigger className="w-full lg:w-auto h-8">
+                    <div className="flex items-center pr-2"><TagIcon className="size-4 mr-2" /><SelectValue placeholder="All Tags" /></div>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Tags</SelectItem>
+                    <SelectSeparator />
+                    {tagOptions.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                            <div className="flex items-center gap-2">
+                                <div className="size-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                                <span>{t.label}</span>
+                            </div>
+                        </SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
 

@@ -33,6 +33,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface ProjectsClientProps {
   workspaceId: string;
@@ -41,7 +42,8 @@ interface ProjectsClientProps {
 export const ProjectsClient = ({ workspaceId }: ProjectsClientProps) => {
 
   const { data: permissions } = useGetPermissions(workspaceId);
-  const allowed = permissions?.workspaceAdmin ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.PROJECT_CREATE);
 
   const { data: projectsData, isLoading } = useGetProjects({ workspaceId });
   const { open } = useCreateProjectModal();

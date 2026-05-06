@@ -13,6 +13,7 @@ import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useCreateTaskModal } from "../hooks/use-create-task-modal";
 import { useTaskFilters } from "../hooks/use-task-filters";
 import { useGetTasks } from "../api/use-get-tasks";
+import { useGetEvents } from "@/features/events/api/use-get-events"; 
 
 import { WorkspaceTaskFilters } from "./workspace-task-filters";
 import { ProjectTaskFilters } from "./project-task-filters";
@@ -22,50 +23,59 @@ import { columns } from "./columns";
 import { DataCalendar } from "./data-calendar";
 import { PageLoader } from "@/components/page-loader";
 import { DataKanban } from "./data-kanban";
+import { DataGantt } from "./data-gantt";
 
 import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
 import { useColumnMutations } from "@/features/columns/api/use-columns"; 
 import { useBulkUpdateTasks } from "../api/use-bulk-update-tasks";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import { useGetProject } from "@/features/projects/api/use-get-project";
 import { useSSE } from "@/hooks/use-sse";
 
 export const TaskViewSwitcher = () => {
+  useSSE();
 
-   useSSE();
-
-  const [{ status, assigneeId, projectId: filterProjectId, segmentId: filterSegmentId, dueDate, search }] = useTaskFilters();
+  const [{ status, assigneeId, projectId: filterProjectId, sprintId: filterSprintId, dueDate, search, tagId }] = useTaskFilters();
   
   const [view, setView] = useQueryState("task-view", { defaultValue: "table" });
 
   const workspaceId = useWorkspaceId();
   const paramProjectId = useProjectId();
 
-   const { data: permissions } = useGetPermissions( workspaceId, paramProjectId as string );
+  const { data: permissions } = useGetPermissions( workspaceId, paramProjectId as string );
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
    
-   const allowed = paramProjectId 
-      ? permissions?.canManageProject 
-      : (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_CREATE);
   
   const params = useParams();
-  const paramSegmentId = params.segmentId as string | undefined;
+  const paramSprintId = params.sprintId as string | undefined;
 
   const { open } = useCreateTaskModal();
 
   const effectiveProjectId = filterProjectId === "all" ? undefined : (filterProjectId || paramProjectId);
-  const effectiveSegmentId = filterSegmentId === "all" ? "all" : (filterSegmentId || paramSegmentId);
+  const effectiveSprintId = filterSprintId === "all" ? "all" : (filterSprintId || paramSprintId);
 
   const { data: project } = useGetProject({ projectId: effectiveProjectId as string });
 
-  const { data: tasks, isLoading: isLoadingTasks } = useGetTasks({
+  const { data: taskResponse, isLoading: isLoadingTasks } = useGetTasks({
     workspaceId,
     projectId: effectiveProjectId,
-    segmentId: effectiveSegmentId,
+    sprintId: effectiveSprintId,
     assigneeId: assigneeId === "all-tasks" ? undefined : assigneeId,
     status: status === "all" ? undefined : status,
     dueDate: dueDate || undefined,
-    search: search === "" ? undefined : search
+    search: search === "" ? undefined : search,
+    tagId: tagId === "all" ? undefined : tagId
   });
+
+  const { data: eventsResponse } = useGetEvents({
+    workspaceId,
+    projectId: effectiveProjectId
+  });
+
+  const tasks = taskResponse || [];
+  const events = eventsResponse || [];
 
   const { data: projectColumns } = useGetProjectColumns(effectiveProjectId);
   const { createColumn, reorderColumns } = useColumnMutations();
@@ -103,6 +113,7 @@ export const TaskViewSwitcher = () => {
               <TabsList className="h-11 w-full lg:w-auto bg-muted/60 p-1 rounded-xl border border-border/50">
                 <TabsTrigger value="table">Table</TabsTrigger>
                 <TabsTrigger value="kanban">Kanban</TabsTrigger>
+                <TabsTrigger value="gantt">Gantt Chart</TabsTrigger>
                 <TabsTrigger value="calendar">Calendar</TabsTrigger>
               </TabsList>
 
@@ -147,7 +158,7 @@ export const TaskViewSwitcher = () => {
           <>
             <TabsContent value="table" className="mt-0">
                <div className=" bg-card rounded-lg overflow-hidden shadow-sm">
-                  <DataTable columns={columns} data={tasks || []} />
+                  <DataTable columns={columns} data={tasks} />
                </div>
             </TabsContent>
 
@@ -155,7 +166,7 @@ export const TaskViewSwitcher = () => {
                <div className="border border-border rounded-lg p-4 min-h-[500px] bg-card shadow-sm">
                   {effectiveProjectId && projectColumns ? (
                      <DataKanban 
-                        tasks={tasks || []} 
+                        tasks={tasks} 
                         columns={projectColumns} 
                         onChangeTasks={onKanbanChange} 
                         onChangeColumns={onColumnsChange} 
@@ -169,9 +180,21 @@ export const TaskViewSwitcher = () => {
                </div>
             </TabsContent>
 
+            <TabsContent value="gantt" className="mt-0">
+                <div className="border border-border rounded-lg bg-card shadow-sm min-h-[400px]">
+                  {effectiveProjectId ? (
+                     <DataGantt tasks={tasks} events={events} />
+                  ) : (
+                     <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        Gantt chart is only available at the Project level. <br/> Please select a project from the filters above.
+                     </div>
+                  )}
+               </div>
+            </TabsContent>
+
             <TabsContent value="calendar" className="mt-0">
                <div className="border border-border rounded-lg p-4 h-full bg-card shadow-sm">
-                  <DataCalendar data={tasks || []} />
+                  <DataCalendar data={tasks} />
                </div>
             </TabsContent>
           </>

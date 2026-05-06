@@ -26,6 +26,7 @@ import {
   HiChartBar,
 } from "react-icons/hi";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import { ActivityIcon } from "lucide-react";
 
 const routes = [
@@ -34,57 +35,54 @@ const routes = [
     href: "", 
     icon: HiOutlineHome, 
     activeIcon: HiHome,
-    requireAdmin: false,
   },
   { 
     label: "Tasks", 
     href: "/tasks", 
     icon: HiOutlineCheckCircle, 
     activeIcon: HiCheckCircle,
-    requireAdmin: false,
   },
   { 
     label: "Events", 
     href: "/events", 
     icon: HiOutlineCalendar, 
     activeIcon: HiCalendar,
-    requireAdmin: false,
   },
   { 
     label: "Analytics", 
     href: "/analytics", 
     icon: HiOutlineChartBar, 
     activeIcon: HiChartBar,
-    requireAdmin: true, 
+    requiredPermission: PERMISSIONS.WORKSPACE_VIEW_ANALYTICS, 
   },
   { 
     label: "Members", 
     href: "/members", 
     icon: HiOutlineUsers, 
     activeIcon: HiUsers,
-    requireAdmin: true, 
+    requiredPermission: PERMISSIONS.WORKSPACE_MANAGE_MEMBERS, 
   },
   { 
     label: "Settings", 
     href: "/settings", 
     icon: HiOutlineCog, 
     activeIcon: HiCog,
-    requireAdmin: true, 
+    requiredPermission: PERMISSIONS.WORKSPACE_UPDATE, 
   },
   {
     label: "Activity Logs",
     href: "/activity",
     icon: ActivityIcon, 
     activeIcon: ActivityIcon,
-    requireAdmin: true,       
+    requiredPermission: PERMISSIONS.WORKSPACE_UPDATE,        
   }
 ];
 
 export const Navigation = () => {
   const workspaceId = useWorkspaceId();
 
-  const { data: permissions } = useGetPermissions(workspaceId as string);
-  const allowed = permissions?.workspaceAdmin ?? false;
+  const { data: userPermissions } = useGetPermissions(workspaceId as string);
+  const permissionsList: string[] = Array.isArray(userPermissions) ? userPermissions : [];
 
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar(); 
@@ -96,8 +94,8 @@ export const Navigation = () => {
   };
 
   const filteredRoutes = routes.filter((item) => {
-    if (item.requireAdmin) {
-      return allowed;
+    if (item.requiredPermission) {
+      return permissionsList.includes(item.requiredPermission);
     }
     return true; 
   });

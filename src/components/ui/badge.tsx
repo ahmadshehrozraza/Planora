@@ -4,7 +4,7 @@ import * as React from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { TaskType, TaskPriority } from "@/features/tasks/types";
-import { SegmentStatus } from "@/features/segments/types"; 
+import { SprintStatus } from "@/features/sprints/types"; 
 import { ProjectStatus } from "@/features/projects/types"; 
 import { MemberRole } from "@/features/members/types";
 
@@ -20,12 +20,12 @@ import {
   AlertCircle,
   PauseCircle,
   PlayCircle,
-  Crown,      
+  Crown,       
   Briefcase,  
-  User,       
+  User,        
 } from "lucide-react";
 
-// 1) Shared Status Type
+// 1) Shared Status Type (This covers both SprintStatus and ProjectStatus values)
 type SharedStatus = "ACTIVE" | "ON_HOLD" | "COMPLETED" | "OVER_DUE";
 
 type BadgeVariant =

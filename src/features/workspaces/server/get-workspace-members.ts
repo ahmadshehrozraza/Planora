@@ -23,7 +23,8 @@ export async function getWorkspaceMembersAction(workspaceId: string) {
         const members = await prisma.workspaceMember.findMany({
             where: { workspaceId },
             include: {
-                user: { select: { id: true, name: true, email: true, image: true } }
+                user: { select: { id: true, name: true, email: true, image: true } },
+                role: true
             },
             orderBy: { createdAt: 'asc' }
         });

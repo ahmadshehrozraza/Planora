@@ -31,6 +31,7 @@ export const Navbar = ({ title, description }: NavbarProps) => {
       <div className="flex gap-x-4 items-center ml-auto">
         
         <UserRole />
+        
         <UserButton title={title} />
       </div>
     </nav>

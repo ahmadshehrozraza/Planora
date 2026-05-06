@@ -11,7 +11,7 @@ export enum ENTITY_TYPE {
   COLUMN = "COLUMN",
   TASK = "TASK",
   EVENT = "EVENT",
-  SEGMENT = "SEGMENT",
+  SPRINT = "SPRINT",
   MEMBER = "MEMBER",
   COMMENT = "COMMENT",
 }

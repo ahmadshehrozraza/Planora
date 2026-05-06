@@ -1,7 +1,7 @@
 
 import { DashboardClient } from "./client";
 import { Navbar } from "@/components/navbar";
-
+export const dynamic = 'force-dynamic';
 
 const Dashboard = async ( ) => {
 

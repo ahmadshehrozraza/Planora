@@ -6,8 +6,17 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
-export async function joinWorkspaceAction({ workspaceId, inviteCode }: { workspaceId: string, inviteCode: string }) {
+export async function joinWorkspaceAction({ 
+    workspaceId, 
+    inviteCode, 
+    roleToken 
+}: { 
+    workspaceId: string, 
+    inviteCode: string, 
+    roleToken?: string 
+}) {
     try {
         const session = await auth();
 
@@ -26,7 +35,30 @@ export async function joinWorkspaceAction({ workspaceId, inviteCode }: { workspa
         });
 
         if (!workspace || workspace.inviteCode !== inviteCode) {
-            throw new Error("Invalid or expired invite code");
+            throw new Error("Invalid or expired invite link");
+        }
+
+        let roleToAssignId: string | null = null;
+
+        if (roleToken) {
+            const specificRole = await prisma.customRole.findFirst({
+                where: {
+                    workspaceId,
+                    inviteCode: roleToken,
+                    projectId: null
+                }
+            });
+            if (!specificRole) throw new Error("Invalid or expired role token");
+            roleToAssignId = specificRole.id;
+        } else {
+            const defaultRole = await prisma.customRole.findFirst({
+                where: {
+                    workspaceId,
+                    isWorkspaceDefault: true
+                }
+            });
+            if (!defaultRole) throw new Error("No default member role found for this workspace");
+            roleToAssignId = defaultRole.id;
         }
 
         const existingMember = await prisma.workspaceMember.findUnique({
@@ -43,7 +75,7 @@ export async function joinWorkspaceAction({ workspaceId, inviteCode }: { workspa
             data: {
                 userId,
                 workspaceId,
-                role: "MEMBER"
+                roleId: roleToAssignId
             }
         });
 
@@ -58,7 +90,14 @@ export async function joinWorkspaceAction({ workspaceId, inviteCode }: { workspa
         });
 
         const admins = await prisma.workspaceMember.findMany({
-            where: { workspaceId, role: "ADMIN" },
+            where: {
+                workspaceId,
+                role: {
+                    permissions: {
+                        hasSome: [PERMISSIONS.WORKSPACE_UPDATE, PERMISSIONS.WORKSPACE_DELETE]
+                    }
+                }
+            },
             select: { userId: true }
         });
 

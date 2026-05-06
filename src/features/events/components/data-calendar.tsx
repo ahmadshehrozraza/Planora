@@ -98,7 +98,7 @@ export const DataCalendar = ({
         resource: {
             description: event.description,
             project: event.project, 
-            segment: event.segment,
+            sprint: event.sprint,
             time: event.time,
             opened: event.opened,
             eventCreator: event.eventCreator
@@ -137,8 +137,8 @@ export const DataCalendar = ({
                         date={event.start.toISOString()} 
                         time={event.resource?.time}     
                         project={event.resource?.project}
-                        description={event.resource?.description}
-                        segment={event.resource?.segment}
+                        description={event.resource?.description || undefined}
+                        sprint={event.resource?.sprint}
                         opened={event.resource?.opened}
                         eventCreator={event.resource?.eventCreator}
                         variant="mini" 

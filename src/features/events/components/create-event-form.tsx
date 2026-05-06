@@ -22,9 +22,10 @@ interface CreateEventFormProps {
   onCancel?: () => void;
   workspaceId: string; 
   projects: any[];    
+  sprints?: any[];
 }
 
-export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEventFormProps) => {
+export const CreateEventForm = ({ onCancel, workspaceId, projects, sprints }: CreateEventFormProps) => {
   
   const { mutate: createEvent, isPending: isCreatingEvent } = useCreateEvent();
 
@@ -35,14 +36,18 @@ export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEvent
       date: new Date(), 
       workspaceId: workspaceId,
       projectId: "none", 
+      sprintId: "none",
       description: "",
     },
   });
+
+  const selectedProjectId = form.watch("projectId");
 
   const onSubmit = (values: z.infer<typeof createEventSchema>) => {
     const finalPayload = {
       ...values,
       projectId: values.projectId === "none" ? undefined : values.projectId,
+      sprintId: values.sprintId === "none" ? undefined : values.sprintId,
     };
 
     createEvent(finalPayload, { 
@@ -131,7 +136,10 @@ export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEvent
                 <FormItem>
                   <FormLabel>Scope (Project)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      form.setValue("sprintId", "none");
+                    }}
                     value={field.value}
                     disabled={isPending}
                   >
@@ -155,6 +163,40 @@ export const CreateEventForm = ({ onCancel, workspaceId, projects }: CreateEvent
                 </FormItem>
               )}
             />
+
+            {selectedProjectId && selectedProjectId !== "none" && sprints && sprints.length > 0 && (
+              <FormField
+                control={form.control}
+                name="sprintId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link to Sprint (Optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isPending}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sprint" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
+                          No Sprint (Project Level)
+                        </SelectItem>
+                        {sprints.map((sprint) => (
+                          <SelectItem key={sprint.id} value={sprint.id}>
+                            {sprint.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

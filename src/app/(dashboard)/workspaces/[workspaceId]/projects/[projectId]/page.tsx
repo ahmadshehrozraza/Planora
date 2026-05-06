@@ -6,7 +6,7 @@ const ProjectIdPage = async () => {
 
     return (
         <div className="flex flex-col">
-            <Navbar title="Segments" description="Manage & view all your project segments here" />
+            <Navbar title="Sprints" description="Manage & view all your project sprints here" />
             <ProjectIdClient />
         </div>
     )

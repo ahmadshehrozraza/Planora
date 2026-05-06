@@ -13,6 +13,7 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
             where: { id: memberId },
             include: { 
                 user: true, 
+                role: true,
                 project: { select: { name: true, id: true } } 
             }
         });
@@ -21,7 +22,7 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
 
         const memberTasks = await prisma.task.findMany({
             where: { projectId: member.projectId, assigneeId: member.userId },
-            include: { segment: true, column: true },
+            include: { sprint: true, column: true },
             orderBy: { dueDate: 'asc' }
         });
 
@@ -30,13 +31,12 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
             select: { effortPoints: true, progress: true }
         });
 
-
         const projectTotalPoints = allProjectTasks.reduce((acc, t) => acc + (t.effortPoints || 0), 0);
         let memberPointsEarned = 0;
         let memberPointsAssigned = 0;
         let tasksCompletedCount = 0;
 
-        const segmentMap = new Map();
+        const sprintMap = new Map();
 
         const last7Days = Array.from({ length: 7 }).map((_, i) => {
             const d = subDays(new Date(), 6 - i);
@@ -61,15 +61,15 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
                 if (!activeTask) activeTask = task;
             }
 
-            const segId = task.segmentId || "unassigned";
-            const segName = task.segment?.name || "No Segment";
-            const segStatus = task.segment?.status || "ACTIVE";
+            const sprintId = task.sprintId || "unassigned";
+            const sprintName = task.sprint?.name || "No Sprint";
+            const sprintStatus = task.sprint?.status || "ACTIVE";
 
-            if (!segmentMap.has(segId)) {
-                segmentMap.set(segId, {
-                    segmentId: segId,
-                    segmentName: segName,
-                    segmentStatus: segStatus,
+            if (!sprintMap.has(sprintId)) {
+                sprintMap.set(sprintId, {
+                    sprintId: sprintId,
+                    sprintName: sprintName,
+                    sprintStatus: sprintStatus,
                     memberTasksTotal: 0,
                     memberTasksCompleted: 0,
                     memberPointsAssigned: 0,
@@ -77,12 +77,12 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
                 });
             }
 
-            const segObj = segmentMap.get(segId);
-            segObj.memberTasksTotal++;
-            segObj.memberPointsAssigned += points;
+            const sprintObj = sprintMap.get(sprintId);
+            sprintObj.memberTasksTotal++;
+            sprintObj.memberPointsAssigned += points;
             if (isDone) {
-                segObj.memberTasksCompleted++;
-                segObj.memberPointsEarned += points;
+                sprintObj.memberTasksCompleted++;
+                sprintObj.memberPointsEarned += points;
             }
         });
 
@@ -115,17 +115,17 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
                 },
                 currentWork: activeTask ? {
                     activeTaskName: activeTask.name,
-                    activeSegmentName: activeTask.segment?.name || "No Segment",
+                    activeSprintName: activeTask.sprint?.name || "No Sprint",
                     nextDeadline: activeTask.dueDate
                 } : {},
                 velocityData: last7Days.map(d => ({ day: d.day, points: d.points })),
-                segments: Array.from(segmentMap.values()),
+                sprints: Array.from(sprintMap.values()),
                 tasks: memberTasks.map(t => ({
                     id: t.id,
                     name: t.name,
                     startDate: t.startDate,
                     endDate: t.dueDate, 
-                    segmentName: t.segment?.name || "No Segment",
+                    sprintName: t.sprint?.name || "No Sprint",
                     priority: t.priority,
                     status: t.column.name,
                     effortPoints: t.effortPoints,

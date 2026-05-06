@@ -2,7 +2,7 @@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, CheckCircle } from 'lucide-react';
-import { getCurrentDate } from '@/lib/date-utils';
+
 
 interface DateBadgeProps {
     date: Date | string;
@@ -14,7 +14,7 @@ export const DateBadge = ({ date, type = 'due', className }: DateBadgeProps) => 
     if (!date) return null;
 
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const today = getCurrentDate(); // Use your date utils function
+    const today = new Date(); // Use your date utils function
     
     // Set both dates to start of day for accurate comparison
     const targetDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());

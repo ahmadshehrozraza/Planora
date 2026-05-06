@@ -6,8 +6,10 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { getPermissions } from "@/lib/get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
-export async function updateProjectMemberAction({ memberId, role }: { memberId: string, role: string }) {
+export async function updateProjectMemberAction({ memberId, roleId, projectId }: { memberId: string, roleId: string, projectId: string }) {
     try {
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
@@ -18,9 +20,33 @@ export async function updateProjectMemberAction({ memberId, role }: { memberId: 
         });
         if (!currentUser) throw new Error("User not found");
 
+        const existingMember = await prisma.projectMember.findUnique({
+            where: { id: memberId },
+            include: { project: true }
+        });
+        if (!existingMember) throw new Error("Member not found");
+
+        const userPermissions = await getPermissions({ 
+            workspaceId: existingMember.project.workspaceId, 
+            projectId: existingMember.projectId 
+        });
+
+        const isWorkspaceOwner = userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+        const canManageRoles = userPermissions.includes(PERMISSIONS.PROJECT_MANAGE_ROLES) || userPermissions.includes(PERMISSIONS.PROJECT_UPDATE);
+
+        if (!isWorkspaceOwner && !canManageRoles) {
+            throw new Error("Unauthorized: You do not have permission to manage project roles.");
+        }
+
+
+        const newRole = await prisma.customRole.findUnique({
+            where: { id: roleId }
+        });
+        if (!newRole) throw new Error("Role not found");
+
         const updatedMember = await prisma.projectMember.update({
             where: { id: memberId },
-            data: { role: role as any },
+            data: { roleId },
             include: {
                 project: true,
                 user: { select: { name: true } }
@@ -34,7 +60,7 @@ export async function updateProjectMemberAction({ memberId, role }: { memberId: 
             entityType: ENTITY_TYPE.MEMBER,
             action: ACTION.UPDATE,
             metadata: {
-                message: `Updated role for ${updatedMember.user?.name || "member"} to ${role}`
+                message: `Updated role for ${updatedMember.user?.name || "member"} to ${newRole.name}`
             }
         });
 
@@ -47,7 +73,7 @@ export async function updateProjectMemberAction({ memberId, role }: { memberId: 
             entityType: "PROJECT",
             action: "UPDATED",
             title: "Role Updated",
-            message: `changed your role to ${role} in project "${updatedMember.project.name}"`
+            message: `changed your role to ${newRole.name} in project "${updatedMember.project.name}"`
         });
 
         eventEmitter.emit('invalidate');

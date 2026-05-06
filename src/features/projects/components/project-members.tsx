@@ -25,6 +25,7 @@ import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useGetProjectMembers } from "@/features/projects/api/use-get-project-members";
 import { useGetWorkspaceMembers } from "@/features/workspaces/api/use-get-workspace-members";
 import { useGetProject } from "@/features/projects/api/use-get-project";
+import { useGetProjectRoles } from "@/features/custom-roles/api/use-project-roles";
 
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { PageLoader } from "@/components/page-loader";
@@ -37,6 +38,7 @@ import { useDeleteProjectMember } from "../api/use-delete-project-member";
 
 import { ProjectMemberCard } from "./project-member-card";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import Link from "next/link";
 
 interface ProjectMembersProps {
@@ -46,11 +48,11 @@ interface ProjectMembersProps {
 export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
   const workspaceId = useWorkspaceId();
   const { data: permissions } = useGetPermissions(workspaceId, projectId);
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
   
-  const isWorkspaceAdmin = permissions?.workspaceAdmin || false;
-  const isProjectManager = permissions?.projectManager || false;
-  
-  const canInviteByLink = isWorkspaceAdmin || isProjectManager;
+  const isWorkspaceAdmin = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE);
+  const isProjectManager = permissionsList.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS);
+  const canManageProjectMembers = isWorkspaceAdmin || isProjectManager;
 
   const [ConfirmDialog, confirm] = useConfirm(
     "Remove member",
@@ -71,6 +73,7 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
   const { data: projectData } = useGetProject({ projectId });
   const { data: projectMembersData, isLoading } = useGetProjectMembers({ projectId });
   const { data: workspaceMembersData } = useGetWorkspaceMembers(workspaceId);
+  const { data: customRolesData } = useGetProjectRoles(projectId);
   
   const { mutate: addProjectMember, isPending: isAddingMember } = useAddProjectMember();
   const { mutate: resetInviteCode, isPending: isResettingLink } = useResetProjectInviteCode(); 
@@ -82,13 +85,13 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
   const inviteCode = projectData?.inviteCode || "";
   const fullInviteLink = inviteCode ? `${window.location.origin}/workspaces/${workspaceId}/projects/${projectId}/join/${inviteCode}` : "";
 
-  const handleAction = async (id: string, type: "delete" | "update", role?: string) => {
+  const handleAction = async (id: string, type: "delete" | "update", roleId?: string) => {
     if (type === "delete") {
       const ok = await confirm();
       if (!ok) return;
       removeMember({ projectId, memberId: id }, { onSuccess: () => toast.success("Member removed") });
-    } else if (type === "update" && role) {
-      updateMember({ projectId, memberId: id, role }, { onSuccess: () => toast.success("Role updated") });
+    } else if (type === "update" && roleId) {
+      updateMember({ projectId, memberId: id, roleId }, { onSuccess: () => toast.success("Role updated") });
     }
   };
 
@@ -99,15 +102,19 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
 
     return searchFiltered.sort((a: any, b: any) => {
       const getPriority = (m: any) => {
-        if (m.workspaceRole === "ADMIN") return 1;
-        if (m.role === "PROJECT_MANAGER") return 2;
+        if (m.workspacePermissions?.includes(PERMISSIONS.WORKSPACE_DELETE)) return 1;
+        if (m.role?.permissions?.includes(PERMISSIONS.PROJECT_MANAGE_ROLES) || m.role?.permissions?.includes(PERMISSIONS.PROJECT_UPDATE)) return 2;
         return 3;
       };
       return getPriority(a) - getPriority(b);
     });
   }, [members, searchQuery]);
 
-  const managerCount = members.filter((m: any) => m.role === "PROJECT_MANAGER" || m.workspaceRole === "ADMIN").length;
+  const managerCount = members.filter((m: any) => 
+    m.role?.permissions?.includes(PERMISSIONS.PROJECT_MANAGE_ROLES) || 
+    m.role?.permissions?.includes(PERMISSIONS.PROJECT_UPDATE) || 
+    m.workspacePermissions?.includes(PERMISSIONS.WORKSPACE_DELETE)
+  ).length;
 
   const availableWorkspaceMembers = workspaceMembers.filter((wm: any) => {
     const wmId = wm.userId || wm.user?.id;
@@ -157,7 +164,7 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="sm" className="h-9" disabled={!selectedWorkspaceMember || isAddingMember} onClick={() => addProjectMember({ projectId, userId: selectedWorkspaceMember }, { onSuccess: () => { setIsAddModalOpen(false); setSelectedWorkspaceMember(""); toast.success("Member added"); } })}>
+                    <Button size="sm" className="h-9" disabled={!selectedWorkspaceMember || isAddingMember} onClick={() => addProjectMember({ projectId, userId: selectedWorkspaceMember, roleId: customRolesData?.[0]?.id || "default" }, { onSuccess: () => { setIsAddModalOpen(false); setSelectedWorkspaceMember(""); toast.success("Member added"); } })}>
                       Add
                     </Button>
                   </div>
@@ -188,7 +195,7 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="pl-9 h-9" />
           </div>
-          {canInviteByLink && (
+          {canManageProjectMembers && (
             <Button size="sm" className="h-9" onClick={() => setIsAddModalOpen(true)}><PlusIcon className="size-4 mr-2" /> Add</Button>
           )}
         </div>
@@ -196,11 +203,11 @@ export const ProjectMembers = ({ projectId }: ProjectMembersProps) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredMembers.map((member: any) => (
-          <Link key={member.id} href={`${projectId}/project-member/${member.id}`}>
+          <Link key={member.id} href={`/workspaces/${workspaceId}/projects/${projectId}/project-member/${member.id}`}>
           <ProjectMemberCard 
-            key={member.id} 
             member={member} 
-            isAdmin={isWorkspaceAdmin} 
+            projectRoles={customRolesData || []}
+            canManage={canManageProjectMembers} 
             disabled={isUpdatingMember || isDeletingMember}
             onAction={handleAction}
             onClick={() => {}} 

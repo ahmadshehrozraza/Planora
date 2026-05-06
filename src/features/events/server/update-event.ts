@@ -32,7 +32,7 @@ export async function updateEventAction({ eventId, values }: { eventId: string, 
         const validatedData = createEventSchema.parse(values);
 
         const projectIdToSave = (!validatedData.projectId || validatedData.projectId === "none") ? null : validatedData.projectId;
-        const segmentIdToSave = (!validatedData.segmentId || validatedData.segmentId === "none") ? null : validatedData.segmentId;
+        const sprintIdToSave = (!validatedData.sprintId || validatedData.sprintId === "none") ? null : validatedData.sprintId;
 
         const updatedEvent = await prisma.event.update({
             where: { id: eventId },
@@ -41,7 +41,7 @@ export async function updateEventAction({ eventId, values }: { eventId: string, 
                 description: validatedData.description,
                 date: validatedData.date,
                 projectId: projectIdToSave,
-                segmentId: segmentIdToSave,
+                sprintId: sprintIdToSave,
             }
         });
 

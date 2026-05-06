@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Calendar, Briefcase, Mail, Layers, Trash2, Clock, ArrowLeft, 
-  Shield, Activity, Target, AlertCircle
+  Shield, Activity, Target, AlertCircle, Crown
 } from "lucide-react";
 import { PieChart, Pie, Label, Cell } from "recharts";
 
@@ -28,6 +28,7 @@ import { useDeleteProjectMember } from "@/features/projects/api/use-delete-proje
 import { useProjectId } from '../hooks/use-project-id';
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 import { VelocityChart } from '@/components/velocity-chart';
 import { VerticalBarChart } from '@/features/dashboard/components/vertical-bar-chart';
@@ -43,7 +44,7 @@ const cumulativeFlowConfig = {
   done: { label: "Done", color: "hsl(var(--chart-3))" },
 } satisfies ChartConfig;
 
-export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
+export default function ProjectMember({ memberInfo, projectRoles = [] }: { memberInfo: any, projectRoles?: any[] }) {
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
   const projectId = useProjectId();
@@ -53,10 +54,10 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
 
   const { 
     meta, stats, contribution, currentWork, 
-    segments = [], tasks = [], velocityData = [] 
+    sprints = [], tasks = [], velocityData = [] 
   } = memberInfo;
 
-  const [role, setRole] = useState<string>(meta.role || "MEMBER");
+  const [roleId, setRoleId] = useState<string>(meta.role?.id || "");
   
   const [ConfirmDialog, confirm] = useConfirm(
     "Remove member",
@@ -68,12 +69,12 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
   const { mutate: deleteMember, isPending: isDeleting } = useDeleteProjectMember();
 
   useEffect(() => {
-    if (meta.role) setRole(meta.role);
-  }, [meta.role]);
+    if (meta.role?.id) setRoleId(meta.role.id);
+  }, [meta.role?.id]);
 
-  const handleRoleChange = (newRole: string) => {
-    setRole(newRole);
-    updateRole({ memberId: meta.memberId, role: newRole, projectId: projectId });
+  const handleRoleChange = (newRoleId: string) => {
+    setRoleId(newRoleId);
+    updateRole({ memberId: meta.memberId, roleId: newRoleId, projectId: projectId });
   };
 
   const handleRemoveMember = async () => {
@@ -85,14 +86,17 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
     );
   };
 
-  const isCurrentUserAdmin = permissions?.workspaceAdmin;
-  const isCurrentUserManager = permissions?.projectManager;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  
+  const isCurrentUserAdmin = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE);
+  const isCurrentUserManager = permissionsList.includes(PERMISSIONS.PROJECT_MANAGE_ROLES) || permissionsList.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const isTargetOwner = meta.workspaceRole === "ADMIN";
-  const isTargetManager = meta.role === "PROJECT_MANAGER";
+  const roleName = meta.role?.name || "Member";
+  const isTargetOwner = meta.workspacePermissions?.includes(PERMISSIONS.WORKSPACE_DELETE);
+  const isTargetManager = meta.role?.permissions?.includes(PERMISSIONS.PROJECT_MANAGE_ROLES) || meta.role?.permissions?.includes(PERMISSIONS.PROJECT_UPDATE);
 
-  const canChangeRole = isCurrentUserAdmin && !isTargetOwner;
-  const canRemove = (isCurrentUserAdmin && !isTargetOwner) || (isCurrentUserManager && !isTargetOwner && !isTargetManager);
+  const canChangeRole = (isCurrentUserAdmin || isCurrentUserManager) && !isTargetOwner;
+  const canRemove = (isCurrentUserAdmin || isCurrentUserManager) && !isTargetOwner && (isCurrentUserAdmin || !isTargetManager);
   const canManageAtAll = canChangeRole || canRemove;
 
   const memberPoints = contribution.memberPoints || 0;
@@ -105,13 +109,13 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
   ];
   const contributionPercent = Math.round((memberPoints / projectTotalPoints) * 100);
 
-  const segmentChartData = useMemo(() => {
-    return segments.map((s: any) => ({
-      name: s.segmentName,
+  const sprintChartData = useMemo(() => {
+    return sprints.map((s: any) => ({
+      name: s.sprintName,
       progress: s.memberPointsAssigned > 0 ? Math.round((s.memberPointsEarned / s.memberPointsAssigned) * 100) : 0,
-      status: s.segmentStatus
+      status: s.sprintStatus
     }));
-  }, [segments]);
+  }, [sprints]);
 
   const mappedVelocityData = useMemo(() => {
     return velocityData.map((v: any) => ({
@@ -134,14 +138,26 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
 
       <Card className="border-border shadow-sm bg-card">
         <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <MemberAvatar name={meta.userName} src={meta.image} className="size-20 sm:size-24 text-3xl border shadow-sm" isActive={meta.status === "Active"} />
+          <div className="relative inline-block mx-auto sm:mx-0">
+            <MemberAvatar name={meta.userName} src={meta.image} className="size-20 sm:size-24 text-3xl border shadow-sm" isActive={meta.status === "Active"} />
+            {(isTargetOwner || isTargetManager) && (
+                <div className="absolute -bottom-1 -right-1 bg-background p-1.5 rounded-full border shadow-sm" title={isTargetOwner ? "Workspace Owner" : "Project Manager"}>
+                  <Crown className={`size-5 ${isTargetOwner ? "text-amber-500 fill-amber-50" : "text-purple-500 fill-purple-50"}`} />
+                </div>
+            )}
+          </div>
           
           <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{meta.userName}</h1>
               <Badge variant="secondary" className="uppercase tracking-wider text-xs shadow-sm">
-                {role.replace(/_/g, " ")}
+                {roleName}
               </Badge>
+              {isTargetOwner && (
+                <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 uppercase tracking-wider text-[10px]">
+                  Workspace Owner
+                </Badge>
+              )}
             </div>
             
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-sm text-muted-foreground font-medium mb-4 sm:mb-0">
@@ -165,9 +181,16 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                     <>
                       <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Project Role</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup value={role} onValueChange={handleRoleChange}>
-                        <DropdownMenuRadioItem value={"PROJECT_MANAGER"} className="cursor-pointer font-medium">Project Manager</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value={"MEMBER"} className="cursor-pointer font-medium">Member</DropdownMenuRadioItem>
+                      <DropdownMenuRadioGroup value={roleId} onValueChange={handleRoleChange}>
+                        {projectRoles.length > 0 ? (
+                          projectRoles.map((r: any) => (
+                            <DropdownMenuRadioItem key={r.id} value={r.id} className="cursor-pointer font-medium">
+                              {r.name}
+                            </DropdownMenuRadioItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">No roles available</div>
+                        )}
                       </DropdownMenuRadioGroup>
                     </>
                   )}
@@ -175,7 +198,7 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                   {canChangeRole && canRemove && <DropdownMenuSeparator />}
 
                   {canRemove && (
-                    <DropdownMenuItem onClick={handleRemoveMember} className="text-destructive font-medium cursor-pointer">
+                    <DropdownMenuItem onClick={handleRemoveMember} className="text-destructive font-medium cursor-pointer focus:text-destructive focus:bg-destructive/10">
                       <Trash2 className="size-4 mr-2" /> Remove from Project
                     </DropdownMenuItem>
                   )}
@@ -190,7 +213,7 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
         <TabsList className="bg-muted/50 border border-border h-10 w-full sm:w-auto flex justify-start overflow-x-auto no-scrollbar">
           <TabsTrigger value="overview" className="h-8 px-6 rounded-md">Overview</TabsTrigger>
-          <TabsTrigger value="segments" className="h-8 px-6 rounded-md">Segments</TabsTrigger>
+          <TabsTrigger value="sprints" className="h-8 px-6 rounded-md">Sprints</TabsTrigger>
           <TabsTrigger value="tasks" className="h-8 px-6 rounded-md">Task History</TabsTrigger>
         </TabsList>
 
@@ -236,7 +259,7 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                   <div className="flex flex-col gap-1 border-r border-border pr-4">
                     <p className="text-sm text-muted-foreground font-medium mb-1">Currently Working On</p>
                     <h3 className="text-lg font-bold text-foreground">{currentWork.activeTaskName || "No active task currently"}</h3>
-                    {currentWork.activeSegmentName && <p className="text-sm text-muted-foreground font-medium">{currentWork.activeSegmentName}</p>}
+                    {currentWork.activeSprintName && <p className="text-sm text-muted-foreground font-medium">{currentWork.activeSprintName}</p>}
                     {currentWork.activeTaskName && (
                       <div className="flex items-center gap-3 mt-3">
                         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Active Now</Badge>
@@ -273,14 +296,14 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
           </div>
         </TabsContent>
 
-        <TabsContent value="segments" className="mt-0 space-y-6">
+        <TabsContent value="sprints" className="mt-0 space-y-6">
           <div className="mb-6">
-            <VerticalBarChart data={segmentChartData} />
+            <VerticalBarChart data={sprintChartData} />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {segments.length > 0 ? segments.map((segment: any) => (
-              <Card key={segment.segmentId} className="shadow-sm border-border bg-card hover:border-primary/40 transition-all duration-200">
+            {sprints.length > 0 ? sprints.map((sprint: any) => (
+              <Card key={sprint.sprintId} className="shadow-sm border-border bg-card hover:border-primary/40 transition-all duration-200">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start gap-4 mb-6">
                     <div className="flex items-start gap-4">
@@ -288,24 +311,24 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                         <Layers className="size-5" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg text-foreground leading-none mb-1.5">{segment.segmentName}</h3>
-                        <p className="text-sm text-muted-foreground font-medium">{segment.memberTasksCompleted} of {segment.memberTasksTotal} tasks done</p>
+                        <h3 className="font-bold text-lg text-foreground leading-none mb-1.5">{sprint.sprintName}</h3>
+                        <p className="text-sm text-muted-foreground font-medium">{sprint.memberTasksCompleted} of {sprint.memberTasksTotal} tasks done</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">{segment.segmentStatus}</Badge>
+                    <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">{sprint.sprintStatus}</Badge>
                   </div>
                   <div className="space-y-2.5 bg-muted/30 p-4 rounded-lg border border-border">
                     <div className="flex justify-between text-xs font-semibold">
                       <span className="text-muted-foreground">Points Contribution</span>
-                      <span className="text-foreground">{segment.memberPointsEarned} / {segment.memberPointsAssigned}</span>
+                      <span className="text-foreground">{sprint.memberPointsEarned} / {sprint.memberPointsAssigned}</span>
                     </div>
-                    <Progress value={segment.memberPointsAssigned ? (segment.memberPointsEarned / segment.memberPointsAssigned) * 100 : 0} className="h-1.5" />
+                    <Progress value={sprint.memberPointsAssigned ? (sprint.memberPointsEarned / sprint.memberPointsAssigned) * 100 : 0} className="h-1.5" />
                   </div>
                 </CardContent>
               </Card>
             )) : (
               <div className="col-span-1 md:col-span-2 p-8 text-center text-muted-foreground border rounded-xl border-dashed">
-                No segments assigned to this member.
+                No sprints assigned to this member.
               </div>
             )}
           </div>
@@ -323,7 +346,7 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                   <thead className="bg-muted/50 border-b border-border">
                     <tr>
                       <th className="px-6 py-4 font-semibold text-muted-foreground">Task Name</th>
-                      <th className="px-6 py-4 font-semibold text-muted-foreground">Segment</th>
+                      <th className="px-6 py-4 font-semibold text-muted-foreground">Sprint</th>
                       <th className="px-6 py-4 font-semibold text-muted-foreground">Priority</th>
                       <th className="px-6 py-4 font-semibold text-muted-foreground">Status</th>
                       <th className="px-6 py-4 font-semibold text-muted-foreground text-right">Points Earned</th>
@@ -339,7 +362,7 @@ export default function ProjectMember({ memberInfo }: { memberInfo: any }) {
                             <span className="font-semibold block text-foreground mb-0.5">{task.name}</span>
                             <span className="text-xs text-muted-foreground font-medium">{dateFormatter(task.startDate)} - {dateFormatter(task.endDate)}</span>
                           </td>
-                          <td className="px-6 py-4 text-muted-foreground font-medium">{task.segmentName}</td>
+                          <td className="px-6 py-4 text-muted-foreground font-medium">{task.sprintName}</td>
                           <td className="px-6 py-4"><Badge variant="outline" className="font-medium text-[10px] uppercase tracking-wider">{task.priority}</Badge></td>
                           <td className="px-6 py-4"><Badge variant="secondary" className="font-medium text-[10px] uppercase tracking-wider">{task.status}</Badge></td>
                           <td className="px-6 py-4 text-right">

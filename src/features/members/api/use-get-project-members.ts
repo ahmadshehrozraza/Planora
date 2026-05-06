@@ -8,8 +8,12 @@ export const useGetProjectMembers = (projectId?: string) => {
         queryKey: ["project-members", projectId],
         queryFn: async () => {
             if (!projectId) return { data: [] };
-            const response = await getProjectMembersAction(projectId);
-            return response;
+            try {
+                const response = await getProjectMembersAction(projectId);
+                return response || { data: [] };
+            } catch (error) {
+                return { data: [] };
+            }
         },
         enabled: !!projectId,
     });

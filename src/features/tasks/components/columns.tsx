@@ -67,8 +67,8 @@ export const columns: ColumnDef<any>[] = [
     }
   },
   {
-    accessorFn: (row) => row.segment?.name,
-    id: "segment",
+    accessorFn: (row) => row.sprint?.name,
+    id: "sprint",
     header: ({ column }) => {
       return (
         <Button
@@ -76,16 +76,16 @@ export const columns: ColumnDef<any>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="p-0 hover:bg-transparent"
         >
-          Segment
+          Sprint
           <ArrowUpDown className=" h-4 w-4 ml-2" />
         </Button>
       )
     },
     cell: ({ row }) => {
-      const segmentName = row.original.segment?.name || "No Segment";
+      const sprintName = row.original.sprint?.name || "No Sprint";
       return (
         <p className="text-sm font-medium truncate w-[100px]">
-          {segmentName}
+          {sprintName}
         </p>
       )
     }
@@ -172,6 +172,25 @@ export const columns: ColumnDef<any>[] = [
     }
   },
   {
+    accessorKey: "tags",
+    header: "Tags",
+    cell: ({ row }) => {
+      const tags = row.original.tags || [];
+      if (tags.length === 0) return <span className="text-muted-foreground text-xs">-</span>;
+      
+      return (
+        <div className="flex flex-wrap gap-1 w-[150px]">
+          {tags.map((tag: any) => (
+            <div key={tag.id} className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border shadow-sm" style={{ backgroundColor: `${tag.color}15`, borderColor: tag.color, color: '#333' }}>
+               <div className="size-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
+               <span className="truncate max-w-[80px] font-medium dark:text-gray-200">{tag.name}</span>
+            </div>
+          ))}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "dueDate",
     header: ({ column }) => {
       return (
@@ -212,56 +231,7 @@ export const columns: ColumnDef<any>[] = [
       const progress = row.original.progress;
       return (
         <div className="w-[100px] flex items-center">
-          {progress}
-        </div>
-      )
-    }
-  },
-  {
-    accessorFn: (row) => row.blockedBy?.name,
-    id: "blockedBy",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 hover:bg-transparent"
-        >
-          Blocked By
-          <ArrowUpDown className=" h-4 w-4 ml-2" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => {
-      const blockedBy = row.original.blockedBy?.name || "-";
-      return (
-        <div className="flex items-center w-[120px] truncate">
-          {blockedBy}
-        </div>
-      )
-    }
-  },
-  {
-    accessorFn: (row) => row.blocking?.length ? row.blocking.map((t:any) => t.name).join(", ") : "-",
-    id: "blockingTo",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 hover:bg-transparent"
-        >
-          Blocking
-          <ArrowUpDown className=" h-4 w-4 ml-2" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => {
-      const blockingList = row.original.blocking;
-      const display = blockingList?.length > 0 ? blockingList.map((t:any) => t.name).join(", ") : "-";
-      return (
-        <div className="flex items-center w-[120px] truncate" title={display}>
-          {display}
+          {progress}%
         </div>
       )
     }

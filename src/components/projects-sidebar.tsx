@@ -15,11 +15,13 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export const ProjectsSidebar = () => {
   const workspaceId = useWorkspaceId();
   const { data: permissions } = useGetPermissions( workspaceId );
-  const allowed = (permissions?.workspaceAdmin) ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.PROJECT_CREATE);
   const pathname = usePathname();
   const { open } = useCreateProjectModal();
   

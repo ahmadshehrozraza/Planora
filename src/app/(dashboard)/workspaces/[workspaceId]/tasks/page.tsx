@@ -1,6 +1,7 @@
 
 import { Navbar } from "@/components/navbar";
 import { TaskViewSwitcher } from "@/features/tasks/components/task-view-switcher";
+export const dynamic = 'force-dynamic';
 
 const TasksPage = () => {
 

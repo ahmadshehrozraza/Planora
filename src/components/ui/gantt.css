@@ -1,0 +1,61 @@
+.gantt-theme-override {
+    font-family: var(--font-geist-sans), sans-serif !important;
+}
+
+.dark-gantt svg {
+    background-color: hsl(var(--background)) !important;
+}
+
+.dark-gantt svg rect:not([rx]) {
+    fill: hsl(var(--background)) !important;
+}
+
+.dark-gantt [class*="gridRow"]:nth-child(even),
+.dark-gantt [class*="rowLine"]:nth-child(even) rect {
+    fill: hsl(var(--muted) / 0.1) !important;
+}
+
+.dark-gantt svg rect:not([rx]),
+.dark-gantt svg path,
+.dark-gantt svg line {
+    stroke: hsl(var(--border)) !important;
+}
+
+.dark-gantt [class*="gridHeader"] {
+    fill: hsl(var(--muted) / 0.3) !important;
+}
+
+.dark-gantt svg text {
+    fill: hsl(var(--muted-foreground)); 
+}
+
+.hide-grid-lines svg line,
+.hide-grid-lines [class*="tick"] line {
+    display: none !important;
+}
+
+.gantt-theme-override svg text[class*="barLabel"], 
+.gantt-theme-override svg text[class*="abel"] {
+    fill: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.gantt-theme-override .arrow {
+    stroke-width: 1.5;
+}
+
+.gantt-theme-override .gantt-task-list-header {
+    background-color: hsl(var(--muted) / 0.5) !important;
+    border-bottom: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+}
+
+.gantt-theme-override .gantt-task-list-row {
+    border-bottom: 1px solid hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+    background-color: hsl(var(--background)) !important;
+}
+
+.gantt-theme-override .gantt-task-list-row:hover {
+    background-color: hsl(var(--muted) / 0.4) !important;
+}

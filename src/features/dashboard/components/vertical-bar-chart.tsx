@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
   ChartConfig,
   ChartContainer,
@@ -15,7 +16,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-const segmentChartConfig = {
+const sprintChartConfig = {
   progress: {
     label: "Progress (%)",
     color: "hsl(var(--primary))",
@@ -34,16 +35,16 @@ export const VerticalBarChart = ({ data }: VerticalBarChartProps) => {
   return (
     <Card className="shadow-sm border-border print:break-inside-avoid">
       <CardHeader>
-        <CardTitle className="print:text-black">Segments Progress</CardTitle>
+        <CardTitle className="print:text-black">Sprints Progress</CardTitle>
         <CardDescription className="print:text-black">Visualizing completion per phase</CardDescription>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
           <div className="flex items-center justify-center h-[250px] text-sm text-muted-foreground print:text-black">
-            No segments data available
+            No sprints data available
           </div>
         ) : (
-          <ChartContainer config={segmentChartConfig} className="h-[250px] w-full">
+          <ChartContainer config={sprintChartConfig} className="h-[250px] w-full">
             <BarChart
               accessibilityLayer
               data={data}

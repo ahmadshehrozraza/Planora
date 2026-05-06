@@ -8,8 +8,8 @@ export const useGetPermissions = (workspaceId: string, projectId?: string | null
         queryKey: ["permissions", workspaceId, projectId],
         queryFn: async () => {
             const data = await getPermissions({ workspaceId, projectId });
-            return data;
+            return data; 
         },
-        enabled: !!workspaceId
+        enabled: !!workspaceId && workspaceId !== "undefined",
     });
 };

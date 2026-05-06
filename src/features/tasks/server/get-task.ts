@@ -23,7 +23,7 @@ export async function getTaskAction(taskId: string) {
                 assignee: {
                     select: { id: true, name: true, email: true, image: true }
                 },
-                segment: {
+                sprint: {
                     select: { id: true, name: true }
                 },
                 blockedBy: {
@@ -34,6 +34,9 @@ export async function getTaskAction(taskId: string) {
                 },
                 assignedBy: {
                     select: { id: true, name: true, image: true }
+                },
+                tags: {
+                    select: { id: true, name: true, color: true }
                 }
             }
         });

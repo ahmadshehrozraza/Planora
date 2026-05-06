@@ -7,16 +7,18 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 async function verifyAdmin(workspaceId: string) {
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
     
     const isMember = await prisma.workspaceMember.findUnique({
-        where: { userId_workspaceId: { userId: session.user.id, workspaceId } }
+        where: { userId_workspaceId: { userId: session.user.id, workspaceId } },
+        include: { role: true }
     });
 
-    if (!isMember || isMember.role !== "ADMIN") {
+    if (!isMember || !(isMember.role?.permissions.includes(PERMISSIONS.WORKSPACE_UPDATE) || isMember.role?.permissions.includes(PERMISSIONS.WORKSPACE_DELETE))) {
         throw new Error("Only admins can perform this action");
     }
     return session.user.id;

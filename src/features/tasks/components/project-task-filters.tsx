@@ -2,14 +2,15 @@
 
 import { useMemo } from "react";
 import { useParams } from "next/navigation"; 
-import { Layers, ListCheckIcon, UserIcon, X, SearchIcon } from "lucide-react";
+import { Layers, ListCheckIcon, UserIcon, X, SearchIcon, TagIcon } from "lucide-react";
 
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useTaskFilters } from "../hooks/use-task-filters";
 import { useGetProjectMembers } from "@/features/members/api/use-get-project-members";
-import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useGetSprints } from "@/features/sprints/api/use-get-sprints";
 import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
+import { useGetTags } from "@/features/tasks/api/use-task-tags";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectSeparator } from "@/components/ui/select";
 import { DatePicker } from "@/components/date-picker";
@@ -21,17 +22,17 @@ export const ProjectTaskFilters = () => {
     const projectId = useProjectId(); 
     
     const params = useParams();
-    const paramSegmentId = params.segmentId as string | undefined;
+    const paramSprintId = params.sprintId as string | undefined;
 
     const [filters, setFilters] = useTaskFilters();
-    const { status, assigneeId, segmentId, dueDate, search } = filters;
+    const { status, assigneeId, sprintId, dueDate, search, tagId } = filters;
 
-    // Queries
     const { data: projectMembersData, isLoading: isLoadingMembers } = useGetProjectMembers(projectId);
-    const { data: segmentsData, isLoading: isLoadingSegments } = useGetSegments(projectId);
+    const { data: sprintsData, isLoading: isLoadingSprints } = useGetSprints(projectId);
     const { data: columnsData, isLoading: isLoadingColumns } = useGetProjectColumns(projectId);
+    const { data: tagsData, isLoading: isLoadingTags } = useGetTags(projectId);
 
-    const isLoading = isLoadingMembers || isLoadingSegments || isLoadingColumns;
+    const isLoading = isLoadingMembers || isLoadingSprints || isLoadingColumns || isLoadingTags;
 
     const extractArray = (data: any): any[] => {
         if (!data) return [];
@@ -42,23 +43,25 @@ export const ProjectTaskFilters = () => {
     };
 
     const memberOptions = useMemo(() => extractArray(projectMembersData).map(m => ({ value: m.userId || m.id, label: m.name || m.user?.name || "Member" })), [projectMembersData]);
-    const segmentOptions = useMemo(() => extractArray(segmentsData).map(s => ({ value: s.id, label: s.name })), [segmentsData]);
+    const sprintOptions = useMemo(() => extractArray(sprintsData).map(s => ({ value: s.id, label: s.name })), [sprintsData]);
     const statusOptions = useMemo(() => extractArray(columnsData).map(c => ({ value: c.id, label: c.name })), [columnsData]);
+    const tagOptions = useMemo(() => extractArray(tagsData).map((t: any) => ({ value: t.id, label: t.name, color: t.color })), [tagsData]);
 
     if (isLoading) return null;
 
     const isAnyFilterActive = 
     (status && status !== "all") || 
     (assigneeId && assigneeId !== "all-tasks") || 
-    (segmentId && segmentId !== "all") || 
+    (sprintId && sprintId !== "all") || 
+    (tagId && tagId !== "all") ||
     !!dueDate || 
     !!search;
 
     const resetFilters = () => {
-        setFilters({ status: null, assigneeId: null, segmentId: null, dueDate: null, search: null });
+        setFilters({ status: null, assigneeId: null, sprintId: null, dueDate: null, search: null, tagId: null });
     };
 
-    const activeSegmentValue = segmentId || paramSegmentId || "all";
+    const activeSprintValue = sprintId || paramSprintId || "all";
 
     return (
         <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center flex-wrap">
@@ -90,15 +93,33 @@ export const ProjectTaskFilters = () => {
                 </SelectContent>
             </Select>
 
-            <Select value={activeSegmentValue} onValueChange={(val) => setFilters({ segmentId: val })}>
+            <Select value={activeSprintValue} onValueChange={(val) => setFilters({ sprintId: val })}>
                 <SelectTrigger className="w-full lg:w-auto h-8">
-                    <div className="flex items-center pr-2"><Layers className="size-4 mr-2" /><SelectValue placeholder="All Segments" /></div>
+                    <div className="flex items-center pr-2"><Layers className="size-4 mr-2" /><SelectValue placeholder="All Sprints" /></div>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Segments</SelectItem>
-                    <SelectItem value="no-segment">No Segment</SelectItem>
+                    <SelectItem value="all">All Sprints</SelectItem>
+                    <SelectItem value="no-sprint">No Sprint</SelectItem>
                     <SelectSeparator />
-                    {segmentOptions.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                    {sprintOptions.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                </SelectContent>
+            </Select>
+
+            <Select value={tagId || "all"} onValueChange={(val) => setFilters({ tagId: val === "all" ? null : val })}>
+                <SelectTrigger className="w-full lg:w-auto h-8">
+                    <div className="flex items-center pr-2"><TagIcon className="size-4 mr-2" /><SelectValue placeholder="All Tags" /></div>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Tags</SelectItem>
+                    <SelectSeparator />
+                    {tagOptions.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                            <div className="flex items-center gap-2">
+                                <div className="size-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                                <span>{t.label}</span>
+                            </div>
+                        </SelectItem>
+                    ))}
                 </SelectContent>
             </Select>
 

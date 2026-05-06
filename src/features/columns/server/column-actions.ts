@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
+import { getPermissions } from "@/lib/get-permissions";
 
 export async function createColumnAction({ projectId, name }: { projectId: string; name: string }) {
     try {
@@ -19,10 +21,25 @@ export async function createColumnAction({ projectId, name }: { projectId: strin
 
         const project = await prisma.project.findUnique({
             where: { id: projectId },
-            select: { workspaceId: true }
+            select: { workspaceId: true, status: true }
         });
 
         if (!project) throw new Error("Project not found");
+
+        if (project.status === "ON_HOLD") {
+            throw new Error("Project is on hold. No changes can be made.");
+        }
+
+        const userPermissions = await getPermissions({ 
+            workspaceId: project.workspaceId, 
+            projectId: projectId 
+        });
+
+        const canUpdateProject = userPermissions.includes(PERMISSIONS.PROJECT_UPDATE) || userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+
+        if (!canUpdateProject) {
+            throw new Error("Unauthorized: Only Project Managers or Admins can create columns.");
+        }
 
         const highestCol = await prisma.customColumn.findFirst({
             where: { projectId },
@@ -66,16 +83,35 @@ export async function updateColumnAction({ columnId, name }: { columnId: string;
         });
         if (!user) throw new Error("User not found");
 
+        const columnToUpdate = await prisma.customColumn.findUnique({
+            where: { id: columnId },
+            include: { project: { select: { workspaceId: true, status: true } } }
+        });
+
+        if (!columnToUpdate) throw new Error("Column not found");
+
+        if (columnToUpdate.project.status === "ON_HOLD") {
+            throw new Error("Project is on hold. No changes can be made.");
+        }
+
+        const userPermissions = await getPermissions({ 
+            workspaceId: columnToUpdate.project.workspaceId, 
+            projectId: columnToUpdate.projectId 
+        });
+
+        const canUpdateProject = userPermissions.includes(PERMISSIONS.PROJECT_UPDATE) || userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+
+        if (!canUpdateProject) {
+            throw new Error("Unauthorized: Only Project Managers or Admins can update columns.");
+        }
+
         const updatedCol = await prisma.customColumn.update({
             where: { id: columnId },
             data: { name },
-            include: {
-                project: { select: { workspaceId: true } }
-            }
         });
 
         await createAuditLog({
-            workspaceId: updatedCol.project.workspaceId,
+            workspaceId: columnToUpdate.project.workspaceId,
             projectId: updatedCol.projectId,
             entityId: updatedCol.id,
             entityType: ENTITY_TYPE.COLUMN,
@@ -108,11 +144,26 @@ export async function deleteColumnAction({ columnId }: { columnId: string }) {
         const columnToDelete = await prisma.customColumn.findUnique({
             where: { id: columnId },
             include: {
-                project: { select: { workspaceId: true } }
+                project: { select: { workspaceId: true, status: true } }
             }
         });
 
         if (!columnToDelete) throw new Error("Column not found");
+
+        if (columnToDelete.project.status === "ON_HOLD") {
+            throw new Error("Project is on hold. No changes can be made.");
+        }
+
+        const userPermissions = await getPermissions({ 
+            workspaceId: columnToDelete.project.workspaceId, 
+            projectId: columnToDelete.projectId 
+        });
+
+        const canUpdateProject = userPermissions.includes(PERMISSIONS.PROJECT_UPDATE) || userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+
+        if (!canUpdateProject) {
+            throw new Error("Unauthorized: Only Project Managers or Admins can delete columns.");
+        }
 
         await prisma.customColumn.delete({
             where: { id: columnId }
@@ -154,9 +205,26 @@ export async function bulkUpdateColumnsOrder({ columns }: { columns: { id: strin
         const firstCol = await prisma.customColumn.findUnique({
             where: { id: columns[0].id },
             include: {
-                project: { select: { workspaceId: true } }
+                project: { select: { workspaceId: true, status: true } }
             }
         });
+
+        if (!firstCol) throw new Error("Column not found");
+
+        if (firstCol.project.status === "ON_HOLD") {
+            throw new Error("Project is on hold. No changes can be made.");
+        }
+
+        const userPermissions = await getPermissions({ 
+            workspaceId: firstCol.project.workspaceId, 
+            projectId: firstCol.projectId 
+        });
+
+        const canUpdateProject = userPermissions.includes(PERMISSIONS.PROJECT_UPDATE) || userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+
+        if (!canUpdateProject) {
+            throw new Error("Unauthorized: Only Project Managers or Admins can reorder columns.");
+        }
 
         const queries = columns.map((col) =>
             prisma.customColumn.update({

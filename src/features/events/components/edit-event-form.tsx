@@ -21,15 +21,17 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useUpdateEvent } from "@/features/events/api/use-update-event";
 import { useDeleteEvent } from "@/features/events/api/use-delete-event";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface EditEventFormProps {
   onCancel?: () => void;
   workspaceId: string;
   projects: any[];
+  sprints?: any[];
   initialValues: any;
 }
 
-export const EditEventForm = ({ onCancel, workspaceId, projects, initialValues }: EditEventFormProps) => {
+export const EditEventForm = ({ onCancel, workspaceId, projects, sprints, initialValues }: EditEventFormProps) => {
   
   const { mutate: updateEvent, isPending: isUpdatingEvent } = useUpdateEvent();
   const { mutate: deleteEvent, isPending: isDeletingEvent } = useDeleteEvent();
@@ -49,17 +51,22 @@ export const EditEventForm = ({ onCancel, workspaceId, projects, initialValues }
       date: initialValues.date ? new Date(initialValues.date) : new Date(),
       workspaceId: workspaceId,
       projectId: initialValues.projectId || "none", 
+      sprintId: initialValues.sprintId || "none",
       description: initialValues.description || "",
     },
   });
 
+  const selectedProjectId = form.watch("projectId");
+
   const { data: permissions } = useGetPermissions( workspaceId );
-  const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.EVENT_UPDATE);
 
   const onSubmit = (values: z.infer<typeof createEventSchema>) => {
     const finalPayload = {
       ...values,
-      projectId: values.projectId,
+      projectId: values.projectId === "none" ? undefined : values.projectId,
+      sprintId: values.sprintId === "none" ? undefined : values.sprintId,
     };
 
     updateEvent(
@@ -150,7 +157,10 @@ export const EditEventForm = ({ onCancel, workspaceId, projects, initialValues }
                 <FormItem>
                   <FormLabel>Scope (Project)</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      form.setValue("sprintId", "none");
+                    }}
                     value={field.value}
                     disabled={isPending}
                   >
@@ -174,6 +184,40 @@ export const EditEventForm = ({ onCancel, workspaceId, projects, initialValues }
                 </FormItem>
               )}
             />
+
+            {selectedProjectId && selectedProjectId !== "none" && sprints && sprints.length > 0 && (
+              <FormField
+                control={form.control}
+                name="sprintId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link to Sprint (Optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isPending}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sprint" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none" className="text-muted-foreground font-medium italic">
+                          No Sprint (Project Level)
+                        </SelectItem>
+                        {sprints.map((sprint) => (
+                          <SelectItem key={sprint.id} value={sprint.id}>
+                            {sprint.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

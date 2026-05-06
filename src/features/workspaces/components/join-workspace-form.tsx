@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useJoinWorkspace } from "../api/use-join-workspace";
 import { useInviteCode } from "../hooks/use-invite-code";
 import { useWorkspaceId } from "../hooks/use-workspace-id";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { WorkspaceAvatar } from "./workspace-avatar";
 
 interface JoinWorkspaceFormProps {
@@ -27,27 +27,38 @@ export const JoinWorkspaceForm = ({
     initialValues,
 }: JoinWorkspaceFormProps) => {
 
-    const router = useRouter();
     const workspaceId = useWorkspaceId();
     const inviteCode = useInviteCode();
+    const searchParams = useSearchParams();
+    const roleToken = searchParams.get("t");
+
     const { mutate, isPending } = useJoinWorkspace();
 
     if (!workspaceId) {
         toast.error("Invalid workspace link");
+        return null;
+    }
+
+   // Component ke andar:
+const router = useRouter();
+
+const onSubmit = () => {
+    if (!workspaceId || !inviteCode) {
+        toast.error("Invalid workspace link or invite code");
         return;
     }
 
-   const onSubmit = () => {
-        if (!workspaceId || !inviteCode) {
-            toast.error("Invalid workspace link or invite code");
-            return;
+    mutate(
+        { workspaceId, inviteCode, roleToken: roleToken || undefined },
+        {
+            onSuccess: (data) => {
+                if (data?.data?.id) {
+                    router.push(`/workspaces/${data.data.id}`);
+                }
+            }
         }
-
-        mutate({
-             workspaceId, 
-             inviteCode 
-        });
-    }
+    );
+}
 
     return (
         <div>
@@ -75,7 +86,7 @@ export const JoinWorkspaceForm = ({
                 <CardContent className="p-7">
                     <div className="flex items-center justify-between flex-col lg:flex-row gap-y-2 gap-x-2">
                         <Button
-                            variant="secondry"
+                            variant="secondary"
                             type="button"
                             size="lg"
                             asChild

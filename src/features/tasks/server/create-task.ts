@@ -6,6 +6,7 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { revalidatePath } from "next/cache";
 
 export async function createTaskAction(values: any) {
     try {
@@ -48,9 +49,7 @@ export async function createTaskAction(values: any) {
             finalColumnId = newCol.id;
         }
 
-        if (!finalColumnId) {
-            throw new Error("Status column is required");
-        }
+        if (!finalColumnId) throw new Error("Status column is required");
 
         const highestPositionTask = await prisma.task.findFirst({
             where: { columnId: finalColumnId },
@@ -60,18 +59,11 @@ export async function createTaskAction(values: any) {
         const newTaskPos = highestPositionTask ? highestPositionTask.position + 1000 : 1000;
 
         const finalAssigneeId = (values.assigneeId === "" || values.assigneeId === "no-assignee") ? null : values.assigneeId;
-        const finalSegmentId = (values.segmentId === "" || values.segmentId === "no-segment") ? null : values.segmentId;
-        const finalBlockedById = (values.blockedById === "" || values.blockedById === "no-blocked-by") ? null : values.blockedById;
+        const finalSprintId = (values.sprintId === "" || values.sprintId === "no-sprint") ? null : values.sprintId;
 
         let branchPrefix = "task";
-        
-        if (values.taskType === "FEATURE") {
-            branchPrefix = "feature";
-        } else if (values.taskType === "DOCUMENTATION") {
-            branchPrefix = "docs";
-        } else if (values.taskType === "TASK") {
-            branchPrefix = "task";
-        }
+        if (values.taskType === "FEATURE") branchPrefix = "feature";
+        else if (values.taskType === "DOCUMENTATION") branchPrefix = "docs";
 
         const words = project.name.trim().split(/\s+/);
         const projectKey = words.length === 1 
@@ -80,7 +72,6 @@ export async function createTaskAction(values: any) {
             
         const formattedTitle = values.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         const shortId = Math.random().toString(36).substring(2, 6).toUpperCase();
-        
         const branchName = `${branchPrefix}/${projectKey}-${shortId}-${formattedTitle}`;
 
         const taskData: any = {
@@ -89,9 +80,8 @@ export async function createTaskAction(values: any) {
             workspaceId: values.workspaceId,
             projectId: values.projectId,
             columnId: finalColumnId,
-            segmentId: finalSegmentId,
+            sprintId: finalSprintId,
             assigneeId: finalAssigneeId,
-            blockedById: finalBlockedById,
             assignedById: user.id,
             taskType: values.taskType,
             priority: values.priority,
@@ -104,9 +94,21 @@ export async function createTaskAction(values: any) {
             branchName: branchName,
         };
 
-        if (values.blockingTo && values.blockingTo !== "" && values.blockingTo !== "no-blocking-to") {
+        if (values.blockedByIds && Array.isArray(values.blockedByIds) && values.blockedByIds.length > 0) {
+            taskData.blockedBy = {
+                connect: values.blockedByIds.map((id: string) => ({ id }))
+            };
+        }
+
+        if (values.blockingToIds && Array.isArray(values.blockingToIds) && values.blockingToIds.length > 0) {
             taskData.blocking = {
-                connect: [{ id: values.blockingTo }]
+                connect: values.blockingToIds.map((id: string) => ({ id }))
+            };
+        }
+
+        if (values.tagIds && Array.isArray(values.tagIds) && values.tagIds.length > 0) {
+            taskData.tags = {
+                connect: values.tagIds.map((id: string) => ({ id }))
             };
         }
 
@@ -141,6 +143,7 @@ export async function createTaskAction(values: any) {
         }
 
         eventEmitter.emit('invalidate');
+        revalidatePath(`/workspaces/${newTask.workspaceId}/tasks`);
 
         return { success: "Task created successfully!", data: newTask };
     } catch (error: any) {

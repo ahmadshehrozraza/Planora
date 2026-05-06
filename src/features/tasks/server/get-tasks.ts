@@ -2,17 +2,17 @@
 
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
-
-// export const revalidate = 0;
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface GetTasksParams {
     workspaceId?: string;
     projectId?: string;
-    segmentId?: string;
+    sprintId?: string;
     assigneeId?: string;
     status?: string;
     dueDate?: string;
     search?: string;
+    tagId?: string;
 }
 
 export async function getTasksAction(params: GetTasksParams) {
@@ -28,12 +28,13 @@ export async function getTasksAction(params: GetTasksParams) {
         if (!user) throw new Error("User not found");
 
         const workspaceMember = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: user.id, workspaceId: params.workspaceId } }
+            where: { userId_workspaceId: { userId: user.id, workspaceId: params.workspaceId } },
+            include: { role: true }
         });
 
         if (!workspaceMember) throw new Error("Unauthorized");
 
-        const isAdmin = workspaceMember.role === "ADMIN";
+        const isAdmin = workspaceMember.role?.permissions?.includes(PERMISSIONS.WORKSPACE_UPDATE) || workspaceMember.role?.permissions?.includes(PERMISSIONS.WORKSPACE_DELETE);
         const isGlobalView = !params.projectId || params.projectId === "all";
 
         const whereClause: any = {
@@ -50,7 +51,7 @@ export async function getTasksAction(params: GetTasksParams) {
 
             const allowedProjectIds = userProjects.map(p => p.projectId);
             const managedProjectIds = userProjects
-                .filter(p => p.role === "PROJECT_MANAGER" || p.role === "ADMIN")
+                .filter(p => p.role?.permissions?.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS) || p.role?.permissions?.includes(PERMISSIONS.PROJECT_UPDATE))
                 .map(p => p.projectId);
 
             if (!isGlobalView) {
@@ -76,8 +77,8 @@ export async function getTasksAction(params: GetTasksParams) {
             }
         }
 
-        if (params.segmentId && params.segmentId !== "all") {
-            whereClause.segmentId = params.segmentId === "no-segment" ? null : params.segmentId;
+        if (params.sprintId && params.sprintId !== "all") {
+            whereClause.sprintId = params.sprintId === "no-sprint" ? null : params.sprintId;
         }
 
         if (params.assigneeId && params.assigneeId !== "all-tasks") {
@@ -108,22 +109,30 @@ export async function getTasksAction(params: GetTasksParams) {
              };
         }
 
+        if (params.tagId && params.tagId !== "all") {
+             whereClause.tags = {
+                 some: {
+                     id: params.tagId
+                 }
+             };
+        }
+
         const tasks = await prisma.task.findMany({
             where: whereClause,
             include: {
                 project: { select: { id: true, name: true, imageUrl: true } },
                 assignee: { select: { id: true, name: true, email: true, image: true } },
                 column: { select: { id: true, name: true } },
-                segment: { select: { id: true, name: true } },
+                sprint: { select: { id: true, name: true } },
                 blockedBy: { select: { id: true, name: true } },
                 blocking: { select: { id: true, name: true } },
+                tags: { select: { id: true, name: true, color: true } }
             },
             orderBy: { position: "asc" }
         });
 
         return { data: tasks };
     } catch (error: any) {
-        console.error("GET_TASKS_ERROR:", error);
         return { data: [] };
     }
 }

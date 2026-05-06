@@ -111,7 +111,7 @@ export const NotificationButton = () => {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-[340px]" align="start" side="right" sideOffset={8}>
+      <DropdownMenuContent className="w-[340px] ml-3 mb-3" align="start" side="right" sideOffset={8}>
         <DropdownMenuLabel className="flex items-center justify-between py-3 font-normal">
           <span className="font-semibold text-sm">Notifications</span>
           {unreadCount > 0 && (

@@ -1,93 +1,58 @@
 "use client";
 
 import { z } from "zod";
-import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
-import { ArrowLeftIcon, CopyIcon, ImageIcon, Trash2 } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProjectSchema } from "../schemas";
-import { useDeleteProject } from "../api/use-delete-project";
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form";
-import { toast } from "sonner";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { Project, ProjectStatus } from "../types";
+import { ProjectStatus } from "../types";
 import { useUpdateProject } from "../api/use-update-project";
-import { useConfirm } from "@/hooks/use-confirm";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencySelector } from "@/components/currency-selector";
 import { DatePicker } from "@/components/date-picker";
 import { Textarea } from "@/components/ui/textarea";
-import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { Separator } from "@/components/ui/separator";
 
 interface EditProjectFormProps {
     onCancel?: () => void;
     initialValues: any;
 };
 
+type UpdateProjectFormValues = z.infer<typeof updateProjectSchema>;
+
 export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProps) => {
-
     const workspaceId = useWorkspaceId();
-    const router = useRouter();
     const { mutate, isPending } = useUpdateProject();
-
-    const { data: permissions } = useGetPermissions(workspaceId);
-    const allowed = permissions?.workspaceAdmin;
-
-    const {
-        mutate: deleteProject,
-        isPending: isDeletingProject
-    } = useDeleteProject();
-
-    const [DeleteDialog, confirmDelete] = useConfirm(
-        "Delete Project",
-        "This action cannot be undone",
-        "destructive",
-    );
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [imageSizeError, setImageSizeError] = useState(false);
 
-    const form = useForm<z.infer<typeof updateProjectSchema>>({
-        resolver: zodResolver(updateProjectSchema),
+    const form = useForm<UpdateProjectFormValues>({
+        resolver: zodResolver(updateProjectSchema) as any,
         defaultValues: {
-            ...initialValues,
-            status: initialValues.status as ProjectStatus, 
+            name: initialValues.name ?? "",
+            workspaceId: workspaceId ?? initialValues.workspaceId ?? "",
+            status: initialValues.status as ProjectStatus,
+            description: initialValues.description ?? "",
             imageUrl: initialValues.imageUrl ?? "",
             githubRepoUrl: initialValues.githubRepoUrl ?? "",
+            budget: initialValues.budget ?? 0,
+            currency: initialValues.currency ?? "PKR",
+            startDate: initialValues.startDate ? new Date(initialValues.startDate) : undefined,
+            dueDate: initialValues.dueDate ? new Date(initialValues.dueDate) : undefined,
         },
     });
 
-    const handleDelete = async () => {
-        const ok = await confirmDelete();
-        if (!ok) return;
-
-        deleteProject(
-            { projectId: initialValues.id }, 
-            {
-                onSuccess: () => {
-                    window.location.href = `/workspaces/${initialValues.workspaceId}`;
-                }
-            }
-        );
-    }
-
-    const onSubmit = (values: z.infer<typeof updateProjectSchema>) => {
+    const onSubmit = (values: UpdateProjectFormValues) => {
         if (imageSizeError) return;
 
         const finalValues = {
@@ -103,7 +68,7 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
 
         mutate({
              projectId: initialValues.id,
-             workspaceId: workspaceId, 
+             workspaceId: workspaceId ?? initialValues.workspaceId, 
              values: finalValues
         });
     };
@@ -115,7 +80,6 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
             if (file.size > maxSize) {
                 setImageSizeError(true);
                 form.setValue("imageUrl", file);
-
             } else {
                 setImageSizeError(false);
                 form.setValue("imageUrl", file);
@@ -124,321 +88,264 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
     };
 
     return (
-        <div className="flex flex-col">
-            <DeleteDialog />
-            <Card className="w-full h-full border-none shadow-none">
-                <CardContent className="">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)}>
-                                <div className="space-y-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="imageUrl"
-                                        render={({ field }) => (
-                                            <div className="space-y-2 flex justify-center items-center flex-col">
-                                                <div className="flex items-center gap-x-5">
-                                                    {field.value ? (
-                                                        <div className="size-24 lg:size-60 relative rounded-full overflow-hidden border">
-                                                            <Image
-                                                                alt="Project Logo"
-                                                                fill
-                                                                className="object-cover"
-                                                                src={
-                                                                    typeof field.value === "string"
-                                                                        ? field.value
-                                                                        : field.value
-                                                                            ? URL.createObjectURL(field.value as File)
-                                                                            : ""
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        <Avatar className="size-24 lg:size-60 border">
-                                                            <AvatarFallback>
-                                                                <ImageIcon className="size-24 text-neutral-400" />
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                    )}
-                                                    
-                                                </div>
-                                                <div className="flex flex-col items-center">
-                                                        <p className="text-sm">Project Icon</p>
-                                                        {imageSizeError ? (
-                                                            <p className="text-sm text-red-600 font-medium">
-                                                                Image exceeds 1MB limit
-                                                            </p>
-                                                        ) : (
-                                                            <p className="text-sm text-muted-foreground">
-                                                                JPG, PNG, SVG, JPEG max 1mb
-                                                            </p>
-                                                        )}
-
-                                                        <input
-                                                            className="hidden"
-                                                            type="file"
-                                                            accept=".jpg, .png, .jpeg, .svg"
-                                                            ref={inputRef}
-                                                            onChange={handleImageChange}
-                                                            disabled={isPending}
-                                                        />
-
-                                                        {field.value ? (
-                                                            <Button
-                                                                type="button"
-                                                                disabled={isPending}
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                className="w-fit mt-2"
-                                                                onClick={() => {
-                                                                    field.onChange(null);
-                                                                    setImageSizeError(false);
-                                                                    if (inputRef.current) {
-                                                                        inputRef.current.value = "";
-                                                                    }
-                                                                }}
-                                                            >
-                                                                Remove Image
-                                                            </Button>
-                                                        ) : (
-                                                            <Button
-                                                                type="button"
-                                                                disabled={isPending}
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="w-fit mt-2"
-                                                                onClick={() => inputRef.current?.click()}
-                                                            >
-                                                                Upload Image
-                                                            </Button>
-                                                        )}
-                                                    </div>
+        <Card className="w-full border-border shadow-sm bg-card">
+            <CardHeader className="border-b bg-muted/20">
+                <CardTitle className="text-xl">General Information</CardTitle>
+                <CardDescription>Update your project details, budget, and timelines.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        <div className="space-y-6">
+                            <FormField
+                                control={form.control}
+                                name="imageUrl"
+                                render={({ field }) => (
+                                    <div className="space-y-2 flex items-center gap-x-8">
+                                        {field.value ? (
+                                            <div className="size-20 lg:size-24 relative rounded-md overflow-hidden border">
+                                                <Image
+                                                    alt="Project Logo"
+                                                    fill
+                                                    className="object-cover"
+                                                    src={
+                                                        typeof field.value === "string"
+                                                            ? field.value
+                                                            : URL.createObjectURL(field.value as File)
+                                                    }
+                                                />
                                             </div>
+                                        ) : (
+                                            <Avatar className="size-20 lg:size-24 border rounded-md">
+                                                <AvatarFallback className="rounded-md">
+                                                    <ImageIcon className="size-10 text-neutral-400" />
+                                                </AvatarFallback>
+                                            </Avatar>
                                         )}
-                                    />
+                                        
+                                        <div className="flex flex-col gap-y-2">
+                                            <p className="text-sm font-medium">Project Icon</p>
+                                            {imageSizeError ? (
+                                                <p className="text-xs text-red-600 font-medium">Image exceeds 1MB limit</p>
+                                            ) : (
+                                                <p className="text-xs text-muted-foreground">JPG, PNG, SVG, JPEG max 1mb</p>
+                                            )}
 
-                                    <FormField
-                                        control={form.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Project Name *</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="Enter project name"
-                                                        disabled={isPending}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                            <input
+                                                className="hidden"
+                                                type="file"
+                                                accept=".jpg, .png, .jpeg, .svg"
+                                                ref={inputRef}
+                                                onChange={handleImageChange}
+                                                disabled={isPending}
+                                            />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="status"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Project Status</FormLabel>
-                                                <Select
-                                                    value={field.value}
-                                                    onValueChange={field.onChange}
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
                                                     disabled={isPending}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => inputRef.current?.click()}
                                                 >
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select Status" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value={ProjectStatus.ACTIVE}>
-                                                            <div className="flex items-center gap-x-2">
-                                                                Active
-                                                            </div>
-                                                        </SelectItem>
-                                                        <SelectItem value={ProjectStatus.ON_HOLD}>
-                                                            <div className="flex items-center gap-x-2">
-                                                                On Hold
-                                                            </div>
-                                                        </SelectItem>
-                                                        <SelectItem value={ProjectStatus.OVER_DUE}>
-                                                            <div className="flex items-center gap-x-2">
-                                                                Over Due
-                                                            </div>
-                                                        </SelectItem>
-                                                        <SelectItem value={ProjectStatus.COMPLETED}>
-                                                            <div className="flex items-center gap-x-2">
-                                                                Completed
-                                                            </div>
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <div className="grid grid-cols-3 gap-3 items-end">
-                                        <div className="col-span-1">
-                                            <FormField
-                                                control={form.control}
-                                                name="currency"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-xs font-medium">Currency</FormLabel>
-                                                        <FormControl>
-                                                            <CurrencySelector
-                                                                value={field.value || "PKR"}
-                                                                onValueChange={field.onChange}
-                                                                className="h-10"
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
+                                                    Upload Image
+                                                </Button>
+                                                {field.value && (
+                                                    <Button
+                                                        type="button"
+                                                        disabled={isPending}
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            field.onChange(null);
+                                                            setImageSizeError(false);
+                                                            if (inputRef.current) inputRef.current.value = "";
+                                                        }}
+                                                    >
+                                                        Remove
+                                                    </Button>
                                                 )}
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <FormField
-                                                control={form.control}
-                                                name="budget"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel className="text-xs font-medium">Amount</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                type="number"
-                                                                min="0"
-                                                                step="1000"
-                                                                placeholder="0.00"
-                                                                disabled={isPending}
-                                                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                                                value={field.value || ""}
-                                                                className="h-10"
-                                                            />
-                                                        </FormControl>
-                                                    </FormItem>
-                                                )}
-                                            />
+                                            </div>
                                         </div>
                                     </div>
+                                )}
+                            />
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Project Name *</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} placeholder="Enter project name" disabled={isPending} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Project Status</FormLabel>
+                                            <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select Status" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>
+                                                    <SelectItem value={ProjectStatus.ON_HOLD}>On Hold</SelectItem>
+                                                    <SelectItem value={ProjectStatus.OVER_DUE}>Over Due</SelectItem>
+                                                    <SelectItem value={ProjectStatus.COMPLETED}>Completed</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div className="col-span-1">
                                     <FormField
                                         control={form.control}
-                                        name="startDate"
+                                        name="currency"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Start Date</FormLabel>
+                                                <FormLabel>Currency</FormLabel>
                                                 <FormControl>
-                                                    <DatePicker
-                                                        {...field}
-                                                        disabled={isPending}
-                                                        placeholder="Select start date"
-                                                    />
+                                                    <CurrencySelector value={field.value || "PKR"} onValueChange={field.onChange} />
                                                 </FormControl>
-                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-
+                                </div>
+                                <div className="col-span-2">
                                     <FormField
                                         control={form.control}
-                                        name="dueDate"
+                                        name="budget"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Due Date *</FormLabel>
-                                                <FormControl>
-                                                    <DatePicker
-                                                        {...field}
-                                                        disabled={isPending}
-                                                        placeholder="Select due date"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="githubRepoUrl"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>GitHub Repository URL</FormLabel>
+                                                <FormLabel>Budget Amount</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         {...field}
-                                                        placeholder="https://github.com/owner/repo"
+                                                        type="number"
+                                                        min="0"
+                                                        step="1000"
+                                                        placeholder="0.00"
                                                         disabled={isPending}
+                                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                                        value={field.value || ""}
                                                     />
                                                 </FormControl>
-                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem className="">
-                                                <FormLabel>Project Description</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        {...field}
-                                                        placeholder="Describe the project scope, objectives, and requirements..."
-                                                        className="min-h-[136px]"
-                                                        disabled={isPending}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
                                 </div>
-
-                            <div className="flex items-center justify-end mt-3">
-                                <Button
-                                    type="submit"
-                                    size="sm"
-                                    disabled={isPending || imageSizeError}
-                                    className="min-w-[120px]"
-                                >
-                                    {isPending ? "Saving..." : "Save Changes"}
-                                </Button>
                             </div>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
 
-    {allowed && (
-      <Card className="shadow-none  border border-destructive/20 bg-destructive/5 rounded-lg">
-        <CardHeader>
-          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-destructive/80  dark:text-red-600">
-              Deleting a project is irreversible and will remove all
-              associated data.
-            </p>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button
-            size="sm"
-            variant="destructive"
-            type="button"
-            disabled={isPending}
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete project
-          </Button>
-        </CardFooter>
-      </Card>
-      )}
-        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="startDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Start Date</FormLabel>
+                                            <FormControl>
+                                                <DatePicker
+                                                    {...field}
+                                                    value={field.value ?? undefined}
+                                                    onChange={field.onChange}
+                                                    disabled={isPending}
+                                                    placeholder="Select start date"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="dueDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Due Date *</FormLabel>
+                                            <FormControl>
+                                                <DatePicker
+                                                    {...field}
+                                                    value={field.value ?? undefined}
+                                                    onChange={field.onChange}
+                                                    disabled={isPending}
+                                                    placeholder="Select due date"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <FormField
+                                control={form.control}
+                                name="githubRepoUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>GitHub Repository URL</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                placeholder="https://github.com/owner/repo"
+                                                disabled={isPending}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Project Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                placeholder="Describe the project scope, objectives, and requirements..."
+                                                className="min-h-[100px]"
+                                                disabled={isPending}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <Separator className="my-6" />
+
+                        <div className="flex items-center justify-end">
+                            <Button
+                                type="submit"
+                                disabled={isPending || imageSizeError}
+                            >
+                                {isPending ? "Saving..." : "Save Changes"}
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
     )
 };

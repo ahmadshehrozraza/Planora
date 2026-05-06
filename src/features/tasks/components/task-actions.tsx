@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useEditTaskModal } from "../hooks/use-edit-task-modal";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import { useSession } from "next-auth/react";
 
 interface TaskActionsProps {
@@ -39,15 +40,15 @@ export const TaskActions = ({
     const currentUserEmail = session?.user?.email;
 
     const { data: permissions } = useGetPermissions(workspaceId, projectId);
-    const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
 
     const isAssignee = Boolean(
         (currentUserId && assigneeId && assigneeId === currentUserId) || 
         (currentUserEmail && assigneeEmail && assigneeEmail === currentUserEmail)
     );
 
-    const canEdit = allowed || isAssignee;
-    const canDelete = allowed; 
+    const canEdit = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || isAssignee;
+    const canDelete = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_DELETE);
 
     const { open } = useEditTaskModal();
 

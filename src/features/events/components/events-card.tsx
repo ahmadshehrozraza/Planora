@@ -14,6 +14,12 @@ interface EventsCardProps extends Partial<EventTypes> {
     id: string;
     title: string;
     date: string;
+    time: any;
+    project: any;
+    sprint: any;
+    description?: string;
+    eventCreator?: any;
+    opened?: boolean;
     variant?: "default" | "mini";
 }
 
@@ -23,7 +29,7 @@ export const EventsCard = ({
     date,
     time,
     project,
-    segment,
+    sprint,
     description,
     eventCreator,
     opened = true,
@@ -93,11 +99,11 @@ export const EventsCard = ({
                         </div>
                     )}
 
-                    {segment && (
+                    {sprint && (
                         <div className="flex items-center gap-0.5 min-w-0">
                              {!isMini && <span className="text-muted-foreground/50">•</span>}
-                             <span className="truncate text-[9px] text-muted-foreground opacity-80 max-w-[60px]" title={segment.name}>
-                                {segment.name}
+                             <span className="truncate text-[9px] text-muted-foreground opacity-80 max-w-[60px]" title={sprint.name}>
+                                {sprint.name}
                              </span>
                         </div>
                     )}

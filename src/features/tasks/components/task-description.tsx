@@ -29,7 +29,7 @@ export const TaskDescription = ({
             workspaceId: task.workspaceId,
             projectId: task.projectId,
             columnId: task.columnId,
-            segmentId: task.segmentId || "",
+            sprintId: task.sprintId || "",
             assigneeId: task.assigneeId || "",
             taskType: task.taskType,
             priority: task.priority,

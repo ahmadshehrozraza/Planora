@@ -4,78 +4,48 @@ import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 
 interface GetPermissionsProps {
-    workspaceId: any;
-    projectId?: any;
+    workspaceId: string;
+    projectId?: string | null;
 }
 
-export async function getPermissions({ workspaceId, projectId }: GetPermissionsProps) {
-    
-    const defaultPermissions = {
-        workspaceAdmin: false,
-        workspaceMember: false,
-        projectManager: false,
-        projectMember: false,
-        canManageProject: false,
-        isManagerAnywhere: false,
-    };
-
+export async function getPermissions({ workspaceId, projectId }: GetPermissionsProps): Promise<string[]> {
     try {
-        const wId = typeof workspaceId === "string" ? workspaceId : workspaceId?.workspaceId;
-        const pId = typeof projectId === "string" ? projectId : projectId?.projectId;
 
-        if (!wId) return defaultPermissions;
+        if (!workspaceId || workspaceId === "undefined") return [];
 
         const session = await auth();
-        if (!session?.user?.email) return defaultPermissions;
+        if (!session?.user?.email) return [];
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
             select: { id: true }
         });
 
-        if (!user) return defaultPermissions;
+        if (!user) return [];
 
-        const workspaceUser = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: user.id, workspaceId: wId } },
-            select: { role: true }
+        const workspaceMember = await prisma.workspaceMember.findUnique({
+            where: { userId_workspaceId: { userId: user.id, workspaceId } },
+            include: { role: { select: { permissions: true } } }
         });
 
-        const wRole = workspaceUser?.role;
-        const isWorkspaceAdmin = wRole === "ADMIN";
+        const workspacePermissions = workspaceMember?.role?.permissions || [];
 
-        let projectUser = null;
-        if (pId && pId !== "none" && pId !== "null") {
-            projectUser = await prisma.projectMember.findUnique({
-                where: { userId_projectId: { userId: user.id, projectId: pId } },
-                select: { role: true }
+        let projectPermissions: string[] = [];
+        if (projectId && projectId !== "none" && projectId !== "null") {
+            const projectMember = await prisma.projectMember.findUnique({
+                where: { userId_projectId: { userId: user.id, projectId } },
+                include: { role: { select: { permissions: true } } }
             });
+            
+            projectPermissions = projectMember?.role?.permissions || [];
         }
 
-        const pRole = projectUser?.role;
+        const combinedPermissions = new Set([...workspacePermissions, ...projectPermissions]);
 
-        let isManagerAnywhere = false;
-        if (wId) {
-            const managerRecord = await prisma.projectMember.findFirst({
-                where: {
-                    userId: user.id,
-                    role: "PROJECT_MANAGER",
-                    project: { workspaceId: wId }
-                }
-            });
-            isManagerAnywhere = !!managerRecord;
-        }
-
-        return {
-            workspaceAdmin: isWorkspaceAdmin,
-            workspaceMember: !!workspaceUser,
-            projectManager: pRole === "PROJECT_MANAGER",
-            projectMember: !!projectUser || isWorkspaceAdmin,
-            canManageProject: isWorkspaceAdmin || pRole === "PROJECT_MANAGER",
-            isManagerAnywhere: isWorkspaceAdmin || isManagerAnywhere, 
-        };
+        return Array.from(combinedPermissions);
 
     } catch (error) {
-        console.error("GET_PERMISSIONS_ERROR:", error);
-        return defaultPermissions;
+        console.error("[GET_PERMISSIONS_ERROR]", error);
+        return [];
     }
 }

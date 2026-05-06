@@ -49,7 +49,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
     const [imageSizeError, setImageSizeError] = useState(false);
 
     const form = useForm<z.infer<typeof createProjectSchema>>({
-        resolver: zodResolver(createProjectSchema),
+        resolver: zodResolver(createProjectSchema) as any,
         defaultValues: {
             name: "",
             workspaceId: workspaceId || "",

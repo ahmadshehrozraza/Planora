@@ -3,71 +3,30 @@
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
-import { ArrowLeftIcon, CopyIcon, ImageIcon, Trash2 } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Image from "next/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateWorkspaceSchema } from "../schemas";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import {  Workspace } from "../types";
+import { Workspace } from "../types";
 import { useUpdateWorkspace } from "../api/use-update-workspace";
-import { useConfirm } from "@/hooks/use-confirm";
-import { useDeleteWorkspace } from "../api/use-delete-workspace";
-import { useResetInviteCode } from "../api/use-reset-invite-code";
 
 interface EditWorkspaceFormProps {
   onCancel?: () => void;
-  initialValues?: Workspace;
+  initialValues: Workspace;
 }
 
-export const EditWorkspaceForm = ({
-  onCancel,
-  initialValues,
-}: EditWorkspaceFormProps) => {
-  const router = useRouter();
-
+export const EditWorkspaceForm = ({ onCancel, initialValues }: EditWorkspaceFormProps) => {
   const { mutate, isPending } = useUpdateWorkspace();
-  
-  const { mutate: deleteWorkspace, isPending: isDeletingWorkspace } =
-    useDeleteWorkspace();
-
-  const { mutate: resetInviteCode, isPending: isResettingInviteCode } =
-    useResetInviteCode();
-
-  const [DeleteDialog, confirmDelete] = useConfirm(
-    "Delete Workspace",
-    "This action cannot be undone",
-    "destructive",
-  );
-
-  const [ResetDialog, confirmReset] = useConfirm(
-    "Reset invite link",
-    "This will invalidate the current invite link",
-    "destructive",
-  );
-
   const inputRef = useRef<HTMLInputElement>(null);
+  const [imageSizeError, setImageSizeError] = useState(false);
 
   const form = useForm<z.infer<typeof updateWorkspaceSchema>>({
     resolver: zodResolver(updateWorkspaceSchema),
@@ -76,27 +35,6 @@ export const EditWorkspaceForm = ({
       imageUrl: initialValues?.imageUrl ?? "",
     },
   });
-
-  const handleDelete = async () => {
-    const ok = await confirmDelete();
-    if (!ok) return;
-
-    deleteWorkspace(
-      { workspaceId: initialValues!.id }, 
-      {
-        onSuccess: () => {
-          window.location.href = "/";
-        }
-      }
-    );
-  };
-
-  const handleResetInviteCode = async () => {
-    const ok = await confirmReset();
-    if (!ok) return;
-
-    resetInviteCode({ workspaceId: initialValues!.id });
-  };
 
   const onSubmit = (values: z.infer<typeof updateWorkspaceSchema>) => {
     if (imageSizeError) return;
@@ -108,12 +46,10 @@ export const EditWorkspaceForm = ({
     };
 
     mutate({
-        workspaceId: initialValues!.id,
-        values: finalValues
+      workspaceId: initialValues.id,
+      values: finalValues
     });
   };
-
-  const [imageSizeError, setImageSizeError] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,175 +65,125 @@ export const EditWorkspaceForm = ({
     }
   };
 
-  const fullInviteLink = typeof window !== "undefined" ? `${window.location.origin}/workspaces/${initialValues?.id}/join/${initialValues?.inviteCode}` : "";
-
-  const handleCopyInviteLink = () => {
-    navigator.clipboard
-      .writeText(fullInviteLink)
-      .then(() => toast.success("Invite link copied to the clipboard"));
-  };
-
   return (
-    <div className="w-full flex flex-col gap-y-4 pb-3">
-      <DeleteDialog />
-      <ResetDialog />
-      <Card className="w-full h-full border-none shadow-none">
-        <CardContent className="p-4 ">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex h-full flex-col gap-y-9">
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <div className="space-y-2 flex justify-center items-center flex-col">
-                      <div className="flex items-center gap-x-5">
-                        {field.value ? (
-                          <div className="size-24 lg:size-60 relative rounded-full overflow-hidden border">
-                            <Image
-                              alt="Workspace Logo"
-                              fill
-                              className="object-cover"
-                              src={
-                                typeof field.value === "string"
-                                  ? field.value
-                                  : field.value
-                                    ? URL.createObjectURL(field.value as File)
-                                    : ""
-                              }
-                            />
-                          </div>
-                        ) : (
-                          <Avatar className="size-24 lg:size-60 border">
-                            <AvatarFallback>
-                              <ImageIcon className="size-24 text-neutral-400" />
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <p className="text-sm">Workspace Icon</p>
-                        {imageSizeError ? (
-                          <p className="text-sm text-red-600 font-medium">
-                            Image exceeds 1MB limit
-                          </p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            JPG, PNG, SVG, JPEG max 1mb
-                          </p>
-                        )}
-
-                        <input
-                          className="hidden"
-                          type="file"
-                          accept=".jpg, .png, .jpeg, .svg"
-                          ref={inputRef}
-                          onChange={handleImageChange}
-                          disabled={isPending}
+    <Card className="w-full border-border shadow-sm bg-card">
+      <CardHeader className="border-b bg-muted/20">
+        <CardTitle className="text-xl">General Information</CardTitle>
+        <CardDescription>Update your workspace name and logo.</CardDescription>
+      </CardHeader>
+      <CardContent className="p-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex h-full flex-col gap-y-8">
+              <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                  <div className="space-y-2 flex items-center gap-x-8">
+                    {field.value ? (
+                      <div className="size-20 lg:size-24 relative rounded-full overflow-hidden border">
+                        <Image
+                          alt="Workspace Logo"
+                          fill
+                          className="object-cover"
+                          src={
+                            typeof field.value === "string"
+                              ? field.value
+                              : URL.createObjectURL(field.value as File)
+                          }
                         />
-
-                        {field.value ? (
+                      </div>
+                    ) : (
+                      <Avatar className="size-20 lg:size-24 border">
+                        <AvatarFallback>
+                          <ImageIcon className="size-10 text-neutral-400" />
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className="flex flex-col gap-y-2">
+                      <p className="text-sm font-medium">Workspace Icon</p>
+                      {imageSizeError ? (
+                        <p className="text-xs text-red-600 font-medium">Image exceeds 1MB limit</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">JPG, PNG, SVG, JPEG max 1mb</p>
+                      )}
+                      <input
+                        className="hidden"
+                        type="file"
+                        accept=".jpg, .png, .jpeg, .svg"
+                        ref={inputRef}
+                        onChange={handleImageChange}
+                        disabled={isPending}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          disabled={isPending}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => inputRef.current?.click()}
+                        >
+                          Upload Image
+                        </Button>
+                        {field.value && (
                           <Button
                             type="button"
                             disabled={isPending}
                             variant="destructive"
                             size="sm"
-                            className="w-fit mt-2"
                             onClick={() => {
                               field.onChange(null);
                               setImageSizeError(false);
-                              if (inputRef.current) {
-                                inputRef.current.value = "";
-                              }
+                              if (inputRef.current) inputRef.current.value = "";
                             }}
                           >
-                            Remove Image
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            disabled={isPending}
-                            variant="outline"
-                            size="sm"
-                            className="w-fit mt-2"
-                            onClick={() => inputRef.current?.click()}
-                          >
-                            Upload Image
+                            Remove
                           </Button>
                         )}
                       </div>
-                      <FormMessage />
                     </div>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Workspace Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          className="mb-4"
-                          {...field}
-                          placeholder="Enter workspace name"
-                          disabled={isPending}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="mb-5 mt-5">
-                <Separator />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={onCancel}
-                  disabled={isPending}
-                  className={cn(!onCancel && "invisible")}
-                >
-                  Cancel
-                </Button>
-
-                <Button type="submit" size="sm" disabled={isPending || imageSizeError}>
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-none border border-destructive/20 bg-destructive/5 rounded-lg">
-        <CardHeader>
-          <h3 className="font-bold text-destructive dark:text-red-600">Danger Zone</h3>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-destructive/80  dark:text-red-600">
-              Deleting a workspace is irreversible and will remove all
-              associated data.
-            </p>
-        </CardContent>
-        <CardFooter className="flex justify-end">
-          <Button
-            size="sm"
-            variant="destructive"
-            type="button"
-            disabled={isPending || isDeletingWorkspace}
-            onClick={handleDelete}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Workspace
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+                  </div>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Workspace Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="Enter workspace name"
+                        disabled={isPending}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <Separator className="my-6" />
+            
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={onCancel}
+                disabled={isPending}
+                className={cn(!onCancel && "hidden")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={isPending || imageSizeError}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };

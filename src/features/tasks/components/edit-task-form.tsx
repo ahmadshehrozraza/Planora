@@ -6,42 +6,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { editTaskSchema } from "../schemas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { DatePicker } from "@/components/date-picker";
-import { Task, TaskPriority, TaskType } from "../types";
+import { TaskPriority, TaskType } from "../types";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { useUpdateTask } from "../api/use-update-task";
 import { Textarea } from "@/components/ui/textarea";
 import { CurrencySelector } from "@/components/currency-selector";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X, Plus, Tag as TagIcon, Check } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageLoader } from "@/components/page-loader";
 import { useGetTasks } from "../api/use-get-tasks";
 import { useGetProjectColumns } from "@/features/projects/api/use-get-project-columns";
 import { useGetProjectMembers } from "@/features/members/api/use-get-project-members";
-import { useGetSegments } from "@/features/segments/api/use-get-segments";
+import { useGetSprints } from "@/features/sprints/api/use-get-sprints";
 import { useRouter, useParams } from "next/navigation";
 import { Slider } from "@/components/ui/slider";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetTags, useCreateTag } from "@/features/tasks/api/use-task-tags";
+import { TaskTagsModal } from "./task-tags-modal";
 
 interface EditTaskFormProps {
   onCancel?: () => void;
@@ -61,12 +52,18 @@ const safeArray = (data: any): any[] => {
   return [];
 };
 
+const TAG_COLORS = [
+    "#e2e8f0", "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6"
+];
+
 export const EditTaskForm = ({
   onCancel,
   initialValues,
 }: EditTaskFormProps) => {
+  
   const router = useRouter();
   const params = useParams();
+  const queryClient = useQueryClient();
   const urlWorkspaceId = useWorkspaceId();
   const urlProjectId = params.projectId as string;
 
@@ -74,11 +71,21 @@ export const EditTaskForm = ({
   const activeWorkspaceId = urlWorkspaceId || extractId(initialValues.workspaceId);
 
   const { data: permissions } = useGetPermissions(activeWorkspaceId, activeProjectId);
-  const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL);
 
   const [isNewColumn, setIsNewColumn] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0]);
+  const [isTaskTagsModalOpen, setIsTaskTagsModalOpen] = useState(false);
   
   const { mutate: updateTask, isPending } = useUpdateTask();
+  const { mutate: createTag, isPending: isCreatingTag } = useCreateTag();
+
+  const initialBlockedByIds = safeArray(initialValues.blockedBy).map(extractId);
+  const initialBlockingToIds = safeArray(initialValues.blocking).map(extractId);
+  const initialTagIds = safeArray(initialValues.tags).map(extractId);
 
   const form = useForm<z.infer<typeof editTaskSchema>>({
     resolver: zodResolver(editTaskSchema) as any,
@@ -91,7 +98,7 @@ export const EditTaskForm = ({
       dueDate: initialValues.dueDate ? new Date(initialValues.dueDate) : new Date(),
       startDate: initialValues.startDate ? new Date(initialValues.startDate) : undefined,
       assigneeId: extractId(initialValues.assigneeId) || "no-assignee",
-      segmentId: extractId(initialValues.segmentId) || "no-segment",
+      sprintId: extractId(initialValues.sprintId) || "no-sprint",
       budget: initialValues.budget || 0,
       priority: initialValues.priority || TaskPriority.LOW,
       effortPoints: initialValues.effortPoints || 1,
@@ -99,13 +106,14 @@ export const EditTaskForm = ({
       description: initialValues.description || "",
       taskType: initialValues.taskType || TaskType.TASK,
       currency: initialValues.currency || "PKR",
-      blockedById: extractId(initialValues.blockedById) || "no-blocked-by",
-      blockingTo: initialValues.blocking?.length > 0 ? extractId(initialValues.blocking[0]) : "no-blocking-to",
+      blockedByIds: initialBlockedByIds, 
+      blockingToIds: initialBlockingToIds, 
+      tagIds: initialTagIds,
     },
   });
 
-  const watchBlockedById = form.watch("blockedById");
-  const watchBlockingTo = form.watch("blockingTo");
+  const watchBlockedByIds = form.watch("blockedByIds") || [];
+  const watchBlockingToIds = form.watch("blockingToIds") || [];
 
   const { data: columnsData, isLoading: isLoadingColumns } = useGetProjectColumns(activeProjectId);
   const { data: tasksData, isLoading: isLoadingTasks } = useGetTasks({
@@ -113,36 +121,28 @@ export const EditTaskForm = ({
       projectId: activeProjectId
   });
   const { data: membersData, isLoading: isLoadingMembers } = useGetProjectMembers(activeProjectId);
-  const { data: segmentsData, isLoading: isLoadingSegments } = useGetSegments(activeProjectId);
+  const { data: sprintsData, isLoading: isLoadingSprints } = useGetSprints(activeProjectId);
+  const { data: projectTags, isLoading: isLoadingTags } = useGetTags(activeProjectId);
 
   const columns = useMemo(() => {
     const fetched = safeArray(columnsData);
-    const initialCol = initialValues.column ? { id: extractId(initialValues.column), name: initialValues.column.name } : null;
-
-    if (fetched.length > 0) {
-      const exists = fetched.some((c: any) => extractId(c) === initialCol?.id);
-      if (!exists && initialCol) {
-        return [...fetched, initialCol];
-      }
-      return fetched;
+    if (isLoadingColumns) return [];
+    if (fetched.length > 0) return fetched.map((c: any) => ({ id: extractId(c), name: c.name }));
+    
+    const initialCol = initialValues.column;
+    if (initialCol) {
+      return [{ id: extractId(initialCol), name: initialCol.name || "Unknown" }];
     }
-
-    if (initialCol) return [initialCol];
     return [];
-  }, [columnsData, initialValues]);
+  }, [columnsData, isLoadingColumns, initialValues]);
 
   const tasks = useMemo(() => {
-    const fetched = safeArray(tasksData)
+    return safeArray(tasksData)
         .filter((t: any) => extractId(t) !== extractId(initialValues))
         .map((t: any) => ({ id: extractId(t), name: t.name }));
-    if (fetched.length > 0) return fetched;
-    const fallback = [];
-    if (initialValues.blockedBy) fallback.push({ id: extractId(initialValues.blockedBy), name: initialValues.blockedBy.name });
-    if (initialValues.blocking?.length > 0) {
-        initialValues.blocking.forEach((b: any) => fallback.push({ id: extractId(b), name: b.name }));
-    }
-    return fallback;
   }, [tasksData, initialValues]);
+
+  const availableTags = projectTags || [];
 
   const memberOptions = useMemo(() => {
     const fetched = safeArray(membersData).map((m: any) => ({
@@ -150,45 +150,85 @@ export const EditTaskForm = ({
       name: m.name || m.user?.name || "Unknown",
       image: m.image || m.user?.image
     }));
+    
+    if (isLoadingMembers) return [];
     if (fetched.length > 0) return fetched;
-    if (initialValues.assignee) return [{ id: extractId(initialValues.assignee), name: initialValues.assignee.name, image: initialValues.assignee?.image }];
+    
+    if (initialValues.assignee && extractId(initialValues.assignee)) {
+      return [{ 
+        id: extractId(initialValues.assignee), 
+        name: initialValues.assignee.name || "Unknown", 
+        image: initialValues.assignee?.image 
+      }];
+    }
     return [];
-  }, [membersData, initialValues]);
+  }, [membersData, isLoadingMembers, initialValues]);
 
-  const segmentOptions = useMemo(() => {
-    const fetched = safeArray(segmentsData).map((s: any) => ({
+  const sprintOptions = useMemo(() => {
+    const fetched = safeArray(sprintsData).map((s: any) => ({
       id: extractId(s),
       name: s.name || "Unnamed",
     }));
+    
+    if (isLoadingSprints) return [];
     if (fetched.length > 0) return fetched;
-    if (initialValues.segment) return [{ id: extractId(initialValues.segment), name: initialValues.segment.name }];
+    
+    if (initialValues.sprint && extractId(initialValues.sprint)) {
+      return [{ id: extractId(initialValues.sprint), name: initialValues.sprint.name || "Unnamed" }];
+    }
     return [];
-  }, [segmentsData, initialValues]);
-
-  const isSegmentsLoading = isLoadingSegments && segmentOptions.length === 0;
-  const isMembersLoading = isLoadingMembers && memberOptions.length === 0;
-  const isColumnsLoading = isLoadingColumns && columns.length === 0;
-  const isTasksLoading = isLoadingTasks && tasks.length === 0;
-
-  const showNewColumnInput = isNewColumn || (!isColumnsLoading && columns.length === 0);
+  }, [sprintsData, isLoadingSprints, initialValues]);
 
   useEffect(() => {
-    if (!isLoadingColumns && columns.length === 0) {
+    if (!isLoadingColumns) {
+      if (columns.length > 0) {
+        const currentColId = form.getValues("columnId");
+        const exists = columns.some(c => c.id === currentColId);
+        if (!exists && currentColId) {
+          form.setValue("columnId", "");
+          setIsNewColumn(true);
+        } else if (exists && !currentColId) {
+          form.setValue("columnId", columns[0].id);
+          setIsNewColumn(false);
+        }
+      } else {
         setIsNewColumn(true);
+      }
     }
-  }, [columns.length, isLoadingColumns]);
+  }, [columns, isLoadingColumns, form]);
+
+  const showNewColumnInput = isNewColumn || (!isLoadingColumns && columns.length === 0);
 
   const validateCircularDependency = () => {
-    const blockedById = form.getValues("blockedById");
-    const blockingTo = form.getValues("blockingTo");
+    const blocked = form.getValues("blockedByIds") || [];
+    const blocking = form.getValues("blockingToIds") || [];
 
-    if (blockedById && blockedById !== "no-blocked-by" &&
-      blockingTo && blockingTo !== "no-blocking-to" &&
-      blockedById === blockingTo) {
-      form.setError("blockingTo", { type: "manual", message: "A task cannot block itself" });
-      return false;
+    const commonTask = blocked.find(id => blocking.includes(id));
+
+    if (commonTask) {
+        form.setError("blockingToIds", {
+            type: "manual",
+            message: "Circular dependency detected. A task cannot block and be blocked by the same task."
+        });
+        return false;
     }
     return true;
+  };
+
+  const handleCreateNewTag = () => {
+      if (!newTagName.trim() || !activeProjectId) return;
+      
+      createTag({ projectId: activeProjectId, name: newTagName.trim(), color: newTagColor }, {
+          onSuccess: (response) => {
+              if (response?.data?.id) {
+                  const currentTags = form.getValues("tagIds") || [];
+                  form.setValue("tagIds", [...currentTags, response.data.id]);
+                  setNewTagName("");
+                  setIsAddingTag(false);
+                  setNewTagColor(TAG_COLORS[0]);
+              }
+          }
+      });
   };
 
   const onSubmit = (values: z.infer<typeof editTaskSchema>) => {
@@ -204,31 +244,50 @@ export const EditTaskForm = ({
 
     if (!validateCircularDependency()) return;
 
-    const payload = { 
+    const payload: any = { 
         ...values,
         id: extractId(initialValues) 
     };
     
-    if (showNewColumnInput) {
-        payload.columnId = undefined;
-    } else {
-        payload.newColumnName = undefined;
-    }
+    if (showNewColumnInput) payload.columnId = undefined;
+    else payload.newColumnName = undefined;
 
-    if (payload.blockedById === "no-blocked-by") payload.blockedById = "";
-    if (payload.blockingTo === "no-blocking-to") payload.blockingTo = "";
     if (payload.assigneeId === "no-assignee") payload.assigneeId = "";
-    if (payload.segmentId === "no-segment") payload.segmentId = "";
+    if (payload.sprintId === "no-sprint") payload.sprintId = "";
 
     updateTask(payload, {
         onSuccess: (data) => {
             if(data?.success) {
+                queryClient.invalidateQueries({ queryKey: ["columns", activeProjectId] });
+                queryClient.invalidateQueries({ queryKey: ["tasks", activeWorkspaceId, activeProjectId] });
+                queryClient.invalidateQueries({ queryKey: ["project-members", activeProjectId] });
+                queryClient.invalidateQueries({ queryKey: ["sprints", activeProjectId] });
+                queryClient.invalidateQueries({ queryKey: ["task", extractId(initialValues)] });
+                
                 form.reset();
                 onCancel?.();
                 router.refresh(); 
             }
         }
     });
+  };
+
+  const getTaskName = (id: string) => {
+      const task = tasks.find((t: any) => t.id === id);
+      if (task) return task.name;
+      const initBlocked = safeArray(initialValues.blockedBy).find((t:any) => t.id === id);
+      if (initBlocked) return initBlocked.name;
+      const initBlocking = safeArray(initialValues.blocking).find((t:any) => t.id === id);
+      if (initBlocking) return initBlocking.name;
+      return "Unknown Task";
+  };
+
+  const getTagDetails = (id: string) => {
+      const availableTag = availableTags.find((t: any) => t.id === id);
+      if (availableTag) return availableTag;
+      const initTag = safeArray(initialValues.tags).find((t:any) => t.id === id);
+      if (initTag) return initTag;
+      return null;
   };
 
   if (!activeWorkspaceId) return null;
@@ -246,10 +305,7 @@ export const EditTaskForm = ({
       <CardContent className="p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
+            <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Task Name *</FormLabel>
                   <FormControl>
@@ -260,42 +316,35 @@ export const EditTaskForm = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="segmentId"
-              render={({ field }) => (
+            <FormField control={form.control} name="sprintId" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex gap-2 items-center">
-                    Segment (Optional)
+                    Sprint (Optional)
                   </FormLabel>
-                  <Select
-                    value={field.value || "no-segment"}
-                    onValueChange={field.onChange}
-                    disabled={isPending || !allowed} 
-                  >
+                  <Select value={field.value || "no-sprint"} onValueChange={field.onChange} disabled={isPending || !allowed}>
                     <FormControl>
                       <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select Segment" />
+                        <SelectValue placeholder="Select Sprint" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="no-segment">
-                        <div className="flex items-center gap-x-2 text-muted-foreground">No Segment</div>
+                      <SelectItem value="no-sprint">
+                        <div className="flex items-center gap-x-2 text-muted-foreground">No Sprint</div>
                       </SelectItem>
-                      {isSegmentsLoading ? (
-                        <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading segments...</div>
+                      {isLoadingSprints ? (
+                        <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading sprints...</div>
                       ) : (
                         <>
-                          {segmentOptions.map((segment: any) => (
-                            <SelectItem key={segment.id} value={segment.id}>
+                          {sprintOptions.map((sprint: any) => (
+                            <SelectItem key={sprint.id} value={sprint.id}>
                               <div className="flex items-center gap-x-2">
-                                <span>{segment.name}</span>
+                                <span>{sprint.name}</span>
                               </div>
                             </SelectItem>
                           ))}
-                          {segmentOptions.length === 0 && (
-                            <SelectItem value="no-segments-available" disabled>
-                              No segments available for this project
+                          {!isLoadingSprints && sprintOptions.length === 0 && (
+                            <SelectItem value="no-sprints-available" disabled>
+                              No sprints available for this project
                             </SelectItem>
                           )}
                         </>
@@ -308,51 +357,29 @@ export const EditTaskForm = ({
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
+              <FormField control={form.control} name="startDate" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <DatePicker {...field} placeholder="Select start date" className="h-11" disabled={isPending || !allowed} />
-                    </FormControl>
+                    <FormControl><DatePicker {...field} placeholder="Select start date" className="h-11" disabled={isPending || !allowed} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
+              <FormField control={form.control} name="dueDate" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Due Date *</FormLabel>
-                    <FormControl>
-                      <DatePicker {...field} placeholder="Select due date" className="h-11" disabled={isPending || !allowed} />
-                    </FormControl>
+                    <FormControl><DatePicker {...field} placeholder="Select due date" className="h-11" disabled={isPending || !allowed} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="effortPoints"
-              render={({ field }) => (
+            <FormField control={form.control} name="effortPoints" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Effort Points (1-10)</FormLabel>
-                  <Select
-                    value={field.value?.toString() || "1"}
-                    onValueChange={(val) => field.onChange(parseInt(val))}
-                    disabled={isPending || !allowed}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select effort points" />
-                      </SelectTrigger>
-                    </FormControl>
+                  <Select value={field.value?.toString() || "1"} onValueChange={(val) => field.onChange(parseInt(val))} disabled={isPending || !allowed}>
+                    <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Select effort points" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((point) => (
                         <SelectItem key={point} value={point.toString()}>
@@ -366,10 +393,7 @@ export const EditTaskForm = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="progress"
-              render={({ field }) => (
+            <FormField control={form.control} name="progress" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center justify-between">
                     <span>Completion Progress</span>
@@ -377,15 +401,7 @@ export const EditTaskForm = ({
                   </FormLabel>
                   <FormControl>
                     <div className="pt-2 pb-4">
-                      <Slider
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={[field.value || 0]}
-                        onValueChange={(vals) => field.onChange(vals[0])}
-                        disabled={isPending}
-                        className="cursor-pointer"
-                      />
+                      <Slider min={0} max={100} step={5} value={[field.value || 0]} onValueChange={(vals) => field.onChange(vals[0])} disabled={isPending || !allowed} className="cursor-pointer" />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -393,145 +409,218 @@ export const EditTaskForm = ({
               )}
             />
 
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="blockedById"
-                  render={({ field }) => (
+            <FormField control={form.control} name="tagIds" render={({ field }) => (
+                <FormItem className="border p-4 rounded-md bg-muted/10">
+                    <div className="flex items-center justify-between mb-2">
+    <FormLabel className="flex items-center gap-2 text-sm font-semibold">
+        <TagIcon className="size-4" /> Category Tags {isLoadingTags && <PageLoader />}
+    </FormLabel>
+    <div className="flex items-center gap-3">
+        {!isAddingTag &&  (
+            <button type="button" onClick={() => setIsAddingTag(true)} className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-1">
+                <Plus className="size-3" /> Add New
+            </button>
+        )}
+        
+            <button type="button" onClick={() => setIsTaskTagsModalOpen(true)} className="text-[10px] text-muted-foreground hover:text-foreground hover:underline font-semibold flex items-center gap-1">
+                Manage
+            </button>
+
+    </div>
+</div>
+
+                    {isAddingTag && allowed && (
+                        <div className="flex flex-col gap-3 mb-4 p-3 bg-card border rounded-md shadow-sm">
+                            <Input 
+                                placeholder="Tag name (e.g. Frontend)" 
+                                value={newTagName} 
+                                onChange={(e) => setNewTagName(e.target.value)} 
+                                disabled={isCreatingTag}
+                                className="h-9 text-xs"
+                            />
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    {TAG_COLORS.map((color) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() => setNewTagColor(color)}
+                                            className={cn("size-5 rounded-full cursor-pointer transition flex items-center justify-center border", newTagColor === color ? "ring-2 ring-offset-1 ring-primary" : "")}
+                                            style={{ backgroundColor: color }}
+                                        >
+                                            {newTagColor === color && <Check className="size-3 text-black mix-blend-difference" />}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingTag(false)} className="h-7 text-xs px-2" disabled={isCreatingTag}>Cancel</Button>
+                                    <Button type="button" size="sm" onClick={handleCreateNewTag} className="h-7 text-xs px-3" disabled={!newTagName.trim() || isCreatingTag}>
+                                        {isCreatingTag ? "Saving..." : "Save"}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <Select
+                        disabled={isLoadingTags || isPending || !allowed}
+                        value="" 
+                        onValueChange={(val) => {
+                            if (val && !field.value?.includes(val)) {
+                                field.onChange([...(field.value || []), val]);
+                            }
+                        }}
+                    >
+                        <FormControl>
+                            <SelectTrigger className="h-10 text-xs">
+                                <span className="text-muted-foreground">Select tags...</span>
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {availableTags.filter((t: any) => !field.value?.includes(t.id)).length === 0 ? (
+                                <SelectItem value="none" disabled>No more tags available</SelectItem>
+                            ) : (
+                                availableTags.filter((t: any) => !field.value?.includes(t.id)).map((tag: any) => (
+                                    <SelectItem key={tag.id} value={tag.id}>
+                                        <div className="flex items-center gap-2">
+                                            <div className="size-3 rounded-full" style={{ backgroundColor: tag.color }}></div>
+                                            <span className="truncate">{tag.name}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))
+                            )}
+                        </SelectContent>
+                    </Select>
+
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {field.value?.map((id: string) => {
+                            const tagInfo = getTagDetails(id);
+                            if(!tagInfo) return null;
+                            return (
+                                <div key={id} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border shadow-sm" style={{ backgroundColor: `${tagInfo.color}20`, borderColor: tagInfo.color, color: '#333' }}>
+                                    <div className="size-2 rounded-full" style={{ backgroundColor: tagInfo.color }}></div>
+                                    <span className="truncate max-w-[150px] font-medium dark:text-white">{tagInfo.name}</span>
+                                    {allowed && (
+                                        <button type="button" onClick={() => field.onChange(field.value?.filter((v:string) => v !== id))} className="hover:opacity-70 ml-1">
+                                            <X className="size-3" />
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <FormMessage />
+                </FormItem>
+            )} />
+
+            <div className="space-y-4 border p-4 rounded-md bg-muted/20">
+              <h4 className="text-sm font-semibold mb-2">Dependencies (Optional)</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="blockedByIds" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        Blocked By
-                      </FormLabel>
-                      <Select
-                        value={field.value || "no-blocked-by"}
-                        onValueChange={field.onChange}
-                        disabled={isPending || !allowed}
-                      >
+                      <FormLabel className="flex items-center gap-2 text-xs">Blocked By {isLoadingTasks && <PageLoader />}</FormLabel>
+                      <Select disabled={isLoadingTasks || isPending || !allowed} value="" onValueChange={(val) => { if (val && !field.value?.includes(val)) field.onChange([...(field.value || []), val]); }}>
                         <FormControl>
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select task that blocks this" />
+                            <span className="text-muted-foreground">Add blocking task...</span>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="no-blocked-by">
-                            <div className="flex items-center gap-x-2">
-                              <span className="text-muted-foreground">Not blocked</span>
-                            </div>
-                          </SelectItem>
-                          {isTasksLoading ? (
-                              <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading tasks...</div>
+                          {tasks.filter((t: any) => !field.value?.includes(t.id)).length === 0 ? (
+                              <SelectItem value="none" disabled>No more tasks available</SelectItem>
                           ) : (
-                              tasks.map((task: any) => (
+                              tasks.filter((t: any) => !field.value?.includes(t.id)).map((task: any) => (
                                 <SelectItem key={task.id} value={task.id}>
-                                  <div className="flex items-center justify-between gap-x-2">
-                                    <span className="truncate">{task.name}</span>
-                                  </div>
+                                  <span className="truncate">{task.name}</span>
                                 </SelectItem>
                               ))
                           )}
                         </SelectContent>
                       </Select>
+                      
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {field.value?.map((id: string) => (
+                              <div key={id} className="flex items-center gap-1 bg-destructive/10 text-destructive text-xs px-2 py-1 rounded-full border border-destructive/20">
+                                  <span className="truncate max-w-[150px]">{getTaskName(id)}</span>
+                                  {allowed && (
+                                    <button type="button" onClick={() => field.onChange(field.value?.filter((v:string) => v !== id))} className="hover:text-foreground">
+                                        <X className="size-3" />
+                                    </button>
+                                  )}
+                              </div>
+                          ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="blockingTo"
-                  render={({ field }) => (
+                <FormField control={form.control} name="blockingToIds" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        Blocking To
-                      </FormLabel>
-                      <Select
-                        value={field.value || "no-blocking-to"}
-                        onValueChange={field.onChange}
-                        disabled={isPending || !allowed}
-                      >
+                      <FormLabel className="flex items-center gap-2 text-xs">Blocking To {isLoadingTasks && <PageLoader />}</FormLabel>
+                      <Select disabled={isLoadingTasks || isPending || !allowed} value="" onValueChange={(val) => { if (val && !field.value?.includes(val)) field.onChange([...(field.value || []), val]); }}>
                         <FormControl>
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Select task that this blocks" />
+                            <span className="text-muted-foreground">Add task this blocks...</span>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="no-blocking-to">
-                            <div className="flex items-center gap-x-2">
-                              <span className="text-muted-foreground">Not blocking</span>
-                            </div>
-                          </SelectItem>
-                          {isTasksLoading ? (
-                              <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading tasks...</div>
+                           {tasks.filter((t: any) => !field.value?.includes(t.id)).length === 0 ? (
+                              <SelectItem value="none" disabled>No more tasks available</SelectItem>
                           ) : (
-                              tasks.map((task: any) => (
+                              tasks.filter((t: any) => !field.value?.includes(t.id)).map((task: any) => (
                                 <SelectItem key={task.id} value={task.id}>
-                                  <div className="flex items-center justify-between gap-x-2">
-                                    <span className="truncate">{task.name}</span>
-                                  </div>
+                                  <span className="truncate">{task.name}</span>
                                 </SelectItem>
                               ))
                           )}
                         </SelectContent>
                       </Select>
+
+                      <div className="flex flex-wrap gap-2 mt-2">
+                          {field.value?.map((id: string) => (
+                              <div key={id} className="flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full border border-primary/20">
+                                  <span className="truncate max-w-[150px]">{getTaskName(id)}</span>
+                                  {allowed && (
+                                    <button type="button" onClick={() => field.onChange(field.value?.filter((v:string) => v !== id))} className="hover:text-foreground">
+                                        <X className="size-3" />
+                                    </button>
+                                  )}
+                              </div>
+                          ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {(watchBlockedById && watchBlockedById !== "no-blocked-by" &&
-                watchBlockingTo && watchBlockingTo !== "no-blocking-to" &&
-                watchBlockedById === watchBlockingTo) && (
-                  <Alert variant="destructive" className="py-2">
+              {watchBlockedByIds.some((id:string) => watchBlockingToIds.includes(id)) && (
+                  <Alert variant="destructive" className="py-2 mt-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-xs">
-                      Circular dependency detected! A task cannot block itself.
+                      Circular dependency detected! A task cannot block and be blocked by the same task.
                     </AlertDescription>
                   </Alert>
-                )}
+              )}
             </div>
 
-            <FormField
-              control={form.control}
-              name="assigneeId"
-              render={({ field }) => (
+            <FormField control={form.control} name="assigneeId" render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex gap-2 items-center">
-                    Assignee (Optional)
-                  </FormLabel>
-                  <Select
-                    value={field.value || "no-assignee"}
-                    onValueChange={field.onChange}
-                    disabled={isPending || !allowed}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select Assignee" />
-                      </SelectTrigger>
-                    </FormControl>
+                  <FormLabel className="flex gap-2 items-center">Assignee (Optional) {isLoadingMembers && <PageLoader />}</FormLabel>
+                  <Select value={field.value || "no-assignee"} onValueChange={field.onChange} disabled={isPending || !allowed}>
+                    <FormControl><SelectTrigger className="h-11"><SelectValue placeholder="Select Assignee" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="no-assignee">
-                        <div className="flex items-center gap-x-2">
-                          <span className="text-muted-foreground">No Assignee</span>
-                        </div>
-                      </SelectItem>
-                      {isMembersLoading ? (
-                          <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading members...</div>
-                      ) : (
-                          memberOptions.map((member: any) => (
-                            <SelectItem key={member.id} value={member.id}>
-                              <div className="flex items-center gap-x-2">
-                                <MemberAvatar 
-                                  name={member.name} 
-                                  className="size-6" 
-                                  src={member.image}
-                                  />
-                                <span>{member.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))
-                      )}
+                      <SelectItem value="no-assignee"><span className="text-muted-foreground">No Assignee</span></SelectItem>
+                      {memberOptions.map((member: any) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div className="flex items-center gap-x-2">
+                            <MemberAvatar name={member.name} className="size-6" src={member.image} />
+                            <span>{member.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -542,85 +631,35 @@ export const EditTaskForm = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col space-y-2">
                 <div className="flex items-center justify-between mt-1">
-                    <FormLabel className="flex gap-2 items-center">
-                      Status Column *
-                    </FormLabel>
+                    <FormLabel className="flex gap-2 items-center">Status Column *</FormLabel>
                     {!showNewColumnInput && allowed && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsNewColumn(true);
-                                form.setValue("columnId", "");
-                                form.clearErrors("columnId");
-                            }}
-                            className="text-[10px] text-primary hover:underline font-semibold"
-                            disabled={isPending}
-                        >
-                            + Add New Column
-                        </button>
+                        <button type="button" onClick={() => { setIsNewColumn(true); form.setValue("columnId", ""); form.clearErrors("columnId"); }} className="text-[10px] text-primary hover:underline font-semibold" disabled={isPending}>+ Add New Column</button>
                     )}
                     {showNewColumnInput && columns.length > 0 && allowed && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsNewColumn(false);
-                                form.setValue("newColumnName", "");
-                                form.clearErrors("newColumnName");
-                            }}
-                            className="text-[10px] text-primary hover:underline font-semibold"
-                            disabled={isPending}
-                        >
-                            Select Existing
-                        </button>
+                        <button type="button" onClick={() => { setIsNewColumn(false); form.setValue("newColumnName", ""); form.clearErrors("newColumnName"); }} className="text-[10px] text-primary hover:underline font-semibold" disabled={isPending}>Select Existing</button>
                     )}
                 </div>
                 
                 {showNewColumnInput ? (
-                    <FormField
-                        control={form.control}
-                        name="newColumnName"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <Input {...field} placeholder="e.g. In QA" className="h-11" disabled={isPending} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="newColumnName" render={({ field }) => (
+                        <FormItem><FormControl><Input {...field} placeholder="e.g. In QA" className="h-11" disabled={isPending || !allowed} /></FormControl><FormMessage /></FormItem>
+                    )} />
                 ) : (
-                    <FormField
-                        control={form.control}
-                        name="columnId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-                                    <FormControl>
-                                        <SelectTrigger className="h-11">
-                                          <SelectValue placeholder="Select Column" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {isColumnsLoading ? (
-                                            <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">Loading columns...</div>
-                                        ) : (
-                                            columns.map((col: any) => (
-                                                <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <FormField control={form.control} name="columnId" render={({ field }) => (
+                        <FormItem>
+                            <Select value={field.value} onValueChange={field.onChange} disabled={isPending || !allowed}>
+                                <FormControl><SelectTrigger className="h-11">{isLoadingColumns ? <span className="text-muted-foreground">Loading...</span> : <SelectValue placeholder="Select Column" />}</SelectTrigger></FormControl>
+                                <SelectContent>
+                                    {columns.map((col: any) => (<SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                 )}
               </div>
 
-              <FormField
-                control={form.control}
-                name="taskType"
-                render={({ field }) => (
+              <FormField control={form.control} name="taskType" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type *</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange} disabled={isPending || !allowed}>
@@ -636,10 +675,7 @@ export const EditTaskForm = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
+              <FormField control={form.control} name="priority" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority *</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange} disabled={isPending || !allowed}>
@@ -658,43 +694,22 @@ export const EditTaskForm = ({
 
             <div className="grid grid-cols-3 gap-3 items-end">
               <div className="col-span-1">
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
+                <FormField control={form.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-medium">Currency</FormLabel>
                       <FormControl>
-                        <CurrencySelector
-                          value={field.value || "PKR"}
-                          onValueChange={field.onChange}
-                          className="h-10"
-                          disabled={isPending || !allowed}
-                        />
+                        <CurrencySelector value={field.value || "PKR"} onValueChange={field.onChange} className="h-10" disabled={isPending || !allowed} />
                       </FormControl>
                     </FormItem>
                   )}
                 />
               </div>
               <div className="col-span-2">
-                <FormField
-                  control={form.control}
-                  name="budget"
-                  render={({ field }) => (
+                <FormField control={form.control} name="budget" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-xs font-medium">Cost Amount</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min="0"
-                          step="1000"
-                          placeholder="0.00"
-                          onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                          value={field.value || ""}
-                          className="h-10"
-                          disabled={isPending || !allowed}
-                        />
+                        <Input {...field} type="number" min="0" step="1000" placeholder="0.00" onChange={(e) => field.onChange(Number(e.target.value) || 0)} value={field.value || ""} className="h-10" disabled={isPending || !allowed} />
                       </FormControl>
                     </FormItem>
                   )}
@@ -702,19 +717,11 @@ export const EditTaskForm = ({
               </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
+            <FormField control={form.control} name="description" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Task Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Describe the task details, requirements, and objectives..."
-                      className="min-h-[100px] resize-none"
-                      disabled={isPending || !allowed}
-                    />
+                    <Textarea {...field} placeholder="Describe the task details..." className="min-h-[100px] resize-none" disabled={isPending || !allowed} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -723,31 +730,22 @@ export const EditTaskForm = ({
 
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className={cn(!onCancel && "invisible")}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-
-                <Button type="submit" size="lg" disabled={isPending}>
-                  {isPending ? (
-                    <>
-                      <PageLoader />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Task"
-                  )}
-                </Button>
+                <Button type="button" variant="outline" onClick={onCancel} className={cn(!onCancel && "invisible")} disabled={isPending}>Cancel</Button>
+                {allowed && (
+                    <Button type="submit" size="lg" disabled={isPending}>
+                      {isPending ? <><PageLoader /> Updating...</> : "Update Task"}
+                    </Button>
+                )}
               </div>
             </div>
           </form>
         </Form>
       </CardContent>
+      <TaskTagsModal
+            isOpen={isTaskTagsModalOpen} 
+            setIsOpen={setIsTaskTagsModalOpen} 
+            projectId={activeProjectId} // Form ke hisab se pass karein
+        />
     </Card>
   );
 };

@@ -9,6 +9,7 @@ import { PlusIcon, CheckIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import { useSession } from "next-auth/react";
 
 type TasksState = Record<string, Task[]>;
@@ -45,7 +46,8 @@ export const DataKanban = ({
 
     const workspaceId = tasks[0]?.workspaceId;
     const { data: permissions } = useGetPermissions(workspaceId);
-    const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_STATUS);
 
     useEffect(() => {
         const sortedCols = [...columns].sort((a, b) => a.position - b.position);

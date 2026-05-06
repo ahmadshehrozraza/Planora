@@ -16,6 +16,7 @@ import { useColumnMutations } from "@/features/columns/api/use-columns";
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface KanbanColumnHeaderProps {
     columnId: string;
@@ -66,7 +67,8 @@ export const KanbanColumnHeader = ({
     };
 
     const { data: permissions } = useGetPermissions( workspaceId );
-    const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_STATUS);
 
     return (
         <>

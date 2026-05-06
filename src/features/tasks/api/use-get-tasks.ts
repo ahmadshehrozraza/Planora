@@ -6,11 +6,12 @@ import { getTasksAction } from "../server/get-tasks";
 interface UseGetTasksProps {
     workspaceId?: string;
     projectId?: string;
-    segmentId?: string;
+    sprintId?: string;
     assigneeId?: string;
     status?: string;
     dueDate?: string;
     search?: string;
+    tagId?: string;
 }
 
 export const useGetTasks = (params: UseGetTasksProps) => {
@@ -19,11 +20,12 @@ export const useGetTasks = (params: UseGetTasksProps) => {
             "tasks",
             params.workspaceId,
             params.projectId,
-            params.segmentId,
+            params.sprintId,
             params.assigneeId,
             params.status,
             params.dueDate,
-            params.search
+            params.search,
+            params.tagId
         ],
         queryFn: async () => {
             const response = await getTasksAction(params);

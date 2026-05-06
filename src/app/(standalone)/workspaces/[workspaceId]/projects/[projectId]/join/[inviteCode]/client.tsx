@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useJoinProject } from "@/features/projects/api/use-join-project";
@@ -13,16 +13,18 @@ interface JoinProjectClientProps {
 export const JoinProjectClient = ({ projectName, workspaceName }: JoinProjectClientProps) => {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
 
     const workspaceId = params.workspaceId as string;
     const projectId = params.projectId as string;
     const inviteCode = params.inviteCode as string;
+    const roleToken = searchParams.get("t");
 
     const { mutate: joinProject, isPending } = useJoinProject();
 
     const handleJoin = () => {
         joinProject(
-            { workspaceId, projectId, inviteCode },
+            { workspaceId, projectId, inviteCode, roleToken: roleToken || undefined },
             {
                 onSuccess: (data) => {
                     if (!data.error) {

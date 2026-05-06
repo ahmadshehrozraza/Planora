@@ -2,7 +2,7 @@ import { useQueryState, parseAsBoolean } from "nuqs";
 
 export const useCreateEventModal = () => {
     const [ isOpen, setIsOpen ] = useQueryState(
-        "create-segment",
+        "create-event",
         parseAsBoolean.withDefault(false).withOptions({ clearOnDefault: true})
     )
 

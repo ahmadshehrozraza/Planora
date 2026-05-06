@@ -18,6 +18,7 @@ export async function getProjectMembersAction({ projectId }: { projectId: string
         const members = await prisma.projectMember.findMany({
             where: { projectId },
             include: {
+                role: true,
                 user: {
                     include: {
                         workspaceMembers: {

@@ -26,7 +26,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { passwordVerifySchema } from "../schemas";
 import { useVerifyPassword } from "../api/use-verify-current-password";
-import { useDeleteUser } from "../api/use-delete-user";
+import { useDeleteAccount } from "../api/use-delete-account";
 import { PageLoader } from "@/components/page-loader";
 
 interface DeleteUserFormProps {
@@ -35,14 +35,14 @@ interface DeleteUserFormProps {
     user: any;
 }
 
-export const DeleteUserForm = ({ 
-    isOpen, 
+export const DeleteUserForm = ({
+    isOpen,
     onClose,
     user,
 }: DeleteUserFormProps) => {
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     const [DeleteDialog, confirmDelete] = useConfirm(
         "Delete Account",
         "This action cannot be undone. All your data will be permanently removed.",
@@ -57,40 +57,27 @@ export const DeleteUserForm = ({
     });
 
     const { mutate: verifyPassword, isPending: isVerifying } = useVerifyPassword();
-    const { mutate: deleteUser, isPending: isDeletingUser } = useDeleteUser();
+    const { mutate: deleteAccount, isPending: isDeletingUser } = useDeleteAccount();
 
-    const handleDeleteAccount = async () => {
-    deleteUser({
-        param: { 
-            userId: user.$id
-        }
-    }, {
-        onSuccess: () => {
-            router.push("/sign-in");
-        },
-        onError: (error) => {
-            console.error("Delete error:", error);
-            toast.error("Failed to delete account");
-        }
-    });
-};
+    const handleDeleteAccount = (password: string) => {
+        setIsDeleting(true);
+        deleteAccount(password, {
+            onSettled: () => setIsDeleting(false)
+        });
+    };
 
     const onVerifySubmit = async (values: z.infer<typeof passwordVerifySchema>) => {
-        console.log("values: ", values);
-    verifyPassword({
-        json: {
-            email: user.email,
-            currentPassword: values.currentPassword,
-        }
-        }, {
+        verifyPassword(values.currentPassword, {
             onSuccess: () => {
                 confirmDelete().then((ok) => {
                     if (ok) {
-                        handleDeleteAccount(); // Call delete function
+                        handleDeleteAccount(values.currentPassword);
                     }
                 });
             },
-            // onError already handled in the hook
+            onError: (error: Error | any) => {
+                console.error("Verification failed", error);
+            }
         });
     };
 
@@ -103,7 +90,7 @@ export const DeleteUserForm = ({
         onClose();
     };
 
-    const isLoading = isVerifying || isDeleting;
+    const isLoading = isVerifying || isDeletingUser || isDeleting;
 
     return (
         <>
@@ -160,8 +147,8 @@ export const DeleteUserForm = ({
                                 >
                                     Cancel
                                 </Button>
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isLoading}
                                     variant="destructive"
                                 >

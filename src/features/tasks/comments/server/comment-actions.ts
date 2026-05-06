@@ -88,7 +88,10 @@ export async function createCommentAction({ taskId, text, parentId }: { taskId: 
         }
 
         eventEmitter.emit('invalidate');
-        revalidatePath('/workspaces', 'layout');
+
+        revalidatePath(`/workspaces/${task.workspaceId}/tasks/${taskId}`);
+        revalidatePath(`/workspaces/${task.workspaceId}/tasks`);
+        revalidatePath(`/workspaces/${task.workspaceId}/projects/${task.projectId}`);
 
         return { success: true };
     } catch (error: any) { 
@@ -113,7 +116,7 @@ export async function updateCommentAction({ commentId, text }: { commentId: stri
         const updatedComment = await prisma.comment.update({ 
             where: { id: commentId }, 
             data: { text },
-            include: { task: { select: { workspaceId: true, projectId: true, name: true } } }
+            include: { task: { select: { workspaceId: true, projectId: true, name: true, id: true } } }
         });
 
         await createAuditLog({
@@ -128,7 +131,9 @@ export async function updateCommentAction({ commentId, text }: { commentId: stri
         });
 
         eventEmitter.emit('invalidate');
-        revalidatePath('/workspaces', 'layout');
+
+        revalidatePath(`/workspaces/${updatedComment.task.workspaceId}/tasks/${updatedComment.task.id}`);
+        revalidatePath(`/workspaces/${updatedComment.task.workspaceId}/tasks`);
 
         return { success: true };
     } catch (error: any) { 
@@ -144,7 +149,7 @@ export async function deleteCommentAction(commentId: string) {
 
         const commentToDelete = await prisma.comment.findUnique({
             where: { id: commentId },
-            include: { task: { select: { workspaceId: true, projectId: true, name: true } } }
+            include: { task: { select: { workspaceId: true, projectId: true, name: true, id: true } } }
         });
 
         if (!commentToDelete) throw new Error("Comment not found");
@@ -164,7 +169,9 @@ export async function deleteCommentAction(commentId: string) {
         });
 
         eventEmitter.emit('invalidate');
-        revalidatePath('/workspaces', 'layout');
+        
+        revalidatePath(`/workspaces/${commentToDelete.task.workspaceId}/tasks/${commentToDelete.task.id}`);
+        revalidatePath(`/workspaces/${commentToDelete.task.workspaceId}/tasks`);
 
         return { success: true };
     } catch (error: any) { 
@@ -217,7 +224,9 @@ export async function toggleLikeCommentAction(commentId: string) {
         }
 
         eventEmitter.emit('invalidate');
-        revalidatePath('/workspaces', 'layout');
+        
+        revalidatePath(`/workspaces/${comment.task.workspaceId}/tasks/${comment.task.id}`);
+        revalidatePath(`/workspaces/${comment.task.workspaceId}/tasks`);
 
         return { success: true };
     } catch (error: any) { 

@@ -6,6 +6,7 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 async function verifyManagerOrAdmin(projectId: string) {
     const session = await auth();
@@ -21,16 +22,18 @@ async function verifyManagerOrAdmin(projectId: string) {
     if (!project) throw new Error("Project not found");
 
     const isWorkspaceAdmin = await prisma.workspaceMember.findUnique({
-        where: { userId_workspaceId: { userId: user.id, workspaceId: project.workspaceId } }
+        where: { userId_workspaceId: { userId: user.id, workspaceId: project.workspaceId } },
+        include: { role: true }
     });
 
     const isProjectManager = await prisma.projectMember.findUnique({
-        where: { userId_projectId: { userId: user.id, projectId: projectId } }
+        where: { userId_projectId: { userId: user.id, projectId: projectId } },
+        include: { role: true }
     });
 
     if (
-        (isWorkspaceAdmin && isWorkspaceAdmin.role === "ADMIN") || 
-        (isProjectManager && isProjectManager.role === "PROJECT_MANAGER")
+        (isWorkspaceAdmin && (isWorkspaceAdmin.role?.permissions?.includes(PERMISSIONS.WORKSPACE_UPDATE) || isWorkspaceAdmin.role?.permissions?.includes(PERMISSIONS.WORKSPACE_DELETE))) || 
+        (isProjectManager && (isProjectManager.role?.permissions?.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS) || isProjectManager.role?.permissions?.includes(PERMISSIONS.PROJECT_UPDATE)))
     ) {
         return { userId: user.id, project };
     }

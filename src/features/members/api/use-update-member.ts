@@ -8,8 +8,8 @@ export const useUpdateMember = () => {
     const queryClient = useQueryClient();
     
     return useMutation({
-        mutationFn: async ({ memberId, role, workspaceId }: { memberId: string, role: string, workspaceId: string }) => {
-            const response = await updateMemberAction({ memberId, role });
+        mutationFn: async ({ memberId, roleId, workspaceId }: { memberId: string, roleId: string, workspaceId: string }) => {
+            const response = await updateMemberAction({ memberId, roleId });
             if (response?.error) throw new Error(response.error);
             return response;
         },

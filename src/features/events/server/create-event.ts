@@ -24,7 +24,7 @@ export async function createEventAction(values: z.infer<typeof createEventSchema
         const validatedData = createEventSchema.parse(values);
 
         const projectId = validatedData.projectId === "none" ? null : validatedData.projectId;
-        const segmentId = validatedData.segmentId === "none" ? null : validatedData.segmentId;
+        const sprintId = validatedData.sprintId === "none" ? null : validatedData.sprintId;
 
         const newEvent = await prisma.event.create({
             data: {
@@ -33,7 +33,7 @@ export async function createEventAction(values: z.infer<typeof createEventSchema
                 date: validatedData.date,
                 workspaceId: validatedData.workspaceId,
                 projectId: projectId,
-                segmentId: segmentId,
+                sprintId: sprintId,
                 creatorId: user.id
             }
         });

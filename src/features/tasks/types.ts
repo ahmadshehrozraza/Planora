@@ -1,4 +1,3 @@
-
 export enum TaskType {
     TASK = "TASK",
     FEATURE = "FEATURE",
@@ -18,12 +17,18 @@ export type CustomColumnData = {
     projectId: string;
 }
 
+export type TagData = {
+    id: string;
+    name: string;
+    color: string;
+}
+
 export type Task = {
     id: string;
     workspaceId: string;
     assignedById: string;
     projectId: string;
-    segmentId: string | null;
+    sprintId: string | null;
     columnId: string;
     name: string;
     description: string | null;
@@ -34,7 +39,9 @@ export type Task = {
     taskType: string;
     priority: string;
     effortPoints: number;
-    blockedById: string | null;
+    blockedBy?: Partial<Task>[];
+    blocking?: Partial<Task>[];
+    tags?: TagData[];
     currency: string;
     createdAt: Date;
     updatedAt: Date;

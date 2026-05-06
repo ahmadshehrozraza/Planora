@@ -6,15 +6,18 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export async function joinProjectAction({ 
     projectId, 
     workspaceId, 
-    inviteCode 
+    inviteCode,
+    roleToken
 }: { 
     projectId: string, 
     workspaceId: string, 
-    inviteCode: string 
+    inviteCode: string,
+    roleToken?: string
 }) {
     try {
         const session = await auth();
@@ -24,14 +27,31 @@ export async function joinProjectAction({
             where: { email: session.user.email },
             select: { id: true, name: true }
         });
+        
         if (!user) throw new Error("User not found");
 
         const project = await prisma.project.findUnique({
-            where: { id: projectId, workspaceId, inviteCode }
+            where: { id: projectId, workspaceId }
         });
 
-        if (!project) {
+        if (!project || project.inviteCode !== inviteCode) {
             throw new Error("Invalid invite link or project not found");
+        }
+
+        let projectRoleToAssignId: string | null = null;
+
+        if (roleToken) {
+            const specificProjectRole = await prisma.customRole.findFirst({
+                where: { projectId, inviteCode: roleToken }
+            });
+            if (!specificProjectRole) throw new Error("Invalid or expired role token");
+            projectRoleToAssignId = specificProjectRole.id;
+        } else {
+            const defaultProjectRole = await prisma.customRole.findFirst({
+                where: { projectId, isProjectDefault: true }
+            });
+            if (!defaultProjectRole) throw new Error("Critical Error: Default role not configured for this project.");
+            projectRoleToAssignId = defaultProjectRole.id;
         }
 
         const existingWorkspaceMember = await prisma.workspaceMember.findUnique({
@@ -39,8 +59,13 @@ export async function joinProjectAction({
         });
 
         if (!existingWorkspaceMember) {
+            const defaultWorkspaceRole = await prisma.customRole.findFirst({
+                where: { workspaceId, isWorkspaceDefault: true }
+            });
+            if (!defaultWorkspaceRole) throw new Error("Critical Error: Default workspace role missing.");
+            
             await prisma.workspaceMember.create({
-                data: { userId: user.id, workspaceId, role: "MEMBER" }
+                data: { userId: user.id, workspaceId, roleId: defaultWorkspaceRole.id }
             });
         }
 
@@ -53,7 +78,7 @@ export async function joinProjectAction({
         }
 
         const newMember = await prisma.projectMember.create({
-            data: { userId: user.id, projectId, role: "MEMBER" }
+            data: { userId: user.id, projectId, roleId: projectRoleToAssignId }
         });
 
         await createAuditLog({
@@ -70,7 +95,7 @@ export async function joinProjectAction({
         const projectManagers = await prisma.projectMember.findMany({
             where: {
                 projectId,
-                role: { in: ["ADMIN", "PROJECT_MANAGER"] }
+                role: { permissions: { has: PERMISSIONS.PROJECT_MANAGE_MEMBERS } }
             },
             select: { userId: true }
         });

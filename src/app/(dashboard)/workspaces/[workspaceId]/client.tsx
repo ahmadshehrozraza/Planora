@@ -5,6 +5,7 @@ import { PageLoader } from "@/components/page-loader";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useGetDashboardStats } from "@/features/dashboard/api/use-get-dashboard-stats";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 import { TasksList } from "@/features/dashboard/components/tasks-list";
 import { ProjectsList } from "@/features/dashboard/components/projects-list";
@@ -36,12 +37,13 @@ export const DashboardClient = () => {
 
   const { urgentTasks, urgentProjects, activeProjects, upcomingEvents, activityData, memberVelocity, memberBurndown } = data;
 
-  const isAdmin = permissions?.workspaceAdmin ?? false;
-  const isManager = permissions?.isManagerAnywhere ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
 
-  const showWorkspaceCharts = isAdmin || isManager;
-  const showMemberCharts = !isAdmin && !isManager;
-  const showProjectsList = isAdmin || isManager;
+  const showWorkspaceCharts = permissionsList.includes(PERMISSIONS.WORKSPACE_VIEW_ANALYTICS);
+  const showMemberCharts = !showWorkspaceCharts;
+  const showProjectsList = permissionsList.includes(PERMISSIONS.WORKSPACE_VIEW_ALL_PROJECTS) || 
+                           permissionsList.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS) || 
+                           permissionsList.includes(PERMISSIONS.PROJECT_UPDATE);
 
   return (
     <div className="h-full w-full flex flex-col space-y-6 pb-5">

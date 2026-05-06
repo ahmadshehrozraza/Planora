@@ -3,14 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { Member } from "@/features/members/types";
+import { WorkspaceMember } from "@prisma/client";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { SettingsIcon, Crown, User } from "lucide-react";
 import Link from "next/link";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 
 interface MembersListProps {
-    data: Member[];
+    data: any[];
     total: number;
 }
 

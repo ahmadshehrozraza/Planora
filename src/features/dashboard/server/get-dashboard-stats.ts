@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export async function getDashboardStats({ workspaceId }: { workspaceId: string }) {
     try {
@@ -17,19 +18,20 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
         const [workspace, workspaceMember, userProjects] = await Promise.all([
             prisma.workspace.findUnique({ where: { id: workspaceId }, select: { createdAt: true } }),
             prisma.workspaceMember.findUnique({
-                where: { userId_workspaceId: { userId: user.id, workspaceId } }
+                where: { userId_workspaceId: { userId: user.id, workspaceId } },
+                include: { role: true }
             }),
             prisma.projectMember.findMany({
                 where: { userId: user.id },
-                select: { projectId: true, role: true }
+                include: { role: true }
             })
         ]);
 
         if (!workspaceMember || !workspace) return null;
 
-        const isAdmin = workspaceMember.role === "ADMIN";
+        const isAdmin = workspaceMember.role?.permissions.includes(PERMISSIONS.WORKSPACE_UPDATE) || workspaceMember.role?.permissions.includes(PERMISSIONS.WORKSPACE_DELETE);
         const allowedProjectIds = userProjects.map(p => p.projectId);
-        const managedProjectIds = userProjects.filter(p => p.role === "PROJECT_MANAGER").map(p => p.projectId);
+        const managedProjectIds = userProjects.filter(p => p.role?.permissions.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS) || p.role?.permissions.includes(PERMISSIONS.PROJECT_UPDATE)).map(p => p.projectId);
         const isManagerAnywhere = managedProjectIds.length > 0;
 
         const today = new Date();
@@ -209,7 +211,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
         }));
 
         return {
-            role: workspaceMember.role,
+            role: workspaceMember.role?.name || "Member",
             isManager: isManagerAnywhere,
             urgentTasks,
             urgentProjects,

@@ -3,6 +3,7 @@
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export async function deleteAccountAction(password?: string) {
     try {
@@ -25,7 +26,7 @@ export async function deleteAccountAction(password?: string) {
         const adminWorkspaces = await prisma.workspaceMember.findMany({
             where: {
                 userId: user.id,
-                role: "ADMIN",
+                role: { permissions: { hasSome: [PERMISSIONS.WORKSPACE_UPDATE, PERMISSIONS.WORKSPACE_DELETE] } },
             },
             select: {
                 workspaceId: true,
@@ -37,7 +38,7 @@ export async function deleteAccountAction(password?: string) {
             const otherAdminsCount = await prisma.workspaceMember.count({
                 where: {
                     workspaceId: ws.workspaceId,
-                    role: "ADMIN",
+                    role: { permissions: { hasSome: [PERMISSIONS.WORKSPACE_UPDATE, PERMISSIONS.WORKSPACE_DELETE] } },
                     NOT: { userId: user.id }
                 }
             });

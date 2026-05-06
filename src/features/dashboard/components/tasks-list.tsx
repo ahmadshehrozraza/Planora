@@ -11,6 +11,7 @@ import Link from "next/link";
 import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { DateIndicator } from "@/components/date-indicator";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export const TasksList = ({ data }: { data: any[] }) => {
     const { open: createTask } = useCreateTaskModal();
@@ -18,8 +19,9 @@ export const TasksList = ({ data }: { data: any[] }) => {
     if (!workspaceId) return null;
 
     const { data: permissions } = useGetPermissions( workspaceId );
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
 
-    const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_CREATE);
 
     return (
         <div className="flex flex-col gap-y-4 col-span-1">

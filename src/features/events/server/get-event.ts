@@ -21,7 +21,7 @@ export async function getEventAction({ eventId }: { eventId: string }) {
             where: { id: eventId },
             include: {
                 project: { select: { name: true, imageUrl: true } },
-                segment: { select: { name: true } },
+                sprint: { select: { name: true } },
                 creator: { select: { name: true, image: true } },
             }
         });
@@ -42,10 +42,10 @@ export async function getEventAction({ eventId }: { eventId: string }) {
             time: event.date ? format(event.date, "hh:mm a") : "",
 
             projectId: event.projectId, 
-            segmentId: event.segmentId,
+            sprintId: event.sprintId,
             
             project: event.project ? { name: event.project.name, imageUrl: event.project.imageUrl || undefined } : null,
-            segment: event.segment ? { name: event.segment.name } : null,
+            sprint: event.sprint ? { name: event.sprint.name } : null,
             
             eventCreator: { 
                 name: event.creator?.name || "Unknown", 

@@ -25,6 +25,7 @@ import { EventsCard } from "@/features/events/components/events-card";
 import { PageLoader } from "@/components/page-loader";
 import { EventTypes } from "@/features/events/types";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 const EventsClientPage = () => {
   const { open } = useCreateEventModal();
@@ -35,10 +36,12 @@ const EventsClientPage = () => {
   const { data, isLoading, isError } = useGetEvents({
     workspaceId,
     projectId,
+    sprintId: null, 
   });
 
   const { data: permissions } = useGetPermissions( workspaceId );
-  const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.EVENT_CREATE);
 
   const events: EventTypes[] = data || [];
 
@@ -51,7 +54,6 @@ const EventsClientPage = () => {
   const displayedEvents = useMemo(() => {
     if (!events.length) return [];
 
-    // Safely parse the URL date string to a Date object, fallback to today
     const targetDate = date ? parseISO(date) : new Date();
 
     if (view === "TODAY") {
@@ -162,7 +164,7 @@ const EventsClientPage = () => {
                         time={event.time}
                         description={event.description || undefined}
                         project={event.project || undefined}
-                        segment={event.segment || undefined} 
+                        sprint={event.sprint || undefined} 
                         eventCreator={event.eventCreator}
                         opened={event.opened}
                         variant="default"

@@ -5,7 +5,6 @@ import {
     Trash2Icon, 
     LockKeyhole, 
     ArrowRightCircle, 
-    Hash,
     CalendarPlus,
     RefreshCw,
     Activity, 
@@ -37,6 +36,7 @@ import { useState, useEffect } from "react";
 import { ActivityTimeline } from "@/features/activity-logs/components/activity-timeline";
 import { useGetLogs } from "@/features/activity-logs/api/use-get-logs";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,13 +56,14 @@ export const TaskOverview = ({
     const currentUserEmail = session?.user?.email;
 
     const { data: permissions } = useGetPermissions(workspaceId, task.projectId);
-    const allowed = (permissions?.workspaceAdmin || permissions?.projectManager) ?? false;
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_DELETE);
 
     const isAssignee = Boolean(
         currentUserEmail && task.assignee?.email && task.assignee.email === currentUserEmail
     );
 
-    const canEdit = allowed || isAssignee;
+    const canEdit = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || isAssignee;
 
     const [showLogs, setShowLogs] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
@@ -89,13 +90,12 @@ export const TaskOverview = ({
     const projectImage = task.project?.imageUrl;
     const projectRepoUrl = task.project?.githubRepoUrl;
 
-    const segmentName = task.segment?.name || "No Segment";
+    const sprintName = task.sprint?.name || "No Sprint";
     const statusName = task.column?.name || "Unknown Status";
 
-    const blockedByName = task.blockedBy?.name;
-    const blockingNames = task.blocking?.length > 0 
-        ? task.blocking.map((t: any) => t.name).join(", ") 
-        : null;
+    const blockedByTasks = Array.isArray(task.blockedBy) ? task.blockedBy : [];
+    const blockingTasks = Array.isArray(task.blocking) ? task.blocking : [];
+    const taskTags = Array.isArray(task.tags) ? task.tags : [];
 
     const [DeleteDialog, confirmDelete] = useConfirm(
         "Delete Task",
@@ -292,34 +292,53 @@ export const TaskOverview = ({
                                     </div>
                                 </OverviewProperty>
 
-                                <OverviewProperty label="Segment">
-                                    <p className="text-sm font-medium text-foreground">{segmentName}</p>
+                                <OverviewProperty label="Sprint">
+                                    <p className="text-sm font-medium text-foreground">{sprintName}</p>
                                 </OverviewProperty>
 
-                                <OverviewProperty label="Blocked By">
-                                    {blockedByName ? (
-                                        <div className="flex items-center gap-1.5 text-destructive">
-                                            <LockKeyhole className="size-3.5" />
-                                            <span className="text-sm font-medium truncate max-w-[150px]" title={blockedByName}>
-                                                {blockedByName}
-                                            </span>
+                                <OverviewProperty label="Tags">
+                                    {taskTags.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                            {taskTags.map((tag: any) => (
+                                                <div key={tag.id} className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border shadow-sm" style={{ backgroundColor: `${tag.color}15`, borderColor: tag.color, color: '#333' }}>
+                                                    <div className="size-1.5 rounded-full" style={{ backgroundColor: tag.color }}></div>
+                                                    <span className="truncate max-w-[120px] font-medium dark:text-gray-200" title={tag.name}>{tag.name}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
                                         <span className="text-sm text-muted-foreground">-</span>
                                     )}
                                 </OverviewProperty>
 
-                                <OverviewProperty label="Start Date">
-                                    <DateIndicator className="text-sm font-medium text-foreground" value={task.startDate} />
+                                <OverviewProperty label="Blocked By">
+                                    {blockedByTasks.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                            {blockedByTasks.map((t: any) => (
+                                                <div key={t.id} className="flex items-center gap-1 bg-destructive/10 text-destructive text-xs px-2 py-1 rounded-md border border-destructive/20">
+                                                    <LockKeyhole className="size-3" />
+                                                    <span className="truncate max-w-[150px]" title={t.name}>{t.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">-</span>
+                                    )}
                                 </OverviewProperty>
 
-                                <OverviewProperty label="Create Date">
-                                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                                        <CalendarPlus className="size-3.5" />
-                                        <span className="text-sm font-medium text-foreground">
-                                            {format(new Date(task.createdAt), "PPP")}
-                                        </span>
-                                    </div>
+                                <OverviewProperty label="Blocking To">
+                                    {blockingTasks.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                            {blockingTasks.map((t: any) => (
+                                                <div key={t.id} className="flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-500 text-xs px-2 py-1 rounded-md border border-amber-500/20">
+                                                    <ArrowRightCircle className="size-3" />
+                                                    <span className="truncate max-w-[150px]" title={t.name}>{t.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">-</span>
+                                    )}
                                 </OverviewProperty>
                             </div>
 
@@ -348,21 +367,21 @@ export const TaskOverview = ({
                                     </p>
                                 </OverviewProperty>
 
-                                <OverviewProperty label="Blocking To">
-                                    {blockingNames ? (
-                                        <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-500">
-                                            <ArrowRightCircle className="size-3.5" />
-                                            <span className="text-sm font-medium truncate max-w-[150px]" title={blockingNames}>
-                                                {blockingNames}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-sm text-muted-foreground">-</span>
-                                    )}
+                                <OverviewProperty label="Start Date">
+                                    <DateIndicator className="text-sm font-medium text-foreground" value={task.startDate} />
                                 </OverviewProperty>
 
                                 <OverviewProperty label="Due Date">
                                     <DateIndicator className="text-sm font-medium text-foreground" value={task.dueDate} />
+                                </OverviewProperty>
+
+                                <OverviewProperty label="Create Date">
+                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                        <CalendarPlus className="size-3.5" />
+                                        <span className="text-sm font-medium text-foreground">
+                                            {format(new Date(task.createdAt), "PPP")}
+                                        </span>
+                                    </div>
                                 </OverviewProperty>
 
                                 <OverviewProperty label="Last Update">

@@ -7,7 +7,7 @@ import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
 
-export async function updateMemberAction({ memberId, role }: { memberId: string, role: string }) {
+export async function updateMemberAction({ memberId, roleId }: { memberId: string, roleId: string }) {
     try {
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
@@ -19,31 +19,43 @@ export async function updateMemberAction({ memberId, role }: { memberId: string,
         if (!currentUser) throw new Error("User not found");
 
         const memberToUpdate = await prisma.workspaceMember.findUnique({ 
-            where: { id: memberId } 
+            where: { id: memberId },
+            include: { role: true }
         });
         if (!memberToUpdate) throw new Error("Member not found");
 
         const currentMember = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: memberToUpdate.workspaceId } }
+            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: memberToUpdate.workspaceId } },
+            include: { role: true }
         });
 
-        if (!currentMember || currentMember.role !== "ADMIN") {
+        if (!currentMember || !currentMember.role?.permissions.includes("WORKSPACE_MANAGE_ROLES")) {
             throw new Error("Only admins can update roles");
         }
 
-        if (memberToUpdate.role === "ADMIN" && role === "MEMBER") {
-            const adminCount = await prisma.workspaceMember.count({
-                where: { workspaceId: memberToUpdate.workspaceId, role: "ADMIN" }
+        const newRole = await prisma.customRole.findUnique({ where: { id: roleId } });
+        if (!newRole) throw new Error("Role not found");
+
+        const wasOwner = memberToUpdate.role?.permissions.includes("WORKSPACE_DELETE");
+        const willBeOwner = newRole.permissions.includes("WORKSPACE_DELETE");
+
+        if (wasOwner && !willBeOwner) {
+            const allMembers = await prisma.workspaceMember.findMany({
+                where: { workspaceId: memberToUpdate.workspaceId },
+                include: { role: true }
             });
-            if (adminCount === 1) throw new Error("Cannot downgrade the last admin");
+            const ownerCount = allMembers.filter(m => m.role?.permissions.includes("WORKSPACE_DELETE")).length;
+            
+            if (ownerCount <= 1) throw new Error("Cannot downgrade the last Owner. Transfer ownership first.");
         }
 
         const updated = await prisma.workspaceMember.update({
             where: { id: memberId },
-            data: { role: role as "ADMIN" | "MEMBER" },
+            data: { roleId },
             include: { 
                 user: { select: { name: true } },
-                workspace: { select: { name: true } }
+                workspace: { select: { name: true } },
+                role: true
             }
         });
 
@@ -53,7 +65,7 @@ export async function updateMemberAction({ memberId, role }: { memberId: string,
             entityType: ENTITY_TYPE.MEMBER,
             action: ACTION.UPDATE,
             metadata: {
-                message: `Updated role for ${updated.user.name || "member"} to ${updated.role}`
+                message: `Updated role for ${updated.user.name || "member"} to ${updated.role.name}`
             }
         });
 
@@ -65,7 +77,7 @@ export async function updateMemberAction({ memberId, role }: { memberId: string,
             entityType: "WORKSPACE",
             action: "UPDATED",
             title: "Workspace Role Updated",
-            message: `changed your role to ${role} in workspace "${updated.workspace.name}"`
+            message: `changed your role to ${updated.role.name} in workspace "${updated.workspace.name}"`
         });
 
         eventEmitter.emit('invalidate');
@@ -91,26 +103,31 @@ export async function deleteMemberAction({ memberId }: { memberId: string }) {
             where: { id: memberId },
             include: { 
                 user: { select: { name: true } },
-                workspace: { select: { name: true } }
+                workspace: { select: { name: true } },
+                role: true
             }
         });
         if (!memberToDelete) throw new Error("Member not found");
 
         const currentMember = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: memberToDelete.workspaceId } }
+            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: memberToDelete.workspaceId } },
+            include: { role: true }
         });
 
         if (!currentMember) throw new Error("Unauthorized");
 
-        if (currentMember.role !== "ADMIN" && currentMember.id !== memberId) {
+        if (!currentMember.role?.permissions.includes("WORKSPACE_MANAGE_MEMBERS") && currentMember.id !== memberId) {
             throw new Error("Only admins can remove other members");
         }
 
-        if (memberToDelete.role === "ADMIN") {
-            const adminCount = await prisma.workspaceMember.count({
-                where: { workspaceId: memberToDelete.workspaceId, role: "ADMIN" }
+        if (memberToDelete.role?.permissions.includes("WORKSPACE_DELETE")) {
+            const allMembers = await prisma.workspaceMember.findMany({
+                where: { workspaceId: memberToDelete.workspaceId },
+                include: { role: true }
             });
-            if (adminCount === 1) throw new Error("Cannot remove the last admin");
+            const ownerCount = allMembers.filter(m => m.role?.permissions.includes("WORKSPACE_DELETE")).length;
+            
+            if (ownerCount <= 1) throw new Error("Cannot remove the last Owner. Transfer ownership first.");
         }
 
         await prisma.workspaceMember.delete({ where: { id: memberId } });

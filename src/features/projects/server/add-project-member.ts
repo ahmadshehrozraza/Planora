@@ -6,15 +6,16 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 export async function addProjectMemberAction({ 
     projectId, 
     userId, 
-    role = "MEMBER" 
+    roleId 
 }: { 
     projectId: string, 
     userId: string, 
-    role?: string 
+    roleId: string 
 }) {
     try {
         const session = await auth();
@@ -30,18 +31,19 @@ export async function addProjectMemberAction({
         if (!project) throw new Error("Project not found");
 
         const isWorkspaceAdmin = await prisma.workspaceMember.findUnique({
-            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: project.workspaceId } }
+            where: { userId_workspaceId: { userId: currentUser.id, workspaceId: project.workspaceId } },
+            include: { role: true }
         });
 
         const isProjectAdmin = await prisma.projectMember.findUnique({
-            where: { userId_projectId: { userId: currentUser.id, projectId: projectId } }
+            where: { userId_projectId: { userId: currentUser.id, projectId: projectId } },
+            include: { role: true }
         });
 
-        if (
-            isWorkspaceAdmin?.role !== "ADMIN" && 
-            isProjectAdmin?.role !== "ADMIN" && 
-            isProjectAdmin?.role !== "PROJECT_MANAGER"
-        ) {
+        const hasWorkspacePerm = isWorkspaceAdmin?.role?.permissions.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS);
+        const hasProjectPerm = isProjectAdmin?.role?.permissions.includes(PERMISSIONS.PROJECT_MANAGE_MEMBERS);
+
+        if (!hasWorkspacePerm && !hasProjectPerm) {
             throw new Error("You don't have permission to add members to this project");
         }
 
@@ -57,10 +59,11 @@ export async function addProjectMemberAction({
             data: {
                 userId,
                 projectId,
-                role: role as any, 
+                roleId: roleId,
             },
             include: {
-                user: { select: { name: true } }
+                user: { select: { name: true } },
+                role: { select: { name: true } }
             }
         });
 
@@ -71,7 +74,7 @@ export async function addProjectMemberAction({
             entityType: ENTITY_TYPE.MEMBER,
             action: ACTION.CREATE,
             metadata: {
-                message: `Added ${newMember.user?.name || "a user"} as ${role} to the project`
+                message: `Added ${newMember.user?.name || "a user"} as ${newMember.role.name} to the project`
             }
         });
 
@@ -84,7 +87,7 @@ export async function addProjectMemberAction({
             entityType: "PROJECT",
             action: "ASSIGNED",
             title: "Added to Project",
-            message: `added you to the project "${project.name}" as ${role}`
+            message: `added you to the project "${project.name}" as ${newMember.role.name}`
         });
 
         eventEmitter.emit('invalidate');

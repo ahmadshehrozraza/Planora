@@ -8,7 +8,11 @@ export const useGetProjectColumns = (projectId?: string) => {
         queryKey: ["columns", projectId],
         queryFn: async () => {
             if (!projectId) return [];
-            return await getProjectColumnsAction(projectId);
+            try {
+                return (await getProjectColumnsAction(projectId)) || [];
+            } catch (error) {
+                return [];
+            }
         },
         enabled: !!projectId,
         placeholderData: keepPreviousData,

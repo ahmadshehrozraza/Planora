@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { CreateEventModal } from "@/features/events/components/create-event-modal";
 import { useCreateEventModal } from "@/features/events/hooks/use-create-event-modal";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface EventsListProps {
     data: any[];
@@ -21,8 +22,9 @@ export const EventsList = ({ data }: EventsListProps) => {
     if (!workspaceId) return null;
 
     const { data: permissions } = useGetPermissions( workspaceId );
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
     
-    const allowed = (permissions?.workspaceAdmin || permissions?.isManagerAnywhere) ?? false;
+    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.EVENT_CREATE);
 
     return (
         <div className="flex flex-col gap-y-4 col-span-1">

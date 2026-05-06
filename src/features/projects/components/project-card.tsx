@@ -53,11 +53,11 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
       progress: 0,
       completedTasks: 0,
       totalTasks: 0,
-      completedSegments: 0,
-      totalSegments: 0
+      completedSprints: 0,
+      totalSprints: 0
   };
 
-  const { progress, completedTasks, totalTasks, completedSegments, totalSegments } = stats;
+  const { progress, completedTasks, totalTasks, completedSprints, totalSprints } = stats;
 
   if (view === "list") {
       return (
@@ -102,7 +102,7 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
                           Tasks: <span className="font-semibold text-foreground">{completedTasks} / {totalTasks}</span>
                       </span>
                       <span className="text-muted-foreground">
-                          Segments: <span className="font-semibold text-foreground">{completedSegments} / {totalSegments}</span>
+                          Sprints: <span className="font-semibold text-foreground">{completedSprints} / {totalSprints}</span>
                       </span>
                   </div>
 
@@ -187,8 +187,8 @@ const ProjectCardComponent: React.FC<ProjectCardProps> = ({
             <span className="font-semibold text-foreground">{completedTasks} / {totalTasks}</span>
           </div>
           <div className="flex justify-between items-center text-xs">
-            <span className="text-muted-foreground font-medium">Segments</span>
-            <span className="font-semibold text-foreground">{completedSegments} / {totalSegments}</span>
+            <span className="text-muted-foreground font-medium">Sprints</span>
+            <span className="font-semibold text-foreground">{completedSprints} / {totalSprints}</span>
           </div>
         </div>
       </CardContent>

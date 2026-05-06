@@ -8,7 +8,7 @@ export const useAddProjectMember = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (values: { projectId: string; userId: string; role?: string }) => {
+        mutationFn: async (values: { projectId: string; userId: string; roleId: string }) => {
             const response = await addProjectMemberAction(values);
             if (response?.error) throw new Error(response.error);
             return response;

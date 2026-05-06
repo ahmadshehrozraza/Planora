@@ -73,7 +73,7 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
 
   if (isLoading || !analytics || !predictions) return <div className="h-[60vh] flex items-center justify-center"><PageLoader /></div>;
 
-  const { meta, segments, members, kpi, charts } = analytics;
+  const { meta, sprints, members, kpi, charts } = analytics;
   const currency = meta.currency || "$";
 
   return (
@@ -189,7 +189,7 @@ export default function ProjectAnalytics({ projectId }: { projectId: string }) {
           <CumulativeFlow data={charts.cfd} config={cfdConfig} />
         </div>
         <div className="lg:col-span-2 print:break-inside-avoid">
-          <VerticalBarChart data={segments} />
+          <VerticalBarChart data={sprints} />
         </div>
       </div>
 

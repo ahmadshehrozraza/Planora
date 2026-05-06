@@ -20,13 +20,14 @@ export async function getProjectMembersAction(projectId: string) {
                         email: true,
                         image: true,
                     }
-                }
+                },
+                role: true
             }
         });
 
         const formattedMembers = members.map(m => ({
             id: m.id,
-            role: m.role,
+            role: m.role?.name || "Member",
             userId: m.user.id,
             name: m.user.name || m.user.email?.split('@')[0] || "User",
             email: m.user.email,

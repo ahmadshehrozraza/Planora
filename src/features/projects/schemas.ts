@@ -6,12 +6,11 @@ export const createProjectSchema = z.object({
   workspaceId: z.string(),
   description: z.string().optional(),
   imageUrl: z.union([
-        z.instanceof(File),
-        z.string().transform((value) => value === "" ? undefined : value),
-    ])
-    .optional().nullable(),
+    z.instanceof(File),
+    z.string().transform((value) => value === "" ? undefined : value),
+  ]).optional().nullable(),
   githubRepoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  status: z.enum(ProjectStatus).default(ProjectStatus.ACTIVE),
+  status: z.nativeEnum(ProjectStatus).default(ProjectStatus.ACTIVE),
   startDate: z.date().optional(),
   dueDate: z.date().min(new Date(), "Due date must be in the future"),
   budget: z.number().min(0, "Budget cannot be negative").optional(),
@@ -19,18 +18,17 @@ export const createProjectSchema = z.object({
 });
 
 export const updateProjectSchema = z.object({
-    name: z.string().min(1, "Project name is required").max(100, "Project name is too long"),
+  name: z.string().min(1, "Project name is required").max(100, "Project name is too long"),
   workspaceId: z.string(),
   description: z.string().optional(),
   imageUrl: z.union([
-        z.instanceof(File),
-        z.string().transform((value) => value === "" ? undefined : value),
-    ])
-    .optional().nullable(),
+    z.instanceof(File),
+    z.string().transform((value) => value === "" ? undefined : value),
+  ]).optional().nullable(),
   githubRepoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  status: z.enum(ProjectStatus),
+  status: z.nativeEnum(ProjectStatus),
   startDate: z.date().optional(),
-  dueDate: z.date().min(new Date(), "Due date must be in the future"),
+  dueDate: z.date().optional(),
   budget: z.number().min(0, "Budget cannot be negative").optional(),
   currency: z.string().optional().default("PKR"),
 });

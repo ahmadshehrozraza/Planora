@@ -11,6 +11,7 @@ import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { Badge } from "@/components/ui/badge";
 import { DateIndicator } from "@/components/date-indicator";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 interface ProjectsListProps {
     data: any[];
@@ -23,8 +24,9 @@ export const ProjectsList = ({ data }: ProjectsListProps) => {
     if (!workspaceId) return null;
 
     const { data: permissions } = useGetPermissions(workspaceId);
+    const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
 
-    const isAdmin = permissions?.workspaceAdmin ?? false;
+    const isAdmin = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.PROJECT_CREATE);
 
     return (
         <div className="flex flex-col gap-y-4 col-span-1">

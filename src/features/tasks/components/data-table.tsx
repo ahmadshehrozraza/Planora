@@ -22,7 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -58,9 +57,7 @@ export function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = React.useState({})
 
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
-    segment: false,
-    blockedBy: false,
-    blockingTo: false,
+    sprint: false,
     effortPoints: false,
   });
 

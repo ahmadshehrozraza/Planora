@@ -1,4 +1,3 @@
-
 export interface EventTypes {
   id: string;
   title: string;
@@ -6,7 +5,7 @@ export interface EventTypes {
   time: string;      
   description?: string | null;
   project: { name: string; imageUrl?: string } | null; 
-  segment: { name: string } | null; 
+  sprint: { name: string } | null; 
   eventCreator: { name: string; avatar?: string }; 
   opened: boolean;    
 }

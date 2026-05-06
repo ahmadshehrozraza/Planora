@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { 
   Mail, Calendar, Briefcase, CheckCircle2, 
   AlertOctagon, TrendingUp, Target, Shield, Trash2, Plus 
@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PageLoader } from "@/components/page-loader";
+import { PageError } from "@/components/page-error";
 import { useConfirm } from "@/hooks/use-confirm";
 
 import {
@@ -28,11 +29,13 @@ import {
 } from "@/components/ui/select";
 
 import { useGetWorkspaceMemberProfile } from "@/features/members/api/use-get-workspace-member-profile";
+import { useGetWorkspaceMembers } from "@/features/workspaces/api/use-get-workspace-members";
 import { useUpdateMember } from "@/features/members/api/use-update-member";
 import { useDeleteMember } from "@/features/members/api/use-delete-member";
-import { MemberRole } from "@/features/members/types";
 import { useAddProjectMember } from "@/features/projects/api/use-add-project-member";
-import { toast } from "sonner";
+import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
+import { useGetWorkspaceRoles } from "@/features/custom-roles/api/use-workspace-roles";
+import { PERMISSIONS } from "@/lib/permissions-constants";
 
 const effortConfig = {
   points: { label: "Effort Points", color: "hsl(var(--primary))" },
@@ -45,9 +48,15 @@ interface MemberProfileClientProps {
 
 export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClientProps) => {
 
-  const { data: member, isLoading } = useGetWorkspaceMemberProfile({ workspaceId, memberId });
-  const { mutate: addProjectMember, isPending: isAddingToProject } = useAddProjectMember();
+  const { data: permissions, isLoading: isLoadingPermissions } = useGetPermissions(workspaceId);
+  const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
+  const canManageMembers = permissionsList.includes(PERMISSIONS.WORKSPACE_MANAGE_MEMBERS) || permissionsList.includes(PERMISSIONS.WORKSPACE_UPDATE);
 
+  const { data: customRoles, isLoading: isLoadingRoles } = useGetWorkspaceRoles(workspaceId);
+  const { data: member, isLoading: isLoadingProfile } = useGetWorkspaceMemberProfile({ workspaceId, memberId });
+  const { data: membersData, isLoading: isLoadingMembersList } = useGetWorkspaceMembers(workspaceId);
+  
+  const { mutate: addProjectMember, isPending: isAddingToProject } = useAddProjectMember();
   const { mutate: updateRole, isPending: isUpdating } = useUpdateMember();
   const { mutate: removeMember, isPending: isDeleting } = useDeleteMember();
   
@@ -61,18 +70,34 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
   const [selectedProject, setSelectedProject] = useState<string>("");
 
   useEffect(() => {
-    if (member?.role) setRole(member.role);
+    if (member?.role) {
+      setRole(typeof member.role === "string" ? member.role : member.role.id || "");
+    }
   }, [member?.role]);
+
+  const adminCount = useMemo(() => {
+    return membersData?.data?.filter((m: any) => 
+        m.role?.permissions?.includes(PERMISSIONS.WORKSPACE_DELETE) || 
+        m.role?.permissions?.includes(PERMISSIONS.WORKSPACE_MANAGE_ROLES)
+    ).length || 0;
+  }, [membersData?.data]);
+
+  const isOnlyAdmin = useCallback((memberRole: any) => {
+    const isAdmin = memberRole?.permissions?.includes(PERMISSIONS.WORKSPACE_DELETE) || memberRole?.permissions?.includes(PERMISSIONS.WORKSPACE_MANAGE_ROLES);
+    return isAdmin && adminCount === 1;
+  }, [adminCount]);
+
+  const isLastAdmin = member ? isOnlyAdmin(member.role) : false;
 
   const handleRoleChange = (newRole: string) => {
     setRole(newRole);
-    updateRole({ memberId, role: newRole as MemberRole });
+    updateRole({ memberId, workspaceId, roleId: newRole });
   };
 
   const handleDeleteMember = async () => {
     const ok = await confirm();
     if (!ok) return;
-    removeMember({ memberId });
+    removeMember({ memberId, workspaceId });
   };
 
   const handleAddToProject = () => {
@@ -81,12 +106,12 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
     addProjectMember(
       { 
         projectId: selectedProject, 
-        userId: member.userId 
+        userId: member.userId,
+        roleId: "default"
       },
       {
         onSuccess: () => {
           setSelectedProject("");
-          
         }
       }
     );
@@ -101,7 +126,13 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
     return config as ChartConfig;
   }, [member?.taskStatusData]);
 
-  if (isLoading || !member) return <div className="h-screen flex items-center justify-center"><PageLoader /></div>;
+  const isLoading = isLoadingPermissions || isLoadingRoles || isLoadingProfile || isLoadingMembersList;
+
+  if (isLoading) return <div className="h-screen flex items-center justify-center"><PageLoader /></div>;
+  if (!canManageMembers) return <PageError message="You do not have permission to view detailed member profiles." />;
+  if (!member) return <PageError message="Member profile not found." />;
+
+  const displayRole = member.role?.name || "Member";
 
   return (
     <div className="w-full flex flex-col space-y-6 pb-8 text-foreground">
@@ -118,7 +149,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{member.name}</h1>
               <Badge variant="secondary" className="uppercase tracking-wider text-xs">
-                {role.replace(/_/g, " ")}
+                {displayRole}
               </Badge>
             </div>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2 text-sm text-muted-foreground font-medium mb-4 sm:mb-0">
@@ -147,13 +178,22 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={role} onValueChange={handleRoleChange}>
-                  <DropdownMenuRadioItem value="ADMIN" className="cursor-pointer font-medium">Administrator</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="MEMBER" className="cursor-pointer font-medium">Member</DropdownMenuRadioItem>
+                  {customRoles?.map((r: any) => (
+                    <DropdownMenuRadioItem 
+                        key={r.id} 
+                        value={r.id} 
+                        className="cursor-pointer font-medium"
+                        disabled={isLastAdmin}
+                    >
+                      {r.name}
+                    </DropdownMenuRadioItem>
+                  ))}
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleDeleteMember}
-                  className="text-destructive font-medium focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                  disabled={isLastAdmin}
+                  className={`font-medium ${isLastAdmin ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer'}`}
                 >
                   <Trash2 className="size-4 mr-2" />
                   Remove Member
@@ -170,7 +210,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Total Assigned</p>
-                <p className="text-3xl font-bold">{member.kpis.totalTasksAssigned}</p>
+                <p className="text-3xl font-bold">{member.kpis?.totalTasksAssigned || 0}</p>
               </div>
               <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Briefcase className="size-5" /></div>
             </div>
@@ -181,7 +221,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Tasks Done</p>
-                <p className="text-3xl font-bold">{member.kpis.tasksCompleted}</p>
+                <p className="text-3xl font-bold">{member.kpis?.tasksCompleted || 0}</p>
               </div>
               <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><CheckCircle2 className="size-5" /></div>
             </div>
@@ -192,7 +232,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                <p className="text-3xl font-bold text-destructive">{member.kpis.overdueTasks}</p>
+                <p className="text-3xl font-bold text-destructive">{member.kpis?.overdueTasks || 0}</p>
               </div>
               <div className="p-2 bg-rose-500/10 rounded-lg text-rose-500"><AlertOctagon className="size-5" /></div>
             </div>
@@ -203,7 +243,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Efficiency</p>
-                <p className="text-3xl font-bold text-primary">{member.kpis.efficiency}%</p>
+                <p className="text-3xl font-bold text-primary">{member.kpis?.efficiency || 0}%</p>
               </div>
               <div className="p-2 bg-primary/10 rounded-lg text-primary"><Target className="size-5" /></div>
             </div>
@@ -218,36 +258,40 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
             <CardDescription>Current status of all assigned tasks</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 pb-4 flex items-center justify-center">
-            <ChartContainer config={dynamicStatusConfig} className="w-full aspect-square max-h-[220px]">
-              <PieChart>
-                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                <Pie
-                  data={member.taskStatusData}
-                  dataKey="count"
-                  nameKey="status"
-                  innerRadius={55}
-                  strokeWidth={3}
-                  stroke="var(--background)"
-                >
-                  <Label
-                    content={({ viewBox }) => {
-                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                        return (
-                          <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                            <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                              {member.kpis.totalTasksAssigned}
-                            </tspan>
-                            <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-xs font-medium">
-                              Tasks
-                            </tspan>
-                          </text>
-                        )
-                      }
-                    }}
-                  />
-                </Pie>
-              </PieChart>
-            </ChartContainer>
+            {member.taskStatusData && member.taskStatusData.length > 0 ? (
+              <ChartContainer config={dynamicStatusConfig} className="w-full aspect-square max-h-[220px]">
+                <PieChart>
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <Pie
+                    data={member.taskStatusData}
+                    dataKey="count"
+                    nameKey="status"
+                    innerRadius={55}
+                    strokeWidth={3}
+                    stroke="var(--background)"
+                  >
+                    <Label
+                      content={({ viewBox }) => {
+                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                          return (
+                            <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                              <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
+                                {member.kpis?.totalTasksAssigned || 0}
+                              </tspan>
+                              <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-xs font-medium">
+                                Tasks
+                              </tspan>
+                            </text>
+                          )
+                        }
+                      }}
+                    />
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <div className="text-muted-foreground text-sm h-full flex items-center">No task data available</div>
+            )}
           </CardContent>
         </Card>
 
@@ -258,7 +302,7 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
           </CardHeader>
           <CardContent className="flex-1">
              <ChartContainer config={effortConfig} className="w-full h-[220px]">
-              <BarChart accessibilityLayer data={member.weeklyEffortData} margin={{ top: 10, left: -20, right: 0 }}>
+              <BarChart accessibilityLayer data={member.weeklyEffortData || []} margin={{ top: 10, left: -20, right: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="day" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} tickMargin={8} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
@@ -283,12 +327,12 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 <SelectValue placeholder="Select project..." />
               </SelectTrigger>
               <SelectContent>
-                {member.availableProjectsToAdd.length > 0 ? member.availableProjectsToAdd.map((proj: any) => (
+                {member.availableProjectsToAdd?.length > 0 ? member.availableProjectsToAdd.map((proj: any) => (
                   <SelectItem key={proj.id} value={proj.id}>{proj.name}</SelectItem>
                 )) : <SelectItem value="none" disabled>No projects available</SelectItem>}
               </SelectContent>
             </Select>
-            <Button onClick={handleAddToProject} disabled={!selectedProject} size="sm" className="h-9 shadow-sm">
+            <Button onClick={handleAddToProject} disabled={!selectedProject || selectedProject === "none" || isAddingToProject} size="sm" className="h-9 shadow-sm">
               <Plus className="size-4 mr-1.5" /> Add
             </Button>
           </div>
@@ -307,27 +351,30 @@ export const MemberProfileClient = ({ memberId, workspaceId }: MemberProfileClie
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-card">
-                {member.projects.length > 0 ? member.projects.map((project: any) => (
-                  <tr key={project.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-foreground">{project.name}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>{project.status.replace(/_/g, " ")}</Badge>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground font-medium">{project.roleInProject.replace(/_/g, " ")}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold w-8 text-right">
-                          {project.tasksAssigned > 0 ? Math.round((project.tasksCompleted / project.tasksAssigned) * 100) : 0}%
-                        </span>
-                        <Progress value={project.tasksAssigned > 0 ? (project.tasksCompleted / project.tasksAssigned) * 100 : 0} className="h-2 flex-1" />
-                        <span className="text-xs text-muted-foreground w-12">{project.tasksCompleted}/{project.tasksAssigned}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">{project.pointsEarned} pts</span>
-                    </td>
-                  </tr>
-                )) : (
+                {member.projects?.length > 0 ? member.projects.map((project: any) => {
+                  const roleName = typeof project.roleInProject === "string" ? project.roleInProject : project.roleInProject?.name || "Member";
+                  return (
+                    <tr key={project.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 font-semibold text-foreground">{project.name}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>{project.status.replace(/_/g, " ")}</Badge>
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground font-medium">{roleName.replace(/_/g, " ")}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold w-8 text-right">
+                            {project.tasksAssigned > 0 ? Math.round((project.tasksCompleted / project.tasksAssigned) * 100) : 0}%
+                          </span>
+                          <Progress value={project.tasksAssigned > 0 ? (project.tasksCompleted / project.tasksAssigned) * 100 : 0} className="h-2 flex-1" />
+                          <span className="text-xs text-muted-foreground w-12">{project.tasksCompleted}/{project.tasksAssigned}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md">{project.pointsEarned} pts</span>
+                      </td>
+                    </tr>
+                  )
+                }) : (
                   <tr><td colSpan={5} className="py-12 text-center text-muted-foreground font-medium">Not involved in any projects yet.</td></tr>
                 )}
               </tbody>

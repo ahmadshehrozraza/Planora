@@ -18,15 +18,15 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
 
-        const [project, tasks, projectMembers, segments, columns] = await Promise.all([
+        const [project, tasks, projectMembers, sprints, columns] = await Promise.all([
             prisma.project.findUnique({ where: { id: projectId } }),
             prisma.task.findMany({ 
                 where: { projectId }, 
-                include: { column: true, assignee: true, segment: true },
+                include: { column: true, assignee: true, sprint: true },
                 orderBy: { createdAt: 'asc' }
             }),
-            prisma.projectMember.findMany({ where: { projectId }, include: { user: true } }),
-            prisma.segment.findMany({ where: { projectId } }),
+            prisma.projectMember.findMany({ where: { projectId }, include: { user: true, role: true } }),
+            prisma.sprint.findMany({ where: { projectId } }),
             prisma.customColumn.findMany({ where: { projectId }, orderBy: { position: 'asc' } })
         ]);
 
@@ -128,17 +128,18 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     budgetRemaining: project.budget - totalBudgetUsed,
                     effortProgress: projectProgress
                 },
-                segments: segments.map(seg => {
-                    const segTasks = tasks.filter(t => t.segmentId === seg.id);
-                    const spent = segTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
+                sprints: sprints.map(sprint => {
+                    const sprintTasks = tasks.filter(t => t.sprintId === sprint.id);
+                    const spent = sprintTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
 
-                    const totalProgressSum = segTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-                    const avgProgress = segTasks.length > 0 ? Math.round(totalProgressSum / segTasks.length) : 0;
+                    const totalProgressSum = sprintTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+                    const avgProgress = sprintTasks.length > 0 ? Math.round(totalProgressSum / sprintTasks.length) : 0;
                     
                     return {
-                        id: seg.id,
-                        name: seg.name,
-                        status: seg.status,
+                        id: sprint.id,
+                        name: sprint.name,
+                        goal: sprint.goal,
+                        status: sprint.status,
                         spent,
                         progress: avgProgress 
                     };

@@ -13,7 +13,7 @@ export async function getWorkspaceMemberProfile({ workspaceId, memberId }: { wor
             where: {
                 id: memberId 
             },
-            include: { user: true }
+            include: { user: true, role: true }
         });
 
         if (!workspaceMember) throw new Error("Member not found in this workspace");
@@ -33,7 +33,7 @@ export async function getWorkspaceMemberProfile({ workspaceId, memberId }: { wor
                 userId: actualUserId,
                 project: { workspaceId }
             },
-            include: { project: true }
+            include: { project: true, role: true }
         });
 
         const totalTasksAssigned = assignedTasks.length;
@@ -78,7 +78,7 @@ export async function getWorkspaceMemberProfile({ workspaceId, memberId }: { wor
                 id: pm.projectId,
                 name: pm.project.name,
                 status: pm.project.status,
-                roleInProject: pm.role,
+                roleInProject: pm.role || { name: "Member" }, // Return object instead of just name
                 tasksAssigned: projTasks.length,
                 tasksCompleted: projTasksCompleted,
                 pointsEarned: projPoints
@@ -99,7 +99,7 @@ export async function getWorkspaceMemberProfile({ workspaceId, memberId }: { wor
                 name: workspaceMember.user.name || "Unknown",
                 email: workspaceMember.user.email,
                 image: workspaceMember.user.image,
-                role: workspaceMember.role,
+                role: workspaceMember.role || { name: "Member" }, // Pass the full role object
                 joinedDate: workspaceMember.createdAt,
                 totalPointsEarned,
                 kpis: { totalTasksAssigned, tasksCompleted, overdueTasks, efficiency },

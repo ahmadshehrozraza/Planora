@@ -8,7 +8,7 @@ export const useJoinProject = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (values: { projectId: string; workspaceId: string; inviteCode: string }) => {
+        mutationFn: async (values: { projectId: string; workspaceId: string; inviteCode: string; roleToken?: string }) => {
             const response = await joinProjectAction(values);
             if (response?.error) throw new Error(response.error);
             return response;
@@ -19,7 +19,7 @@ export const useJoinProject = () => {
             queryClient.invalidateQueries({ queryKey: ["project-members", variables.projectId] });
             queryClient.invalidateQueries({ queryKey: ["workspace-members", variables.workspaceId] });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message || "Failed to join project.");
         }
     });
