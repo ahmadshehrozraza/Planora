@@ -14,15 +14,16 @@ export async function getEventAction({ eventId }: { eventId: string }) {
             select: { id: true }
         });
         if (!user) throw new Error("User not found");
-
         if (!eventId) throw new Error("Event ID is required");
 
         const event = await prisma.event.findUnique({
             where: { id: eventId },
             include: {
+                workspace: { select: { id: true, name: true, imageUrl: true } },
                 project: { select: { name: true, imageUrl: true } },
                 sprint: { select: { name: true } },
                 creator: { select: { name: true, image: true } },
+                attachments: { select: { id: true, name: true, url: true, size: true, type: true } }
             }
         });
 
@@ -34,12 +35,21 @@ export async function getEventAction({ eventId }: { eventId: string }) {
 
         if (!isMember) throw new Error("Unauthorized access to event");
 
+        if (!event.isOpened) {
+            await prisma.event.update({ where: { id: event.id }, data: { isOpened: true } });
+        }
+
         const formattedEvent = {
             id: event.id,
             title: event.title || "Untitled Event",
             description: event.description || "",
             date: event.date ? event.date.toISOString() : new Date().toISOString(),
+            endDate: event.endDate ? event.endDate.toISOString() : null,
             time: event.date ? format(event.date, "hh:mm a") : "",
+            location: event.location,
+            notes: event.notes,
+            status: event.status,
+            attachments: event.attachments || [],
 
             projectId: event.projectId, 
             sprintId: event.sprintId,
@@ -51,7 +61,7 @@ export async function getEventAction({ eventId }: { eventId: string }) {
                 name: event.creator?.name || "Unknown", 
                 avatar: event.creator?.image || undefined 
             },
-            opened: true,
+            isOpened: true,
         };
 
         return { success: true, data: formattedEvent };

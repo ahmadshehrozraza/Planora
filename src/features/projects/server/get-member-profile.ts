@@ -28,7 +28,7 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
 
         const allProjectTasks = await prisma.task.findMany({
             where: { projectId: member.projectId },
-            select: { effortPoints: true, progress: true }
+            select: { effortPoints: true }
         });
 
         const projectTotalPoints = allProjectTasks.reduce((acc, t) => acc + (t.effortPoints || 0), 0);
@@ -46,7 +46,7 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
         let activeTask: any = null;
 
         memberTasks.forEach(task => {
-            const isDone = task.progress === 100;
+            const isDone = task.column?.category === "DONE";
             const points = task.effortPoints || 0;
 
             memberPointsAssigned += points;
@@ -129,7 +129,7 @@ export async function getMemberProfileAction({ memberId }: { memberId: string })
                     priority: t.priority,
                     status: t.column.name,
                     effortPoints: t.effortPoints,
-                    earnedPoints: t.progress === 100 ? t.effortPoints : 0 
+                    earnedPoints: t.column?.category === "DONE" ? t.effortPoints : 0 
                 }))
             }
         };

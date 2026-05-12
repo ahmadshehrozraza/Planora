@@ -173,22 +173,31 @@ export const columns: ColumnDef<any>[] = [
   },
   {
     accessorKey: "tags",
-    header: "Tags",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="p-0 hover:bg-transparent"
+      >
+        Tags
+        <ArrowUpDown className="h-4 w-4 ml-2" />
+      </Button>
+    ),
     cell: ({ row }) => {
       const tags = row.original.tags || [];
       if (tags.length === 0) return <span className="text-muted-foreground text-xs">-</span>;
-      
       return (
-        <div className="flex flex-wrap gap-1 w-[150px]">
+        <div className="w-[100px] flex items-center">
           {tags.map((tag: any) => (
-            <div key={tag.id} className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border shadow-sm" style={{ backgroundColor: `${tag.color}15`, borderColor: tag.color, color: '#333' }}>
-               <div className="size-1.5 rounded-full" style={{ backgroundColor: tag.color }} />
-               <span className="truncate max-w-[80px] font-medium dark:text-gray-200">{tag.name}</span>
-            </div>
-          ))}
+             <div key={tag.id} >
+                <Badge variant="custom-tag" tagColor={tag.color}>
+                  {tag.name}
+                </Badge>
+             </div>
+           ))}
         </div>
-      );
-    },
+      )
+    }
   },
   {
     accessorKey: "dueDate",
@@ -209,29 +218,6 @@ export const columns: ColumnDef<any>[] = [
       return (
         <div className="w-[100px] flex items-center">
           <DateIndicator value={dueDate} />
-        </div>
-      )
-    }
-  },
-   {
-    accessorKey: "progress",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="p-0 hover:bg-transparent"
-        >
-          Progress
-          <ArrowUpDown className=" h-4 w-4 ml-2" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => {
-      const progress = row.original.progress;
-      return (
-        <div className="w-[100px] flex items-center">
-          {progress}%
         </div>
       )
     }
@@ -259,7 +245,31 @@ export const columns: ColumnDef<any>[] = [
       )
     }
   },
-{
+  {
+    accessorKey: "cost",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="p-0 hover:bg-transparent"
+        >
+          Cost
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const cost = row.original.budget || 0;
+      const currency = row.original.currency || row.original.project?.currency ;
+      return (
+        <div className="w-[80px] flex items-center">
+          <Badge variant="outline">{currency} {cost}</Badge>
+        </div>
+      )
+    }
+  },
+  {
     id: "actions",
     header: () => <div className="w-0" />,
     cell: ({ row }) => {

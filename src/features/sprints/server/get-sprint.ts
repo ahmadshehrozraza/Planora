@@ -44,6 +44,8 @@ export async function getSprintAction({ sprintId }: { sprintId: string }) {
             name: sprint.name,
             goal: sprint.goal,
             description: sprint.description,
+            sprintNumber: sprint.sprintNumber,
+            capacityPoints: sprint.capacityPoints,
             status: sprint.status,
             startDate: sprint.startDate,
             dueDate: sprint.dueDate,

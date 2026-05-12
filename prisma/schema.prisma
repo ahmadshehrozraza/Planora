@@ -12,17 +12,32 @@ datasource db {
 // ==========================================
 
 enum ProjectStatus {
+  PLANNED
   ACTIVE
   ON_HOLD
   COMPLETED
-  OVER_DUE
+  CANCELLED
 }
 
 enum SprintStatus {
+  PLANNED
   ACTIVE
-  ON_HOLD
-  COMPLETED
-  OVER_DUE
+  CLOSED
+}
+
+enum TaskType {
+  FEATURE
+  TASK
+  BUG
+  SPIKE
+  DOCS
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum RiskLevel {
@@ -37,6 +52,19 @@ enum RiskStatus {
   IN_PROGRESS
   MITIGATED
   CLOSED
+}
+
+enum ColumnCategory {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum EventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  MISSED
 }
 
 enum Permission {
@@ -237,13 +265,15 @@ model Project {
   githubRepoUrl    String?       @db.Text
   inviteCode       String        @unique
 
-  status           ProjectStatus @default(ACTIVE)
+  status           ProjectStatus @default(PLANNED)
   currency         String        @default("PKR")
   budget           Float         @default(0)
 
-  estimatedKloc    Int?      
+  estimatedKloc    Float?      
   calculatedEffort Float?    
   calculatedCost   Float?    
+  avgResourceCost  Float?
+  fpaMetadata      Json?
 
   startDate        DateTime?
   dueDate          DateTime?
@@ -291,25 +321,30 @@ model ProjectMember {
 // ==========================================
 
 model Sprint {
-  id          String       @id @default(cuid())
-  name        String
-  goal        String?      @db.Text 
-  description String?      @db.Text
+  id             String       @id @default(cuid())
+  name           String
+  goal           String?      @db.Text 
+  description    String?      @db.Text
 
-  status      SprintStatus @default(ACTIVE) 
+  sprintNumber   Int
+  capacityPoints Int?
 
-  startDate   DateTime?
-  dueDate     DateTime?
-  completedAt DateTime?
+  status         SprintStatus @default(PLANNED) 
 
-  projectId   String
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedAt    DateTime?
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  projectId      String
 
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-  events      Event[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+  events         Event[]
+
+  @@unique([projectId, sprintNumber])
 }
 
 // ==========================================
@@ -317,21 +352,21 @@ model Sprint {
 // ==========================================
 
 model Risk {
-  id          String     @id @default(cuid())
-  title       String   
-  probability RiskLevel  @default(MEDIUM)
-  impact      RiskLevel  @default(MEDIUM)
-  mitigation  String?    @db.Text 
-  status      RiskStatus @default(OPEN)
+  id           String     @id @default(cuid())
+  title        String   
+  probability  RiskLevel  @default(MEDIUM)
+  impact       RiskLevel  @default(MEDIUM)
+  mitigation   String?    @db.Text 
+  status       RiskStatus @default(OPEN)
 
-  projectId   String
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   reportedById String
-  reportedBy   User      @relation("ReportedRisks", fields: [reportedById], references: [id], onDelete: Cascade)
+  reportedBy   User       @relation("ReportedRisks", fields: [reportedById], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([projectId])
 }
@@ -341,22 +376,23 @@ model Risk {
 // ==========================================
 
 model CustomColumn {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   name      String
   position  Int
+  category  ColumnCategory @default(TODO)
   projectId String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks     Task[]
 
   @@unique([projectId, name])
 }
 
 // ==========================================
-//  TAG MODEL (Task Categories)
+//  TAG MODEL
 // ==========================================
 
 model Tag {
@@ -426,15 +462,14 @@ model Task {
   assignedById String
   assignedBy   User         @relation("TaskAssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
 
-  taskType     String
-  priority     String
+  taskType     TaskType     @default(TASK)
+  priority     TaskPriority @default(MEDIUM)
 
   metadata     Json?   
 
   budget       Float        @default(0)
   currency     String       @default("PKR")
   effortPoints Int          @default(1)
-  progress     Int          @default(0)
 
   startDate    DateTime?
   dueDate      DateTime?
@@ -480,25 +515,35 @@ model Comment {
 // ==========================================
 
 model Event {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
-  description String?   @db.Text
-  date        DateTime 
+  description String?     @db.Text
+  
+  date        DateTime   
+  endDate     DateTime?  
+  
+  status      EventStatus @default(SCHEDULED)
+  
+  location    String?     @db.Text
+  notes       String?     @db.Text 
+  isOpened    Boolean     @default(false)
 
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  projectId   String?   
-  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String?    
+  project     Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   sprintId    String?  
-  sprint      Sprint?   @relation(fields: [sprintId], references: [id], onDelete: Cascade) 
+  sprint      Sprint?     @relation(fields: [sprintId], references: [id], onDelete: Cascade) 
 
   creatorId   String
-  creator     User      @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator     User        @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  attachments Attachment[]
 }
 
 // ==========================================
@@ -585,6 +630,9 @@ model Attachment {
   taskId       String?
   task         Task?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
+  eventId      String?
+  event        Event?         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -592,4 +640,5 @@ model Attachment {
   @@index([projectId])
   @@index([folderId])
   @@index([taskId])
+  @@index([eventId])
 }

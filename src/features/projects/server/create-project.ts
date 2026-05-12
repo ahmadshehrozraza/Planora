@@ -5,7 +5,7 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { prisma } from "@/lib/prisma";
 import { generateInviteCode } from "@/lib/utils";
-import { ProjectStatus, Permission } from "@prisma/client";
+import { ProjectStatus, Permission, ColumnCategory } from "@prisma/client";
 import { eventEmitter } from "@/lib/event-emitter";
 import { PERMISSIONS } from "@/lib/permissions-constants";
 
@@ -42,7 +42,7 @@ export async function createProjectAction(values: any) {
                     description: values.description,
                     workspaceId: values.workspaceId,
                     inviteCode: generateInviteCode(10),
-                    status: (values.projectStatus as ProjectStatus) || ProjectStatus.ACTIVE,
+                    status: (values.projectStatus as ProjectStatus) || ProjectStatus.PLANNED,
                     currency: values.currency || "PKR",
                     budget: Number(values.budget) || 0,
                     startDate: values.startDate ? new Date(values.startDate) : null,
@@ -89,11 +89,11 @@ export async function createProjectAction(values: any) {
 
             await tx.customColumn.createMany({
                 data: [
-                    { name: "Backlog", position: 1000, projectId: newProject.id },
-                    { name: "To Do", position: 2000, projectId: newProject.id },
-                    { name: "In Progress", position: 3000, projectId: newProject.id },
-                    { name: "In Review", position: 4000, projectId: newProject.id },
-                    { name: "Done", position: 5000, projectId: newProject.id },
+                    { name: "Backlog", position: 1000, projectId: newProject.id, category: ColumnCategory.TODO },
+                    { name: "To Do", position: 2000, projectId: newProject.id, category: ColumnCategory.TODO },
+                    { name: "In Progress", position: 3000, projectId: newProject.id, category: ColumnCategory.IN_PROGRESS },
+                    { name: "In Review", position: 4000, projectId: newProject.id, category: ColumnCategory.IN_PROGRESS },
+                    { name: "Done", position: 5000, projectId: newProject.id, category: ColumnCategory.DONE },
                 ]
             });
 

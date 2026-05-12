@@ -8,6 +8,7 @@ import { createAuditLog } from "@/features/activity-logs/server/create-log";
 import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { eventEmitter } from "@/lib/event-emitter";
+import { EventStatus } from "@prisma/client";
 
 export async function createEventAction(values: z.infer<typeof createEventSchema>) {
     try {
@@ -31,10 +32,26 @@ export async function createEventAction(values: z.infer<typeof createEventSchema
                 title: validatedData.title,
                 description: validatedData.description,
                 date: validatedData.date,
+                endDate: validatedData.endDate,
+                location: validatedData.location,
+                notes: validatedData.notes,
+                status: EventStatus.SCHEDULED,
+                isOpened: false,
                 workspaceId: validatedData.workspaceId,
                 projectId: projectId,
                 sprintId: sprintId,
-                creatorId: user.id
+                creatorId: user.id,
+                attachments: validatedData.attachments && validatedData.attachments.length > 0 ? {
+                    create: validatedData.attachments.map((a: any) => ({
+                        name: a.name,
+                        url: a.url,
+                        size: a.size,
+                        type: a.type,
+                        uploadedById: user.id,
+                        workspaceId: validatedData.workspaceId,
+                        projectId: projectId
+                    }))
+                } : undefined
             }
         });
 

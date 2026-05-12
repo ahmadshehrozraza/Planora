@@ -122,10 +122,22 @@ export async function getTasksAction(params: GetTasksParams) {
             include: {
                 project: { select: { id: true, name: true, imageUrl: true } },
                 assignee: { select: { id: true, name: true, email: true, image: true } },
-                column: { select: { id: true, name: true } },
+                column: { select: { id: true, name: true, category: true } },
                 sprint: { select: { id: true, name: true } },
-                blockedBy: { select: { id: true, name: true } },
-                blocking: { select: { id: true, name: true } },
+                blockedBy: { 
+                    select: { 
+                        id: true, 
+                        name: true,
+                        column: { select: { id: true, name: true, category: true } }
+                    } 
+                },
+                blocking: { 
+                    select: { 
+                        id: true, 
+                        name: true,
+                        column: { select: { id: true, name: true, category: true } }
+                    } 
+                },
                 tags: { select: { id: true, name: true, color: true } }
             },
             orderBy: { position: "asc" }

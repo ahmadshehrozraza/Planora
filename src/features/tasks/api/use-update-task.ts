@@ -2,7 +2,8 @@
 
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateTaskAction, bulkUpdateTasksOrder } from "../server/update-task";
+import { updateTaskAction } from "../server/update-task";
+import { bulkUpdateTasksOrder } from "../server/bulk-update-tasks";
 
 export const useUpdateTask = () => {
     const queryClient = useQueryClient();

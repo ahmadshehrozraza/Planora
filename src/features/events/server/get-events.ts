@@ -20,7 +20,6 @@ export async function getEventsAction({ workspaceId, projectId, sprintId }: GetE
             select: { id: true }
         });
         if (!user) throw new Error("User not found");
-
         if (!workspaceId) throw new Error("Workspace ID is required");
 
         const isMember = await prisma.workspaceMember.findUnique({
@@ -32,7 +31,6 @@ export async function getEventsAction({ workspaceId, projectId, sprintId }: GetE
         const whereClause: any = {
             workspaceId: workspaceId,
         };
-
 
         if (projectId && projectId !== "all") {
             const projectCondition: any = { projectId: projectId };
@@ -69,7 +67,11 @@ export async function getEventsAction({ workspaceId, projectId, sprintId }: GetE
             title: event.title || "Untitled Event",
             description: event.description || "",
             date: event.date ? event.date.toISOString() : new Date().toISOString(), 
+            endDate: event.endDate ? event.endDate.toISOString() : null,
             time: event.date ? format(event.date, "hh:mm a") : "", 
+            location: event.location,
+            notes: event.notes,
+            status: event.status,
             
             project: event.project ? { name: event.project.name, imageUrl: event.project.imageUrl || undefined } : null,
             sprint: event.sprint ? { name: event.sprint.name } : null,
@@ -79,7 +81,7 @@ export async function getEventsAction({ workspaceId, projectId, sprintId }: GetE
                 avatar: event.creator?.image || undefined 
             },
             
-            opened: false,
+            isOpened: event.isOpened,
             workspaceId: event.workspaceId,
             originalId: event.id 
         }));

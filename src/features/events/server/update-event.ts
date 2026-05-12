@@ -9,6 +9,7 @@ import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { createNotification } from "@/features/notifications/server/create-notification";
 import { format } from "date-fns";
 import { eventEmitter } from "@/lib/event-emitter";
+import { EventStatus } from "@prisma/client";
 
 export async function updateEventAction({ eventId, values }: { eventId: string, values: z.infer<typeof createEventSchema> }) {
     try {
@@ -20,13 +21,9 @@ export async function updateEventAction({ eventId, values }: { eventId: string, 
             select: { id: true }
         });
         if (!user) throw new Error("User not found");
-
         if (!eventId) throw new Error("Event ID is required");
 
-        const oldEvent = await prisma.event.findUnique({
-            where: { id: eventId }
-        });
-
+        const oldEvent = await prisma.event.findUnique({ where: { id: eventId } });
         if (!oldEvent) throw new Error("Event not found");
 
         const validatedData = createEventSchema.parse(values);
@@ -40,17 +37,33 @@ export async function updateEventAction({ eventId, values }: { eventId: string, 
                 title: validatedData.title,
                 description: validatedData.description,
                 date: validatedData.date,
+                endDate: validatedData.endDate,
+                location: validatedData.location,
+                notes: validatedData.notes,
+                status: validatedData.status as EventStatus,
                 projectId: projectIdToSave,
                 sprintId: sprintIdToSave,
+                attachments: {
+                    deleteMany: {}, 
+                    create: validatedData.attachments?.map((a: any) => ({
+                        name: a.name,
+                        url: a.url,
+                        size: a.size,
+                        type: a.type,
+                        uploadedById: user.id,
+                        workspaceId: validatedData.workspaceId,
+                        projectId: projectIdToSave
+                    })) || []
+                }
             }
         });
 
         const changes: string[] = [];
         if (oldEvent.title !== updatedEvent.title) changes.push(`renamed event to "${updatedEvent.title}"`);
+        if (oldEvent.status !== updatedEvent.status) changes.push(`marked status as ${updatedEvent.status}`);
         if (oldEvent.date?.getTime() !== updatedEvent.date?.getTime()) {
             changes.push(`changed date to ${updatedEvent.date ? format(updatedEvent.date, "MMM d, yyyy") : "None"}`);
         }
-        if (oldEvent.description !== updatedEvent.description) changes.push(`updated the description`);
 
         if (changes.length > 0) {
             const logMessage = changes.join(" and ");

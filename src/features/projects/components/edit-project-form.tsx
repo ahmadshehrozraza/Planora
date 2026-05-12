@@ -199,10 +199,11 @@ export const EditProjectForm = ({ onCancel, initialValues }: EditProjectFormProp
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value={ProjectStatus.PLANNED}>Planned</SelectItem>
                                                     <SelectItem value={ProjectStatus.ACTIVE}>Active</SelectItem>
                                                     <SelectItem value={ProjectStatus.ON_HOLD}>On Hold</SelectItem>
-                                                    <SelectItem value={ProjectStatus.OVER_DUE}>Over Due</SelectItem>
                                                     <SelectItem value={ProjectStatus.COMPLETED}>Completed</SelectItem>
+                                                    <SelectItem value={ProjectStatus.CANCELLED}>Cancelled</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

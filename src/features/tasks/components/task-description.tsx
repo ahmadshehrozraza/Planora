@@ -38,7 +38,6 @@ export const TaskDescription = ({
             budget: task.budget || 0,
             currency: task.currency || "PKR",
             effortPoints: task.effortPoints || 1,
-            progress: task.progress || 0,
             blockedById: task.blockedById || "",
             blockingTo: task.blocking?.length > 0 ? task.blocking[0].id : "",
             description: value,

@@ -31,7 +31,7 @@ import { useRouter } from "next/navigation";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { EditTaskModal } from "./edit-task-modal";
 import { format } from "date-fns";
-import { ProgressBar } from "@/components/Progress-bar";
+
 import { useState, useEffect } from "react";
 import { ActivityTimeline } from "@/features/activity-logs/components/activity-timeline";
 import { useGetLogs } from "@/features/activity-logs/api/use-get-logs";
@@ -300,10 +300,9 @@ export const TaskOverview = ({
                                     {taskTags.length > 0 ? (
                                         <div className="flex flex-wrap gap-1.5 mt-1">
                                             {taskTags.map((tag: any) => (
-                                                <div key={tag.id} className="flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border shadow-sm" style={{ backgroundColor: `${tag.color}15`, borderColor: tag.color, color: '#333' }}>
-                                                    <div className="size-1.5 rounded-full" style={{ backgroundColor: tag.color }}></div>
-                                                    <span className="truncate max-w-[120px] font-medium dark:text-gray-200" title={tag.name}>{tag.name}</span>
-                                                </div>
+                                                <Badge variant="custom-tag" tagColor={tag.color}>
+                                                    {tag.name}
+                                                </Badge>
                                             ))}
                                         </div>
                                     ) : (
@@ -395,15 +394,6 @@ export const TaskOverview = ({
                             </div>
                         </div>
 
-                        <Separator className="my-5" />
-
-                        <div className="flex flex-col gap-y-2 mb-6">
-                            <div className="flex items-center justify-between mb-1">
-                                <p className="text-sm text-muted-foreground font-medium">Completion Progress</p>
-                                <span className="text-sm font-bold text-muted-foreground">{task.progress || 0}%</span>
-                            </div>
-                            <ProgressBar value={task.progress || 0} className="w-full h-2" />
-                        </div>
 
                         {projectRepoUrl && (
                             <div className="flex flex-col gap-y-3 mt-6 border border-border/50 rounded-xl p-4 bg-muted/20">

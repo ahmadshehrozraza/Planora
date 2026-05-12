@@ -1,8 +1,7 @@
 export enum SprintStatus {
+    PLANNED = "PLANNED",
     ACTIVE = "ACTIVE",
-    ON_HOLD = "ON_HOLD",
-    COMPLETED = "COMPLETED",
-    OVER_DUE = "OVER_DUE"
+    CLOSED = "CLOSED"
 }
 
 export type Sprint = {
@@ -11,6 +10,8 @@ export type Sprint = {
     name: string;
     goal: string | null;         
     description: string | null;
+    sprintNumber: number;
+    capacityPoints: number | null;
     startDate: Date | null;
     dueDate: Date | null;
     completedAt: Date | null;  

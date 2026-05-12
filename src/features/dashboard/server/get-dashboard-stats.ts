@@ -3,6 +3,7 @@
 import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { PERMISSIONS } from "@/lib/permissions-constants";
+import { ColumnCategory } from "@prisma/client";
 
 export async function getDashboardStats({ workspaceId }: { workspaceId: string }) {
     try {
@@ -47,7 +48,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
         const taskWhere: any = {
             workspaceId,
             dueDate: { lte: nextWeek },
-            progress: { lt: 100 }
+            column: { category: { not: ColumnCategory.DONE } }
         };
 
         if (!isAdmin) {
@@ -79,22 +80,21 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             prisma.task.findMany({
                 where: taskWhere,
                 include: {
-                    // Added explicitly to support future dynamic currency on tasks as well
-                    project: { select: { name: true, imageUrl: true, currency: true } }, 
-                    column: { select: { name: true } }
+                    project: { select: { name: true, imageUrl: true, currency: true } },
+                    column: { select: { name: true, category: true } }
                 },
                 orderBy: { dueDate: 'asc' },
                 take: 5
             }),
             prisma.project.findMany({
                 where: projectWhere,
-                include: { tasks: { select: { progress: true } } },
+                include: { tasks: { select: { effortPoints: true, column: { select: { category: true } } } } },
                 orderBy: { dueDate: 'asc' },
                 take: 5
             }),
             prisma.project.findMany({
                 where: activeProjectWhere,
-                include: { tasks: { select: { progress: true } } },
+                include: { tasks: { select: { effortPoints: true, column: { select: { category: true } } } } },
                 orderBy: { updatedAt: 'desc' },
                 take: 10
             }),
@@ -110,29 +110,28 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             }),
             prisma.task.findMany({
                 where: { workspaceId, createdAt: { gte: ninetyDaysAgo } },
-                select: { createdAt: true, updatedAt: true, progress: true, assigneeId: true }
+                select: { createdAt: true, updatedAt: true, assigneeId: true, column: { select: { category: true } } }
             })
         ]);
 
         const urgentProjects = urgentProjectsRaw.map((project) => {
             const totalTasks = project.tasks.length;
-            const completedTasks = project.tasks.filter(t => t.progress === 100).length;
-            const totalProgressSum = project.tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
-            const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
-            // All scalar fields (currency, repoUrl, commitId) are safely spread here
-            return { ...project, totalTasks, completedTasks, progress }; 
+            const completedTasks = project.tasks.filter(t => t.column?.category === ColumnCategory.DONE).length;
+            const totalPoints = project.tasks.reduce((sum, task) => sum + (task.effortPoints || 0), 0);
+            const completedPoints = project.tasks.filter(t => t.column?.category === ColumnCategory.DONE).reduce((sum, task) => sum + (task.effortPoints || 0), 0);
+            const progress = totalPoints === 0 ? 0 : Math.round((completedPoints / totalPoints) * 100);
+            return { ...project, totalTasks, completedTasks, progress };
         });
 
         const activeProjects = activeProjectsRaw.map((project) => {
             const totalTasks = project.tasks.length;
-            const completedTasks = project.tasks.filter(t => t.progress === 100).length;
-            const totalProgressSum = project.tasks.reduce((sum, task) => sum + (task.progress || 0), 0);
-            const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
-            // All scalar fields (currency, repoUrl, commitId) are safely spread here
+            const completedTasks = project.tasks.filter(t => t.column?.category === ColumnCategory.DONE).length;
+            const totalPoints = project.tasks.reduce((sum, task) => sum + (task.effortPoints || 0), 0);
+            const completedPoints = project.tasks.filter(t => t.column?.category === ColumnCategory.DONE).reduce((sum, task) => sum + (task.effortPoints || 0), 0);
+            const progress = totalPoints === 0 ? 0 : Math.round((completedPoints / totalPoints) * 100);
             return { ...project, totalTasks, completedTasks, progress };
         });
 
-        // Dynamic Activity Timeline
         const timeDiff = today.getTime() - workspace.createdAt.getTime();
         const daysSinceCreation = Math.floor(timeDiff / (1000 * 3600 * 24));
         const loopStart = Math.max(6, Math.min(89, daysSinceCreation));
@@ -160,7 +159,7 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             const createdStr = task.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             if (activityDict[createdStr]) activityDict[createdStr].assigned += 1;
 
-            if (task.progress === 100) {
+            if (task.column?.category === ColumnCategory.DONE) {
                  const updatedStr = task.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                  if (activityDict[updatedStr]) activityDict[updatedStr].completed += 1;
             }
@@ -170,17 +169,17 @@ export async function getDashboardStats({ workspaceId }: { workspaceId: string }
             const createdStr = task.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             if (memberVelocityDict[createdStr]) memberVelocityDict[createdStr].created += 1;
 
-            if (task.progress === 100) {
+            if (task.column?.category === ColumnCategory.DONE) {
                  const updatedStr = task.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                  if (memberVelocityDict[updatedStr]) memberVelocityDict[updatedStr].completed += 1;
             }
         });
 
-        let currentPending = memberTasks.filter(t => t.progress < 100).length;
+        let currentPending = memberTasks.filter(t => t.column?.category !== ColumnCategory.DONE).length;
 
         Object.keys(memberBurndownDict).reverse().forEach(dateStr => {
             memberBurndownDict[dateStr].actual = currentPending;
-            currentPending += (memberVelocityDict[dateStr]?.completed || 0); 
+            currentPending += (memberVelocityDict[dateStr]?.completed || 0);
             currentPending -= (memberVelocityDict[dateStr]?.created || 0);
         });
 

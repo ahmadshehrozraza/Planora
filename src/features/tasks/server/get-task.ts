@@ -18,7 +18,7 @@ export async function getTaskAction(taskId: string) {
                     select: { id: true, name: true, imageUrl: true, githubRepoUrl: true }
                 },
                 column: {
-                    select: { id: true, name: true }
+                    select: { id: true, name: true, category: true }
                 },
                 assignee: {
                     select: { id: true, name: true, email: true, image: true }
@@ -27,10 +27,22 @@ export async function getTaskAction(taskId: string) {
                     select: { id: true, name: true }
                 },
                 blockedBy: {
-                    select: { id: true, name: true, column: true }
+                    select: { 
+                        id: true, 
+                        name: true, 
+                        column: {
+                            select: { id: true, name: true, category: true }
+                        } 
+                    }
                 },
                 blocking: {
-                    select: { id: true, name: true, column: true }
+                    select: { 
+                        id: true, 
+                        name: true, 
+                        column: {
+                            select: { id: true, name: true, category: true }
+                        } 
+                    }
                 },
                 assignedBy: {
                     select: { id: true, name: true, image: true }

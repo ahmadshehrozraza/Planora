@@ -62,6 +62,7 @@ export async function updateSprintAction(sprintId: string, values: any) {
                 goal: values.goal,
                 description: values.description,
                 status: values.status as SprintStatus,
+                capacityPoints: values.capacityPoints ? Number(values.capacityPoints) : null,
                 startDate: values.startDate ? new Date(values.startDate) : null,
                 dueDate: values.dueDate ? new Date(values.dueDate) : null,
             }

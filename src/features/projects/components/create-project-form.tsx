@@ -53,7 +53,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
         defaultValues: {
             name: "",
             workspaceId: workspaceId || "",
-            status: ProjectStatus.ACTIVE, 
+            status: ProjectStatus.PLANNED, 
             currency: "PKR", 
             startDate: new Date(),
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -80,7 +80,7 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
         const finalValues = {
             ...values,
             imageFile: values.imageUrl instanceof File ? values.imageUrl : null, 
-            projectStatus: values.status || "ACTIVE",
+            projectStatus: values.status || "PLANNED",
             startDate: values.startDate ? values.startDate.toISOString() : undefined,
             dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
             budget: Number(values.budget) || 0,
@@ -243,6 +243,11 @@ export const CreateProjectForm = ({ onCancel }: CreateProjectFormProps) => {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
+                                                    <SelectItem value="PLANNED">
+                                                        <div className="flex items-center gap-x-2">
+                                                            Planned
+                                                        </div>
+                                                    </SelectItem>
                                                     <SelectItem value="ACTIVE">
                                                         <div className="flex items-center gap-x-2">
                                                             Active

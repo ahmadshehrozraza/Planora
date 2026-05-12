@@ -2,13 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  CalendarIcon,
-  ArrowRight,
-  ArrowLeft,
-  Layers,
-  Plus,
-} from "lucide-react";
+import { CalendarIcon, ArrowRight, ArrowLeft, Layers, Plus } from "lucide-react";
 
 import { DataCalendar } from "@/features/events/components/data-calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,16 +77,11 @@ const EventsClientPage = () => {
         </div>
 
         {allowed && (
-        <Button
-          onClick={open}
-          className="w-full lg:w-auto shadow-sm"
-          size="sm"
-        >
+        <Button onClick={open} className="w-full lg:w-auto shadow-sm" size="sm">
           <Plus className="size-4 mr-2" />
           New Event
         </Button>
         )}
-
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
@@ -130,17 +119,8 @@ const EventsClientPage = () => {
                     : `${events.length} Events Total`}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleView}
-                className="h-7 w-7 hover:bg-accent text-muted-foreground"
-              >
-                {view === "TODAY" ? (
-                  <ArrowRight className="size-4" />
-                ) : (
-                  <ArrowLeft className="size-4" />
-                )}
+              <Button variant="ghost" size="icon" onClick={toggleView} className="h-7 w-7 hover:bg-accent text-muted-foreground">
+                {view === "TODAY" ? <ArrowRight className="size-4" /> : <ArrowLeft className="size-4" />}
               </Button>
             </CardHeader>
 
@@ -149,10 +129,7 @@ const EventsClientPage = () => {
                 <div className="p-3 space-y-3">
                   {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="h-24 w-full bg-muted animate-pulse rounded-lg"
-                      />
+                      <div key={i} className="h-24 w-full bg-muted animate-pulse rounded-lg" />
                     ))
                   ) : displayedEvents.length > 0 ? (
                     displayedEvents.map((event) => (
@@ -162,11 +139,13 @@ const EventsClientPage = () => {
                         title={event.title}
                         date={event.date}
                         time={event.time}
+                        location={event.location}
+                        status={event.status}
                         description={event.description || undefined}
                         project={event.project || undefined}
                         sprint={event.sprint || undefined} 
                         eventCreator={event.eventCreator}
-                        opened={event.opened}
+                        isOpened={event.isOpened}
                         variant="default"
                       />
                     ))
@@ -176,9 +155,7 @@ const EventsClientPage = () => {
                         <CalendarIcon className="size-6 text-muted-foreground" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          No events found
-                        </p>
+                        <p className="text-sm font-semibold text-foreground">No events found</p>
                         <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mx-auto">
                           {view === "TODAY"
                             ? "Looks like you have a free day! Enjoy your time."
@@ -187,16 +164,10 @@ const EventsClientPage = () => {
                       </div>
 
                       {allowed && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={open}
-                        className="mt-2 h-8 text-xs bg-background border-border"
-                      >
+                      <Button variant="outline" size="sm" onClick={open} className="mt-2 h-8 text-xs bg-background border-border">
                         Create one now
                       </Button>
                       )}
-                      
                     </div>
                   )}
                 </div>

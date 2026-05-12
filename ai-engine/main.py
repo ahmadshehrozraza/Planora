@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-import datetime
 
 from ml_models.deadline_model import predict_deadline
 from ml_models.budget_model import predict_budget_risk
@@ -25,27 +24,51 @@ class TaskData(BaseModel):
     budget: float
     priority: str
 
+class RiskData(BaseModel):
+    id: str
+    probability: str
+    impact: str
+    status: str
+
 class ProjectAnalyticsRequest(BaseModel):
     startDate: str
     dueDate: str
     totalBudget: float
-    tasks: List[TaskData]
+    tasks: Optional[List[TaskData]] = []
+    risks: Optional[List[RiskData]] = []
+    baselineEffort: Optional[float] = 0.0
+    baselineCost: Optional[float] = 0.0
 
 class TaskEstimationRequest(BaseModel):
     description: str
     taskType: str
 
-
 @app.get("/")
 def read_root():
-    return {"status": "AI Engine is running with CORS enabled"}
+    return {"status": "AI Engine is running"}
 
 @app.post("/api/predict-analytics")
 def analyze_project(data: ProjectAnalyticsRequest):
     try:
-        deadline_prediction = predict_deadline(data.startDate, data.dueDate, data.tasks)
+        tasks_data = data.tasks if data.tasks is not None else []
+        risks_data = data.risks if data.risks is not None else []
+        b_effort = data.baselineEffort if data.baselineEffort is not None else 0.0
+        b_cost = data.baselineCost if data.baselineCost is not None else 0.0
+
+        deadline_prediction = predict_deadline(
+            data.startDate, 
+            data.dueDate, 
+            tasks_data, 
+            risks_data, 
+            b_effort
+        )
         
-        budget_risk = predict_budget_risk(data.totalBudget, data.tasks)
+        budget_risk = predict_budget_risk(
+            data.totalBudget, 
+            tasks_data, 
+            risks_data,
+            b_cost
+        )
 
         return {
             "success": True,
@@ -53,7 +76,6 @@ def analyze_project(data: ProjectAnalyticsRequest):
             "budgetRisk": budget_risk
         }
     except Exception as e:
-        print(f"Error in predict-analytics: {e}") 
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/suggest-effort")
@@ -62,5 +84,4 @@ def estimate_task(data: TaskEstimationRequest):
         suggestion = suggest_effort_points(data.description, data.taskType)
         return {"success": True, "suggestion": suggestion}
     except Exception as e:
-        print(f"Error in suggest-effort: {e}")
         raise HTTPException(status_code=500, detail=str(e))

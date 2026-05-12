@@ -51,10 +51,10 @@ export const MemberCard = React.memo(({
     const isOwner = member.role?.permissions?.includes("WORKSPACE_DELETE");
 
     return (
-        <div className="group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/30 flex flex-col items-center p-6 text-center h-full">
+        <div className="group relative bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center p-6 text-center h-full">
             
             {canManage && (
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-4 right-4">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button 
@@ -79,7 +79,7 @@ export const MemberCard = React.memo(({
                                         key={role.id}
                                         value={role.id}
                                         disabled={isUpdating || isLastOwner}
-                                        className="cursor-pointer font-medium focus:bg-accent focus:text-accent-foreground"
+                                        className="cursor-pointer text-sm focus:bg-accent focus:text-accent-foreground"
                                     >
                                         {role.name}
                                     </DropdownMenuRadioItem>
@@ -89,7 +89,7 @@ export const MemberCard = React.memo(({
                             <DropdownMenuSeparator className="bg-border" />
 
                             <DropdownMenuItem 
-                                className={`font-medium ${isLastOwner ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer'}`}
+                                className={`text-sm ${isLastOwner ? 'text-muted-foreground opacity-50 cursor-not-allowed' : 'text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer'}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -109,35 +109,35 @@ export const MemberCard = React.memo(({
                 <MemberAvatar 
                     name={member.name}
                     src={member.imageUrl}
-                    className="size-20 text-2xl border-4 border-background shadow-sm ring-1 ring-border"
+                    className="size-16 text-xl border-2 border-background shadow-sm ring-1 ring-border"
                 />
                 {isOwner && (
                     <div className="absolute -bottom-1 -right-1 bg-background p-1.5 rounded-full border border-border shadow-sm" title="Workspace Owner">
-                        <Crown className="size-4 text-purple-500 fill-purple-100 dark:fill-purple-900/50" />
+                        <Crown className="size-3.5 text-amber-500 fill-amber-100 dark:fill-amber-900/50" />
                     </div>
                 )}
             </div>
 
-            <div className="w-full mb-4">
-                <h3 className="font-bold text-foreground text-lg truncate px-2">
+            <div className="w-full mb-3">
+                <h3 className="font-semibold text-foreground text-base truncate px-2">
                     {member.name}
                 </h3>
                 <div className="flex items-center justify-center gap-1.5 mt-1 text-muted-foreground text-xs">
                     <Mail className="size-3.5" />
-                    <span className="truncate max-w-[150px] font-medium">{member.email}</span>
+                    <span className="truncate max-w-[180px]">{member.email}</span>
                 </div>
             </div>
 
-            <div className="mb-6">
-                <Badge variant="secondary" className="uppercase tracking-wider text-[10px] px-2.5 py-0.5">
+            <div className="mb-5">
+                <Badge variant="secondary" className="uppercase tracking-wider text-[10px] px-2.5 py-0.5 shadow-none border-border font-medium">
                     {roleName}
                 </Badge>
             </div>
 
-            <div className="w-full pt-4 border-t border-border mt-auto flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5 font-medium">
-                    <Calendar className="size-3.5" />
-                    <span>Joined: {member.createdAt ? format(new Date(member.createdAt), 'MMM yyyy') : 'N/A'}</span>
+            <div className="w-full pt-4 border-t border-border/50 mt-auto flex items-center justify-center text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                    <Calendar className="size-3.5 opacity-70" />
+                    <span>Joined {member.createdAt ? format(new Date(member.createdAt), 'MMM yyyy') : 'N/A'}</span>
                 </div>
             </div>
         </div>

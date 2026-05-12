@@ -1,23 +1,32 @@
-def suggest_effort_points(description: str, task_type: str) -> dict:
-    desc_lower = description.lower()
+import re
 
-    points = 2 
-    
-    if "api" in desc_lower or "database" in desc_lower or "backend" in desc_lower:
-        points += 3
-    if "auth" in desc_lower or "security" in desc_lower:
-        points += 2
-    if "ui" in desc_lower or "css" in desc_lower or "frontend" in desc_lower:
-        points += 1
-    if "urgent" in desc_lower or "complex" in desc_lower:
-        points += 2
+def suggest_effort_points(description: str, task_type: str) -> int:
+    try:
+        if not description:
+            return 1
+
+        desc_lower = str(description).lower()
+        word_count = len(desc_lower.split())
         
-    if task_type == "FEATURE":
-        points += 2
+        effort = 1
         
-    points = min(10, max(1, points)) 
-    
-    return {
-        "points": points,
-        "reason": f"Based on keyword density for {task_type} complexity."
-    }
+        if word_count > 50:
+            effort += 2
+        elif word_count > 20:
+            effort += 1
+            
+        complex_keywords = ['api', 'database', 'auth', 'payment', 'integration', 'architecture', 'refactor']
+        for word in complex_keywords:
+            if word in desc_lower:
+                effort += 1
+                
+        safe_task_type = str(task_type).upper() if task_type else ''
+        if safe_task_type == 'SPIKE':
+            effort += 2
+        elif safe_task_type == 'BUG':
+            if 'critical' in desc_lower or 'urgent' in desc_lower:
+                effort += 3
+                
+        return min(effort, 13)
+    except Exception:
+        return 1

@@ -50,10 +50,7 @@ export const EventFilters = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-2 items-start lg:items-center">
       
-      <Select
-        value={projectId || "all"}
-        onValueChange={onProjectChange}
-      >
+      <Select value={projectId || "all"} onValueChange={onProjectChange}>
         <SelectTrigger className="w-full lg:w-[180px] h-8 bg-background border-border">
           <div className="flex items-center pr-2 truncate">
             <FolderIcon className="size-4 mr-2 text-muted-foreground shrink-0" />
@@ -81,12 +78,7 @@ export const EventFilters = () => {
       </div>
 
       {isAnyFilterActive && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={resetFilters}
-          className="h-8 px-2 text-muted-foreground hover:text-foreground hover:bg-accent"
-        >
+        <Button variant="ghost" size="sm" onClick={resetFilters} className="h-8 px-2 text-muted-foreground hover:text-foreground hover:bg-accent">
           <X className="size-4 mr-2" />
           Reset
         </Button>

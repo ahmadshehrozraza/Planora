@@ -3,19 +3,8 @@
 import { TrendingUp, BarChartIcon, LayoutDashboard } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const chartConfig = {
   progress: {
@@ -34,15 +23,11 @@ interface WorkspaceProgressChartProps {
 }
 
 export const WorkspaceProgressChart = ({ projects }: WorkspaceProgressChartProps) => {
-  
-  const chartData = projects.map((project) => {
-
-    return {
-      projectName: project.name,
-      progress: project.progress || 0, 
-      fill: "var(--color-progress)", 
-    };
-  });
+  const chartData = projects.map((project) => ({
+    projectName: project.name,
+    progress: project.progress || 0, 
+    fill: "var(--color-progress)", 
+  }));
 
   if (!projects || projects.length === 0) {
     return (
@@ -51,9 +36,7 @@ export const WorkspaceProgressChart = ({ projects }: WorkspaceProgressChartProps
           <LayoutDashboard className="size-6 text-muted-foreground/70" />
         </div>
         <CardTitle className="text-lg mb-1">No Project Data</CardTitle>
-        <CardDescription>
-          Create projects and add tasks to see progress analytics.
-        </CardDescription>
+        <CardDescription>Create projects and add tasks to see progress analytics.</CardDescription>
       </Card>
     );
   }
@@ -69,15 +52,12 @@ export const WorkspaceProgressChart = ({ projects }: WorkspaceProgressChartProps
           <BarChartIcon className="size-5 text-primary" />
           Projects Progress Overview
         </CardTitle>
-        <CardDescription>
-          Showing actual task completion percentage for active projects.
-        </CardDescription>
+        <CardDescription>Showing actual task completion percentage for active projects.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[250px] w-full max-h-[350px]">
           <BarChart accessibilityLayer data={chartData} margin={{ top: 20, left: -10, right: 12 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
-            
             <XAxis
               dataKey="projectName"
               tickLine={false}
@@ -86,7 +66,6 @@ export const WorkspaceProgressChart = ({ projects }: WorkspaceProgressChartProps
               className="text-xs font-medium fill-muted-foreground"
               tickFormatter={(value) => value.length > 12 ? `${value.substring(0, 12)}...` : value}
             />
-            
             <YAxis 
               tickLine={false}
               axisLine={false}
@@ -95,12 +74,10 @@ export const WorkspaceProgressChart = ({ projects }: WorkspaceProgressChartProps
               tickFormatter={(value) => `${value}%`} 
               domain={[0, 100]}
             />
-            
             <ChartTooltip
               cursor={{ fill: "var(--theme-muted)", opacity: 0.2 }}
               content={<ChartTooltipContent hideLabel indicator="line" />}
             />
-            
             <Bar 
               dataKey="progress" 
               fill="var(--color-progress)" 

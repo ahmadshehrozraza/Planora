@@ -12,6 +12,7 @@ import { ProjectAvatar } from "@/features/projects/components/project-avatar";
 import { DateIndicator } from "@/components/date-indicator";
 import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions";
 import { PERMISSIONS } from "@/lib/permissions-constants";
+import { snakeCaseToTitleCase } from "@/lib/utils";
 
 export const TasksList = ({ data }: { data: any[] }) => {
     const { open: createTask } = useCreateTaskModal();
@@ -24,76 +25,68 @@ export const TasksList = ({ data }: { data: any[] }) => {
     const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_CREATE);
 
     return (
-        <div className="flex flex-col gap-y-4 col-span-1">
-            <div className="bg-muted/50 rounded-lg p-4 border border-border shadow-sm">
-                <div className="flex items-center justify-between">
-                    <p className="text-lg font-semibold text-foreground">
-                        Requires Attention ({data.length})
+        <div className="flex flex-col col-span-1">
+            <div className="bg-card rounded-xl p-5 border border-border shadow-sm">
+                <div className="flex items-center justify-between mb-1">
+                    <p className="text-base font-bold text-foreground flex items-center gap-2">
+                        <ListTodo className="size-4 text-primary" />
+                        Requires Attention <span className="text-muted-foreground font-normal text-xs ml-1">({data.length})</span>
                     </p>
 
                     {allowed && (
-                    <Button variant="outline" size="icon" onClick={createTask} className="bg-background">
-                        <PlusIcon className="size-4 text-foreground" />
+                    <Button variant="ghost" size="icon" onClick={createTask} className="size-8 hover:bg-primary/10 hover:text-primary">
+                        <PlusIcon className="size-4" />
                     </Button>
                     )}
-                    
                 </div>
-                <Separator className="my-2 bg-border" />
+                <Separator className="my-4 bg-border/60" />
 
-                <ul className="flex flex-col gap-y-3">
+                <ul className="flex flex-col gap-y-2.5">
                     {data.map((task) => {
                         const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
 
                         return (
                             <li key={task.id}>
                                 <Link href={`/workspaces/${workspaceId}/tasks/${task.id}`}>
-                                    <Card className="shadow-none rounded-lg hover:bg-accent/50 transition-all duration-200 border border-border bg-card">
+                                    <Card className="shadow-none rounded-lg hover:bg-accent/40 transition-colors duration-200 border border-border/60 bg-transparent group">
                                         <CardContent className="p-3">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="text-base font-semibold text-foreground truncate">
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                                                             {task.name}
                                                         </p>
-                                                        {task.branchName && (
-                                                            <div className="flex items-center gap-1 text-muted-foreground ml-1">
-                                                                <GitBranch className="size-3.5" />
-                                                                <span className="font-mono text-[10px] truncate max-w-[80px]">{task.branchName}</span>
-                                                            </div>
-                                                        )}
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center px-2 rounded-md text-xs font-medium shrink-0">
-                                                    <Badge variant="outline">
+                                                    <Badge variant="secondary" className="shrink-0 font-medium text-[10px] px-1.5 py-0 h-4.5 bg-muted">
                                                         {task.column?.name || "Pending"}
                                                     </Badge>
                                                 </div>
-                                            </div>
 
-                                            <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
-                                                <div className="flex items-center gap-x-3 min-w-0">
+                                                <div className="flex items-center justify-between mt-1">
                                                     <div className="flex items-center gap-x-2 min-w-0">
                                                         <ProjectAvatar
                                                             name={task.project?.name || "Project"}
                                                             image={task.project?.imageUrl}
-                                                            className="size-6 shrink-0"
-                                                            fallbackClassName="text-xs font-semibold"
+                                                            className="size-5 border border-border/50 shrink-0"
+                                                            fallbackClassName="text-[8px] font-bold"
                                                         />
-                                                        <span className="text-sm text-foreground font-medium truncate max-w-[120px]">
+                                                        <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px]">
                                                             {task.project?.name}
                                                         </span>
+                                                        {task.priority && (
+                                                            <div className="size-1 rounded-full bg-border shrink-0 ml-1" />
+                                                        )}
+                                                        {task.priority && (
+                                                            <span className="text-[10px] font-bold uppercase text-muted-foreground shrink-0 ml-1">
+                                                                {task.priority}
+                                                            </span>
+                                                        )}
                                                     </div>
 
-                                                    {task.priority && (
-                                                        <div className="px-2 py-0.5 rounded text-[10px] uppercase font-bold border shrink-0">
-                                                            {task.priority}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className={`text-sm flex items-center gap-x-1 shrink-0 ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                                                    <CalendarIcon className="size-4 shrink-0" />
-                                                    <DateIndicator value={task.dueDate} />
+                                                    <div className={`flex items-center gap-x-1.5 shrink-0 ${isOverdue ? 'text-destructive font-semibold' : 'text-muted-foreground font-medium'}`}>
+                                                        <CalendarIcon className="size-3.5 shrink-0" />
+                                                        <DateIndicator value={task.dueDate} className="text-xs" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -104,18 +97,18 @@ export const TasksList = ({ data }: { data: any[] }) => {
                     })}
 
                     {data.length === 0 && (
-                        <li className="text-center py-8">
-                            <div className="text-muted-foreground">
-                                <div className="mx-auto size-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                                    <ListTodo className="size-6 text-muted-foreground/70" />
+                        <li className="text-center py-6">
+                            <div className="text-muted-foreground flex flex-col items-center">
+                                <div className="size-10 bg-muted/50 rounded-full flex items-center justify-center mb-2">
+                                    <ListTodo className="size-5 text-muted-foreground/50" />
                                 </div>
-                                <p className="text-lg font-medium text-foreground">All caught up!</p>
-                                <p className="text-sm">No urgent tasks due in the next 7 days.</p>
+                                <p className="text-sm font-medium text-foreground">All caught up!</p>
+                                <p className="text-xs mt-0.5">No urgent tasks due in the next 7 days.</p>
                             </div>
                         </li>
                     )}
                 </ul>
-                <Button variant="secondary" className="mt-3 w-full bg-background" asChild>
+                <Button variant="secondary" className="mt-4 w-full bg-muted/50 hover:bg-muted font-medium text-xs h-9" asChild>
                     <Link href={`/workspaces/${workspaceId}/tasks`}>View All Tasks</Link>
                 </Button>
             </div>

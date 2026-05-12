@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TaskPriority, TaskType } from "./types";
+import { TaskPriority, TaskType, ColumnCategory } from "./types";
 
 export const taskFormSchemaObject = z.object({
   name: z.string().min(1, "Task name is required").max(100),
@@ -8,16 +8,16 @@ export const taskFormSchemaObject = z.object({
   projectId: z.string().min(1, "Project is required"),
   columnId: z.string().optional(),
   newColumnName: z.string().optional(),
+  newColumnCategory: z.nativeEnum(ColumnCategory).optional(),
   sprintId: z.string().optional(),
   assigneeId: z.string().optional(),
-  taskType: z.nativeEnum(TaskType),
-  priority: z.nativeEnum(TaskPriority),
-  dueDate: z.date(),
-  startDate: z.date().optional(),
-  budget: z.number().min(0).optional(),
+  taskType: z.nativeEnum(TaskType).default(TaskType.TASK),
+  priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
+  dueDate: z.coerce.date(),
+  startDate: z.coerce.date().optional(),
+  budget: z.coerce.number().min(0).optional(),
   currency: z.string().optional(),
-  effortPoints: z.number().min(1).max(10).optional(),
-  progress: z.number().min(0).max(100).optional(),
+  effortPoints: z.coerce.number().min(1).max(10).optional(),
   blockedByIds: z.array(z.string()).optional().default([]),
   blockingToIds: z.array(z.string()).optional().default([]),
   tagIds: z.array(z.string()).optional().default([]),
@@ -29,6 +29,14 @@ export const createTaskSchema = taskFormSchemaObject.superRefine((data, ctx) => 
       code: z.ZodIssueCode.custom,
       message: "Please select or create a status column",
       path: ["columnId"],
+    });
+  }
+  
+  if (data.newColumnName && !data.newColumnCategory) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Category is required for new column",
+      path: ["newColumnCategory"],
     });
   }
 });

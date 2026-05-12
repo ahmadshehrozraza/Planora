@@ -4,7 +4,7 @@ import { auth } from "@/auth/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
-export async function verifyPasswordAction(password: string) {
+export async function verifyPasswordAction(password?: string) {
     try {
         const session = await auth();
         
@@ -20,19 +20,19 @@ export async function verifyPasswordAction(password: string) {
             return { error: "User not found" };
         }
 
-        if (!user.password) {
-            return { error: "OAuth accounts do not require a password" };
+        if (user.password) {
+            if (!password) {
+                return { error: "Password is required" };
+            }
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            
+            if (!isPasswordValid) {
+                return { error: "Incorrect password" };
+            }
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        
-        if (!isPasswordValid) {
-            return { error: "Incorrect password" };
-        }
-
-        return { success: "Password verified successfully" };
+        return { success: "Verified successfully" };
     } catch (error: any) {
-        console.error("VERIFY_PASSWORD_ERROR:", error);
-        return { error: "Something went wrong while verifying password" };
+        return { error: "Something went wrong while verifying identity" };
     }
 }

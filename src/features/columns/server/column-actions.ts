@@ -7,8 +7,9 @@ import { ACTION, ENTITY_TYPE } from "@/features/activity-logs/types";
 import { eventEmitter } from "@/lib/event-emitter";
 import { PERMISSIONS } from "@/lib/permissions-constants";
 import { getPermissions } from "@/lib/get-permissions";
+import { ColumnCategory } from "@prisma/client";
 
-export async function createColumnAction({ projectId, name }: { projectId: string; name: string }) {
+export async function createColumnAction({ projectId, name, category }: { projectId: string; name: string; category: ColumnCategory }) {
     try {
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
@@ -49,7 +50,7 @@ export async function createColumnAction({ projectId, name }: { projectId: strin
         const newPos = highestCol ? highestCol.position + 1000 : 1000;
 
         const newCol = await prisma.customColumn.create({
-            data: { name, projectId, position: newPos }
+            data: { name, projectId, position: newPos, category }
         });
 
         await createAuditLog({
@@ -60,7 +61,7 @@ export async function createColumnAction({ projectId, name }: { projectId: strin
             action: ACTION.CREATE,
             metadata: {
                 title: newCol.name,
-                message: `created a new column "${newCol.name}"`
+                message: `created a new column "${newCol.name}" under category ${category}`
             }
         });
 
@@ -72,7 +73,7 @@ export async function createColumnAction({ projectId, name }: { projectId: strin
     }
 }
 
-export async function updateColumnAction({ columnId, name }: { columnId: string; name: string }) {
+export async function updateColumnAction({ columnId, name, category }: { columnId: string; name: string; category?: ColumnCategory }) {
     try {
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
@@ -105,9 +106,14 @@ export async function updateColumnAction({ columnId, name }: { columnId: string;
             throw new Error("Unauthorized: Only Project Managers or Admins can update columns.");
         }
 
+        const dataToUpdate: any = { name };
+        if (category) {
+            dataToUpdate.category = category;
+        }
+
         const updatedCol = await prisma.customColumn.update({
             where: { id: columnId },
-            data: { name },
+            data: dataToUpdate,
         });
 
         await createAuditLog({
@@ -118,7 +124,7 @@ export async function updateColumnAction({ columnId, name }: { columnId: string;
             action: ACTION.UPDATE,
             metadata: {
                 title: updatedCol.name,
-                message: `renamed column to "${updatedCol.name}"`
+                message: `updated column "${updatedCol.name}"`
             }
         });
 

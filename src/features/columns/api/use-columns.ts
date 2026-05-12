@@ -8,12 +8,13 @@ import {
     deleteColumnAction, 
     bulkUpdateColumnsOrder
 } from "../server/column-actions";
+import { ColumnCategory } from "@prisma/client";
 
 export const useColumnMutations = () => {
     const queryClient = useQueryClient();
 
     const createColumn = useMutation({
-        mutationFn: async (values: { projectId: string; name: string; workspaceId: string }) => {
+        mutationFn: async (values: { projectId: string; name: string; workspaceId: string; category: ColumnCategory }) => {
             const response = await createColumnAction(values);
             if (response.error) throw new Error(response.error);
             return response;
@@ -27,16 +28,17 @@ export const useColumnMutations = () => {
     });
 
     const updateColumn = useMutation({
-        mutationFn: async (values: { columnId: string; name: string; projectId: string }) => {
+        mutationFn: async (values: { columnId: string; name: string; projectId: string; category?: ColumnCategory }) => {
             const response = await updateColumnAction(values);
             if (response.error) throw new Error(response.error);
             return response;
         },
         onSuccess: (data, variables) => {
-            toast.success("Column renamed");
+            toast.success("Column updated");
             queryClient.invalidateQueries({ queryKey: ["columns", variables.projectId] });
+            queryClient.invalidateQueries({ queryKey: ["project-analytics"] });
         },
-        onError: (error: any) => toast.error(error.message || "Failed to rename column")
+        onError: (error: any) => toast.error(error.message || "Failed to update column")
     });
 
     const deleteColumn = useMutation({

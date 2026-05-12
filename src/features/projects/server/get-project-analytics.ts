@@ -7,6 +7,7 @@ import { differenceInDays, addDays, format, startOfDay, isBefore, isAfter, subDa
 function isSameDayCustom(d1: Date, d2: Date) {
     return format(d1, "yyyy-MM-dd") === format(d2, "yyyy-MM-dd");
 }
+
 function endOfDayCustom(d: Date) {
     const newDate = new Date(d);
     newDate.setHours(23, 59, 59, 999);
@@ -18,7 +19,7 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
         const session = await auth();
         if (!session?.user?.email) throw new Error("Unauthorized");
 
-        const [project, tasks, projectMembers, sprints, columns] = await Promise.all([
+        const [project, tasks, projectMembers, sprints, columns, risks] = await Promise.all([
             prisma.project.findUnique({ where: { id: projectId } }),
             prisma.task.findMany({ 
                 where: { projectId }, 
@@ -27,7 +28,8 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
             }),
             prisma.projectMember.findMany({ where: { projectId }, include: { user: true, role: true } }),
             prisma.sprint.findMany({ where: { projectId } }),
-            prisma.customColumn.findMany({ where: { projectId }, orderBy: { position: 'asc' } })
+            prisma.customColumn.findMany({ where: { projectId }, orderBy: { position: 'asc' } }),
+            prisma.risk.findMany({ where: { projectId } })
         ]);
 
         if (!project) throw new Error("Project not found");
@@ -37,10 +39,10 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
         const dueDate = project.dueDate ? startOfDay(project.dueDate) : addDays(today, 30);
 
         const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(t => t.progress === 100).length;
+        const completedTasks = tasks.filter(t => t.column?.category === "DONE").length;
         const totalBudgetUsed = tasks.reduce((sum, t) => sum + (t.budget || 0), 0);
         const totalEffortPoints = tasks.reduce((sum, t) => sum + (t.effortPoints || 0), 0);
-        const completedEffortPoints = tasks.filter(t => t.progress === 100).reduce((sum, t) => sum + (t.effortPoints || 0), 0);
+        const completedEffortPoints = tasks.filter(t => t.column?.category === "DONE").reduce((sum, t) => sum + (t.effortPoints || 0), 0);
 
         let projectProgress = 0;
         if (totalEffortPoints > 0) projectProgress = Math.round((completedEffortPoints / totalEffortPoints) * 100);
@@ -51,7 +53,7 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
         let remainingEffort = totalEffortPoints;
         
         const completionsByDate: Record<string, number> = {};
-        tasks.filter(t => t.progress === 100).forEach(t => {
+        tasks.filter(t => t.column?.category === "DONE").forEach(t => {
             const d = format(t.updatedAt, "yyyy-MM-dd");
             completionsByDate[d] = (completionsByDate[d] || 0) + (t.effortPoints || 0);
         });
@@ -86,7 +88,7 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
             const dateStr = format(d, "dd MMM");
 
             const createdCount = tasks.filter(t => isSameDayCustom(t.createdAt, d)).length;
-            const completedCount = tasks.filter(t => t.progress === 100 && isSameDayCustom(t.updatedAt, d)).length;
+            const completedCount = tasks.filter(t => t.column?.category === "DONE" && isSameDayCustom(t.updatedAt, d)).length;
             velocityData.push({ date: dateStr, created: createdCount, completed: completedCount });
 
             const dayFlow: any = { date: dateStr };
@@ -120,6 +122,8 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     startDate: project.startDate,
                     dueDate: project.dueDate,
                     ImageUrl: project.imageUrl,
+                    calculatedEffort: project.calculatedEffort || 0,
+                    calculatedCost: project.calculatedCost || 0
                 },
                 kpi: {
                     totalTasks,
@@ -128,12 +132,19 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     budgetRemaining: project.budget - totalBudgetUsed,
                     effortProgress: projectProgress
                 },
+                risks: risks.map(r => ({
+                    id: r.id,
+                    title: r.title,
+                    probability: r.probability,
+                    impact: r.impact,
+                    status: r.status
+                })),
                 sprints: sprints.map(sprint => {
                     const sprintTasks = tasks.filter(t => t.sprintId === sprint.id);
                     const spent = sprintTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
-
-                    const totalProgressSum = sprintTasks.reduce((sum, t) => sum + (t.progress || 0), 0);
-                    const avgProgress = sprintTasks.length > 0 ? Math.round(totalProgressSum / sprintTasks.length) : 0;
+                    const totalPoints = sprintTasks.reduce((sum, t) => sum + (t.effortPoints || 0), 0);
+                    const completedPoints = sprintTasks.filter(t => t.column?.category === "DONE").reduce((sum, t) => sum + (t.effortPoints || 0), 0);
+                    const avgProgress = totalPoints === 0 ? 0 : Math.round((completedPoints / totalPoints) * 100);
                     
                     return {
                         id: sprint.id,
@@ -146,15 +157,17 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                 }),
                 members: projectMembers.map(member => {
                     const mTasks = tasks.filter(t => t.assigneeId === member.userId);
-                    const done = mTasks.filter(t => t.progress === 100).length;
+                    const doneTasks = mTasks.filter(t => t.column?.category === "DONE");
                     return {
                         memberId: member.userId,
                         name: member.user?.name || "Unknown",
                         image: member.user?.image,
-                        role: member.role,
+                        role: member.role?.name || "Member",
                         totalTasks: mTasks.length,
-                        tasksCompleted: done,
-                        pointsEarned: mTasks.filter(t => t.progress === 100).reduce((sum, t) => sum + (t.effortPoints || 0), 0)
+                        tasksCompleted: doneTasks.length,
+                        pointsEarned: doneTasks.reduce((sum, t) => sum + (t.effortPoints || 0), 0),
+                        budgetManaged: mTasks.reduce((sum, t) => sum + (t.budget || 0), 0),
+                        budgetConsumed: doneTasks.reduce((sum, t) => sum + (t.budget || 0), 0)
                     };
                 }),
                 tasks: tasks.map(t => ({
@@ -162,10 +175,12 @@ export async function getProjectAnalyticsAction({ projectId }: { projectId: stri
                     name: t.name,
                     assigneeId: t.assignee?.name || "Unassigned",
                     priority: t.priority,
-                    progress: t.progress,
-                    budget: t.budget,
-                    effortPoints: t.effortPoints,
-                    column: { name: t.column?.name || "Unmapped" }
+                    progress: t.column?.category === "DONE" ? 100 : (t.column?.category === "IN_PROGRESS" ? 50 : 0),
+                    budget: t.budget || 0,
+                    effortPoints: t.effortPoints || 1,
+                    column: { name: t.column?.name || "Unmapped", category: t.column?.category },
+                    createdAt: t.createdAt,
+                    updatedAt: t.updatedAt
                 })),
                 charts: {
                     burndown: burndownData,

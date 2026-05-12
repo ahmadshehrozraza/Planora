@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
 import { useProjectId } from "@/features/projects/hooks/use-project-id";
 import { useCreateTaskModal } from "../hooks/use-create-task-modal";
+import { useCreateSprintModal } from "@/features/sprints/hooks/use-create-sprint-modal";
 import { useTaskFilters } from "../hooks/use-task-filters";
 import { useGetTasks } from "../api/use-get-tasks";
 import { useGetEvents } from "@/features/events/api/use-get-events"; 
@@ -19,7 +20,7 @@ import { WorkspaceTaskFilters } from "./workspace-task-filters";
 import { ProjectTaskFilters } from "./project-task-filters";
 
 import { DataTable } from "./data-table";
-import { columns } from "./columns";
+import { columns as tableColumns } from "./columns";
 import { DataCalendar } from "./data-calendar";
 import { PageLoader } from "@/components/page-loader";
 import { DataKanban } from "./data-kanban";
@@ -32,6 +33,8 @@ import { useGetPermissions } from "@/features/workspaces/api/use-get-permissions
 import { PERMISSIONS } from "@/lib/permissions-constants";
 import { useGetProject } from "@/features/projects/api/use-get-project";
 import { useSSE } from "@/hooks/use-sse";
+import { CreateSprintModal } from "@/features/sprints/components/create-sprint-modal";
+import { ColumnCategory } from "@prisma/client";
 
 export const TaskViewSwitcher = () => {
   useSSE();
@@ -51,7 +54,8 @@ export const TaskViewSwitcher = () => {
   const params = useParams();
   const paramSprintId = params.sprintId as string | undefined;
 
-  const { open } = useCreateTaskModal();
+  const { open: openTaskModal } = useCreateTaskModal();
+  const { open: openSprintModal } = useCreateSprintModal();
 
   const effectiveProjectId = filterProjectId === "all" ? undefined : (filterProjectId || paramProjectId);
   const effectiveSprintId = filterSprintId === "all" ? "all" : (filterSprintId || paramSprintId);
@@ -100,13 +104,15 @@ export const TaskViewSwitcher = () => {
           createColumn.mutate({ 
               projectId: effectiveProjectId, 
               name, 
-              workspaceId 
+              workspaceId,
+              category: ColumnCategory.TODO 
           });
       }
   }, [effectiveProjectId, workspaceId, createColumn]);
 
   return (
     <Tabs defaultValue={view} onValueChange={setView} className="flex-1 w-full border-none">
+      <CreateSprintModal />
       <div className="h-full flex flex-col overflow-auto border-none">
         <div className="flex flex-col gap-y-4 lg:flex-row justify-between items-center mb-4 border-none">
           <div className="flex items-center gap-4 w-full lg:w-auto">
@@ -138,7 +144,7 @@ export const TaskViewSwitcher = () => {
               )}
               
             {allowed && (
-              <Button onClick={open} size="sm" className="w-full lg:w-auto h-11 shadow-sm">
+              <Button onClick={openTaskModal} size="sm" className="w-full lg:w-auto h-11 shadow-sm">
                 <PlusIcon className="size-4 mr-2" />
                 New Task
               </Button>
@@ -158,19 +164,21 @@ export const TaskViewSwitcher = () => {
           <>
             <TabsContent value="table" className="mt-0">
                <div className=" bg-card rounded-lg overflow-hidden shadow-sm">
-                  <DataTable columns={columns} data={tasks} />
+                  <DataTable columns={tableColumns} data={tasks} />
                </div>
             </TabsContent>
 
             <TabsContent value="kanban" className="mt-0">
-               <div className="border border-border rounded-lg p-4 min-h-[500px] bg-card shadow-sm">
+               <div className="border border-border rounded-lg p-4 min-h-[500px] bg-card shadow-sm flex flex-col">
                   {effectiveProjectId && projectColumns ? (
                      <DataKanban 
-                        tasks={tasks} 
-                        columns={projectColumns} 
+                        tasks={tasks as any[]} 
+                        columns={projectColumns as any[]} 
                         onChangeTasks={onKanbanChange} 
                         onChangeColumns={onColumnsChange} 
                         onCreateColumn={handleCreateColumn}
+                        openSprintModal={() => openSprintModal()}
+                        projectId={effectiveProjectId}
                      />
                   ) : (
                      <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-sm">

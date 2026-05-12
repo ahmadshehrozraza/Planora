@@ -39,12 +39,21 @@ export async function createSprintAction(values: any) {
             throw new Error("Only Project Managers or Workspace Admins can create sprints");
         }
 
+        const lastSprint = await prisma.sprint.findFirst({
+            where: { projectId: values.projectId },
+            orderBy: { sprintNumber: 'desc' }
+        });
+
+        const nextSprintNumber = lastSprint ? lastSprint.sprintNumber + 1 : 1;
+
         const newSprint = await prisma.sprint.create({
             data: {
                 name: values.name,
                 goal: values.goal,
                 description: values.description,
-                status: values.status as SprintStatus,
+                status: (values.status as SprintStatus) || SprintStatus.PLANNED,
+                capacityPoints: values.capacityPoints ? Number(values.capacityPoints) : null,
+                sprintNumber: nextSprintNumber,
                 startDate: values.startDate ? new Date(values.startDate) : null,
                 dueDate: values.dueDate ? new Date(values.dueDate) : null,
                 projectId: values.projectId,
@@ -59,7 +68,7 @@ export async function createSprintAction(values: any) {
             action: ACTION.CREATE,
             metadata: {
                 title: newSprint.name,
-                message: `Created a new sprint "${newSprint.name}"`
+                message: `Created sprint "${newSprint.name}" (Sprint ${newSprint.sprintNumber})`
             }
         });
 

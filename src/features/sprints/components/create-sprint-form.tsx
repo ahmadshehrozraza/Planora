@@ -22,13 +22,16 @@ import { Button } from "@/components/ui/button";
 type CreateSprintFormValues = z.infer<typeof createSprintSchema>;
 
 interface CreateSprintFormProps {
+    projectId?: string;
     onCancel?: () => void;
 }
 
-export const CreateSprintForm = ({ onCancel }: CreateSprintFormProps) => {
+export const CreateSprintForm = ({ projectId: propProjectId, onCancel }: CreateSprintFormProps) => {
     const workspaceId = useWorkspaceId();
-    const projectId = useProjectId();
+    const paramProjectId = useProjectId();
     const { mutate, isPending } = useCreateSprint();
+
+    const activeProjectId = propProjectId || paramProjectId;
 
     const form = useForm<CreateSprintFormValues>({
         resolver: zodResolver(createSprintSchema) as any,
@@ -36,8 +39,9 @@ export const CreateSprintForm = ({ onCancel }: CreateSprintFormProps) => {
             name: "",
             goal: "",
             workspaceId: workspaceId ?? "",
-            projectId: projectId ?? "",
-            status: SprintStatus.ACTIVE,
+            projectId: activeProjectId ?? "",
+            status: SprintStatus.PLANNED,
+            capacityPoints: undefined,
             startDate: new Date(),
             dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             description: "",
@@ -49,6 +53,7 @@ export const CreateSprintForm = ({ onCancel }: CreateSprintFormProps) => {
             ...values,
             goal: values.goal?.trim() || undefined,
             description: values.description?.trim() || undefined,
+            capacityPoints: values.capacityPoints ? Number(values.capacityPoints) : undefined,
             startDate: values.startDate ? values.startDate.toISOString() : undefined,
             dueDate: values.dueDate ? values.dueDate.toISOString() : undefined,
         };
@@ -100,86 +105,111 @@ export const CreateSprintForm = ({ onCancel }: CreateSprintFormProps) => {
                                 )}
                             />
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Sprint Status</FormLabel>
+                                            <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
+                                                <FormControl>
+                                                    <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value={SprintStatus.PLANNED}>Planned</SelectItem>
+                                                    <SelectItem value={SprintStatus.ACTIVE}>Active</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="capacityPoints"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Capacity Points</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    {...field} 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={field.value ?? ""} 
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                    placeholder="e.g. 40" 
+                                                    disabled={isPending} 
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="startDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Start Date</FormLabel>
+                                            <FormControl>
+                                                <DatePicker
+                                                    {...field}
+                                                    value={field.value ?? undefined}
+                                                    onChange={field.onChange}
+                                                    disabled={isPending}
+                                                    placeholder="Select start date"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="dueDate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Due Date *</FormLabel>
+                                            <FormControl>
+                                                <DatePicker
+                                                    {...field}
+                                                    value={field.value ?? undefined}
+                                                    onChange={field.onChange}
+                                                    disabled={isPending}
+                                                    placeholder="Select due date"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                             <FormField
                                 control={form.control}
-                                name="status"
+                                name="description"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Sprint Status</FormLabel>
-                                        <Select value={field.value} onValueChange={field.onChange} disabled={isPending}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value={SprintStatus.ACTIVE}>Active</SelectItem>
-                                                <SelectItem value={SprintStatus.ON_HOLD}>On Hold</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                    <FormItem className="">
+                                        <FormLabel>Sprint Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                {...field}
+                                                value={field.value ?? ""}
+                                                placeholder="Describe the Sprint's objectives, and requirements..."
+                                                className="min-h-[130px] resize-none"
+                                                disabled={isPending}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-
-                             <FormField
-                                        control={form.control}
-                                        name="startDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start Date</FormLabel>
-                                                <FormControl>
-                                                    <DatePicker
-                                                        {...field}
-                                                        value={field.value ?? undefined}
-                                                        onChange={field.onChange}
-                                                        disabled={isPending}
-                                                        placeholder="Select start date"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="dueDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Due Date *</FormLabel>
-                                                <FormControl>
-                                                    <DatePicker
-                                                        {...field}
-                                                        value={field.value ?? undefined}
-                                                        onChange={field.onChange}
-                                                        disabled={isPending}
-                                                        placeholder="Select due date"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem className="">
-                                                <FormLabel>Sprint Description</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        {...field}
-                                                        value={field.value ?? ""}
-                                                        placeholder="Describe the Sprint's objectives, and requirements..."
-                                                        className="min-h-[130px] resize-none"
-                                                        disabled={isPending}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
                         </div>
 
                         <div className="mb-3 mt-3"><Separator /></div>

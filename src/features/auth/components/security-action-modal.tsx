@@ -62,10 +62,6 @@ export const SecurityActionModal = ({ isOpen, onClose, actionType }: SecurityAct
   }, [isOpen, actionType]);
 
   const handleVerifyStep = async () => {
-    if (!currentPassword) {
-      toast.error("Current password is required to continue");
-      return;
-    }
     try {
       await verifyPassword(currentPassword);
       setIsVerified(true);
@@ -133,7 +129,7 @@ export const SecurityActionModal = ({ isOpen, onClose, actionType }: SecurityAct
             </DialogTitle>
             <DialogDescription>
               {!isVerified 
-                ? "Please enter your current password to verify your identity."
+                ? "Please enter your current password. If you logged in with Google, leave this blank and click Verify."
                 : actionType === "email" 
                   ? "Enter your new email address below."
                   : actionType === "password"
@@ -152,7 +148,7 @@ export const SecurityActionModal = ({ isOpen, onClose, actionType }: SecurityAct
                 </Label>
                 <Input
                   type="password"
-                  placeholder="Enter your current password"
+                  placeholder="Enter your current password (Leave blank if Google Auth)"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={isPending}
@@ -208,7 +204,7 @@ export const SecurityActionModal = ({ isOpen, onClose, actionType }: SecurityAct
                 {actionType === "delete" && (
                   <div className="flex items-center gap-3 p-3 bg-destructive/10 text-destructive rounded-md border border-destructive/20">
                     <CheckCircle2 className="size-5 shrink-0" />
-                    <p className="text-sm font-medium">Password verified. Final confirmation needed.</p>
+                    <p className="text-sm font-medium">Identity verified. Final confirmation needed.</p>
                   </div>
                 )}
               </>
@@ -221,9 +217,9 @@ export const SecurityActionModal = ({ isOpen, onClose, actionType }: SecurityAct
             </Button>
 
             {!isVerified ? (
-              <Button onClick={handleVerifyStep} disabled={isPending || !currentPassword}>
+              <Button onClick={handleVerifyStep} disabled={isPending}>
                 {isVerifying && <Loader2 className="size-4 animate-spin mr-2" />}
-                {isVerifying ? "Verifying..." : "Verify Password"}
+                {isVerifying ? "Verifying..." : "Verify Identity"}
               </Button>
             ) : (
               <Button 

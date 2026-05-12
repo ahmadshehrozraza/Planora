@@ -44,7 +44,7 @@ export async function deleteAccountAction(password?: string) {
             });
 
             if (otherAdminsCount === 0) {
-                throw new Error(`Aap "${ws.workspace.name}" ke akele administrator hain. Account delete karne se pehle ownership transfer karein ya workspace delete karein.`);
+                throw new Error(`You are the only admin of "${ws.workspace.name}". Please transfer admin rights or delete the workspace before deleting your account.`);
             }
         }
 

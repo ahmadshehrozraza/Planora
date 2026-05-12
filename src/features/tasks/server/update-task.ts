@@ -8,13 +8,34 @@ import { createNotification } from "@/features/notifications/server/create-notif
 import { eventEmitter } from "@/lib/event-emitter";
 import { revalidatePath } from "next/cache";
 import { PERMISSIONS } from "@/lib/permissions-constants";
-import { Permission } from "@prisma/client"; 
+import { ColumnCategory } from "@prisma/client"; 
 import { getPermissions } from "@/lib/get-permissions";
 
-const formatDate = (date: Date | string | null | undefined) => {
-    if (!date) return "None";
-    return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
+function detectCycle(graph: Record<string, string[]>) {
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+
+    function dfs(node: string): boolean {
+        if (recStack.has(node)) return true;
+        if (visited.has(node)) return false;
+        
+        visited.add(node);
+        recStack.add(node);
+        
+        const neighbors = graph[node] || [];
+        for (const neighbor of neighbors) {
+            if (dfs(neighbor)) return true;
+        }
+        
+        recStack.delete(node);
+        return false;
+    }
+
+    for (const node of Object.keys(graph)) {
+        if (dfs(node)) return true;
+    }
+    return false;
+}
 
 export async function updateTaskAction(values: any) {
     try {
@@ -31,36 +52,40 @@ export async function updateTaskAction(values: any) {
         const oldTask = await prisma.task.findUnique({
             where: { id: values.id },
             include: {
-                project: { select: { status: true } }
+                project: { select: { status: true } },
+                sprint: { select: { status: true, dueDate: true } },
+                blockedBy: { select: { id: true } },
+                column: { select: { category: true } }
             }
         });
 
         if (!oldTask) throw new Error("Task not found");
 
-        if (oldTask.project.status === "ON_HOLD") {
-            throw new Error("Project is on hold. No changes can be made.");
-        }
+        if (oldTask.project.status === "ON_HOLD") throw new Error("Project is on hold. No changes can be made.");
 
         const userPermissions = await getPermissions({ 
             workspaceId: oldTask.workspaceId, 
             projectId: oldTask.projectId 
         });
 
-        const hasFullUpdate = userPermissions.includes(PERMISSIONS.TASK_UPDATE_FULL);
-        const hasStatusUpdate = userPermissions.includes(PERMISSIONS.TASK_UPDATE_STATUS);
         const isWorkspaceOwner = userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
+        const hasFullUpdate = userPermissions.includes(PERMISSIONS.TASK_UPDATE_FULL);
+        const hasStatusUpdateOnly = userPermissions.includes(PERMISSIONS.TASK_UPDATE_STATUS);
+        
+        const isAssignee = oldTask.assigneeId === user.id;
 
-        if (!hasFullUpdate && !hasStatusUpdate && !isWorkspaceOwner) {
-            throw new Error("Unauthorized: You do not have permission to update this task.");
-        }
+        const canUpdateFull = isWorkspaceOwner || hasFullUpdate || isAssignee;
+        const canUpdateStatus = canUpdateFull || hasStatusUpdateOnly;
+
+        if (!canUpdateStatus) throw new Error("Unauthorized: You do not have permission to update this task.");
 
         let finalColumnId = values.columnId;
+        let targetCategory: ColumnCategory = oldTask.column?.category || ColumnCategory.TODO;
 
         if (values.newColumnName) {
-            if (!hasFullUpdate && !isWorkspaceOwner) {
-                 throw new Error("Unauthorized: You cannot create new columns.");
-            }
+            if (!canUpdateFull) throw new Error("Unauthorized: You cannot create new columns.");
 
+            targetCategory = values.newColumnCategory || ColumnCategory.TODO;
             const highestCol = await prisma.customColumn.findFirst({
                 where: { projectId: values.projectId },
                 orderBy: { position: "desc" }
@@ -72,52 +97,107 @@ export async function updateTaskAction(values: any) {
                 data: {
                     name: values.newColumnName,
                     projectId: values.projectId,
-                    position: nextColPos
+                    position: nextColPos,
+                    category: targetCategory
                 }
             });
             finalColumnId = newCol.id;
+        } else if (finalColumnId && finalColumnId !== oldTask.columnId) {
+            const col = await prisma.customColumn.findUnique({ where: { id: finalColumnId } });
+            if (col) targetCategory = col.category;
         }
 
-        if (!finalColumnId) {
-            throw new Error("Status column is required");
+        if (!finalColumnId) throw new Error("Status column is required");
+
+        if (oldTask.project.status === "PLANNED" && targetCategory !== ColumnCategory.TODO) {
+            throw new Error("Project is PLANNED. Tasks cannot be started or completed yet.");
         }
 
-        const newAssigneeId = (values.assigneeId === "" || values.assigneeId === "no-assignee") ? null : values.assigneeId;
-        const newSprintId = (values.sprintId === "" || values.sprintId === "no-sprint") ? null : values.sprintId;
-
-        const taskData: any = {
-            name: values.name,
-            description: values.description,
-            projectId: values.projectId,
-            columnId: finalColumnId,
-            sprintId: newSprintId,
-            assigneeId: newAssigneeId,
-            taskType: values.taskType,
-            priority: values.priority,
-            effortPoints: values.effortPoints,
-            progress: values.progress || 0,
-            budget: values.budget || 0,
-            currency: values.currency,
-            startDate: values.startDate ? new Date(values.startDate) : null,
-            dueDate: values.dueDate ? new Date(values.dueDate) : null,
-        };
-
-        if (values.blockedByIds && Array.isArray(values.blockedByIds)) {
-            taskData.blockedBy = {
-                set: values.blockedByIds.map((id: string) => ({ id }))
-            };
+        if (oldTask.sprint?.status === "CLOSED" && !isWorkspaceOwner) {
+            throw new Error("Cannot modify a task in a closed sprint.");
         }
 
-        if (values.blockingToIds && Array.isArray(values.blockingToIds)) {
-            taskData.blocking = {
-                set: values.blockingToIds.map((id: string) => ({ id }))
-            };
+        if (targetCategory === ColumnCategory.IN_PROGRESS || targetCategory === ColumnCategory.DONE) {
+            const currentBlockerIds = values.blockedByIds || oldTask.blockedBy.map(b => b.id);
+            if (currentBlockerIds.length > 0) {
+                const blockers = await prisma.task.findMany({
+                    where: { id: { in: currentBlockerIds } },
+                    include: { column: true }
+                });
+                const incompleteBlockers = blockers.filter(b => b.column?.category !== ColumnCategory.DONE);
+                if (incompleteBlockers.length > 0) {
+                    throw new Error(`Cannot start or complete task. It is blocked by ${incompleteBlockers.length} incomplete task(s).`);
+                }
+            }
         }
 
-        if (values.tagIds && Array.isArray(values.tagIds)) {
-            taskData.tags = {
-                set: values.tagIds.map((id: string) => ({ id }))
-            };
+        if (values.blockedByIds || values.blockingToIds) {
+            const allTasks = await prisma.task.findMany({
+                where: { projectId: oldTask.projectId },
+                select: { id: true, blockedBy: { select: { id: true } } }
+            });
+
+            const graph: Record<string, string[]> = {};
+            allTasks.forEach(t => { graph[t.id] = t.blockedBy.map(b => b.id); });
+
+            graph[values.id] = values.blockedByIds || [];
+            
+            if (values.blockingToIds) {
+                values.blockingToIds.forEach((blockedId: string) => {
+                    if (!graph[blockedId]) graph[blockedId] = [];
+                    if (!graph[blockedId].includes(values.id)) {
+                        graph[blockedId].push(values.id);
+                    }
+                });
+            }
+
+            if (detectCycle(graph)) {
+                throw new Error("Circular dependency detected. A task cannot indirectly block itself.");
+            }
+        }
+
+        const taskData: any = { columnId: finalColumnId };
+
+        if (canUpdateFull) {
+            const newAssigneeId = (values.assigneeId === "" || values.assigneeId === "no-assignee") ? null : values.assigneeId;
+            const newSprintId = (values.sprintId === "" || values.sprintId === "no-sprint") ? null : values.sprintId;
+
+            if (newSprintId) {
+                const sprint = await prisma.sprint.findUnique({ where: { id: newSprintId } });
+                if (sprint?.status === "CLOSED") throw new Error("Cannot move task into a closed sprint.");
+                if (sprint?.status === "PLANNED" && targetCategory !== ColumnCategory.TODO) {
+                    throw new Error("Cannot move an active or completed task into a PLANNED sprint.");
+                }
+                if (values.dueDate && sprint?.dueDate && new Date(values.dueDate) > sprint.dueDate) {
+                    throw new Error("Task due date cannot exceed its sprint's end date.");
+                }
+            }
+
+            Object.assign(taskData, {
+                name: values.name,
+                description: values.description,
+                sprintId: newSprintId,
+                assigneeId: newAssigneeId,
+                taskType: values.taskType,
+                priority: values.priority,
+                effortPoints: values.effortPoints,
+                budget: values.budget || 0,
+                currency: values.currency,
+                startDate: values.startDate ? new Date(values.startDate) : null,
+                dueDate: values.dueDate ? new Date(values.dueDate) : null,
+            });
+
+            if (values.blockedByIds && Array.isArray(values.blockedByIds)) {
+                taskData.blockedBy = { set: values.blockedByIds.map((id: string) => ({ id })) };
+            }
+
+            if (values.blockingToIds && Array.isArray(values.blockingToIds)) {
+                taskData.blocking = { set: values.blockingToIds.map((id: string) => ({ id })) };
+            }
+
+            if (values.tagIds && Array.isArray(values.tagIds)) {
+                taskData.tags = { set: values.tagIds.map((id: string) => ({ id })) };
+            }
         }
 
         const updatedTask = await prisma.task.update({
@@ -126,9 +206,10 @@ export async function updateTaskAction(values: any) {
         });
 
         const changes: string[] = [];
-        if (oldTask.name !== values.name) changes.push(`renamed task from "${oldTask.name}" to "${values.name}"`);
-        if (oldTask.priority !== values.priority) changes.push(`changed priority to ${values.priority.toLowerCase()}`);
-        if (oldTask.progress !== (values.progress || 0)) changes.push(`updated progress to ${values.progress || 0}%`);
+        if (canUpdateFull) {
+            if (oldTask.name !== values.name) changes.push(`renamed task from "${oldTask.name}" to "${values.name}"`);
+            if (oldTask.priority !== values.priority) changes.push(`changed priority to ${values.priority.toLowerCase()}`);
+        }
         if (oldTask.columnId !== finalColumnId) changes.push(`moved the task to a new status`);
         
         let logMessage = `updated the task`;
@@ -149,32 +230,9 @@ export async function updateTaskAction(values: any) {
             metadata: { title: updatedTask.name, message: logMessage }
         });
 
-        const oldProgress = oldTask.progress || 0;
-        const newProgress = updatedTask.progress || 0;
-
-        if (newProgress >= 90 && oldProgress < 90) {
-            const managers = await prisma.projectMember.findMany({
-                where: {
-                    projectId: updatedTask.projectId,
-                    role: { permissions: { hasSome: [PERMISSIONS.PROJECT_MANAGE_MEMBERS as Permission, PERMISSIONS.PROJECT_UPDATE as Permission] } }
-                },
-                select: { userId: true }
-            });
-
-            const managerIds = managers.map(m => m.userId);
-
-            if (managerIds.length > 0) {
-                await createNotification({
-                    userIds: managerIds, actorId: user.id, workspaceId: updatedTask.workspaceId, projectId: updatedTask.projectId,
-                    entityId: updatedTask.id, entityType: "TASK", action: "UPDATED", title: "Task Ready for Review",
-                    message: `marked task "${updatedTask.name}" as ${newProgress}% complete.`
-                });
-            }
-        }
-
-        if (newAssigneeId && newAssigneeId !== oldTask.assigneeId && newAssigneeId !== user.id) {
+        if (canUpdateFull && taskData.assigneeId && taskData.assigneeId !== oldTask.assigneeId && taskData.assigneeId !== user.id) {
             await createNotification({
-                userIds: [newAssigneeId], actorId: user.id, workspaceId: updatedTask.workspaceId, projectId: updatedTask.projectId,
+                userIds: [taskData.assigneeId], actorId: user.id, workspaceId: updatedTask.workspaceId, projectId: updatedTask.projectId,
                 entityId: updatedTask.id, entityType: "TASK", action: "ASSIGNED", title: "Task Assigned",
                 message: `assigned the task "${updatedTask.name}" to you.`
             });
@@ -188,68 +246,5 @@ export async function updateTaskAction(values: any) {
         return { success: "Task updated successfully!", data: updatedTask };
     } catch (error: any) {
         return { error: error.message || "Failed to update task" };
-    }
-}
-
-export async function bulkUpdateTasksOrder(tasks: { id: string; columnId: string; position: number }[]) {
-    try {
-        const session = await auth();
-        if (!session?.user?.email) throw new Error("Unauthorized");
-        if (tasks.length === 0) return { success: true };
-
-        const firstTask = await prisma.task.findUnique({
-            where: { id: tasks[0].id },
-            include: { project: { select: { status: true } } }
-        });
-
-        if (!firstTask) throw new Error("Task not found");
-
-        if (firstTask.project.status === "ON_HOLD") {
-            throw new Error("Project is on hold. No changes can be made.");
-        }
-
-        const userPermissions = await getPermissions({ 
-            workspaceId: firstTask.workspaceId, 
-            projectId: firstTask.projectId 
-        });
-
-        const hasStatusUpdate = userPermissions.includes(PERMISSIONS.TASK_UPDATE_STATUS);
-        const hasFullUpdate = userPermissions.includes(PERMISSIONS.TASK_UPDATE_FULL);
-        const isWorkspaceOwner = userPermissions.includes(PERMISSIONS.WORKSPACE_DELETE);
-
-        if (!hasStatusUpdate && !hasFullUpdate && !isWorkspaceOwner) {
-            throw new Error("Unauthorized: You do not have permission to reorder tasks.");
-        }
-
-        const queries = tasks.map((task) =>
-            prisma.task.update({
-                where: { id: task.id },
-                data: { columnId: task.columnId, position: task.position },
-            })
-        );
-
-        await prisma.$transaction(queries);
-
-        if (firstTask) {
-            await createAuditLog({
-                workspaceId: firstTask.workspaceId,
-                projectId: firstTask.projectId,
-                entityId: firstTask.projectId, 
-                entityType: ENTITY_TYPE.PROJECT,
-                action: ACTION.UPDATE,
-                metadata: {
-                    message: `reordered ${tasks.length} tasks on the board` 
-                }
-            });
-
-            revalidatePath(`/workspaces/${firstTask.workspaceId}/tasks`);
-            revalidatePath(`/workspaces/${firstTask.workspaceId}/projects/${firstTask.projectId}`);
-        }
-
-        eventEmitter.emit('invalidate');
-
-        return { success: true };
-    } catch (error: any) {
-        return { error: error.message || "Failed to reorder tasks" };
     }
 }

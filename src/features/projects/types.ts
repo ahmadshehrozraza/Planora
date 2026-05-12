@@ -1,9 +1,9 @@
-
 export enum ProjectStatus {
+    PLANNED = "PLANNED",
     ACTIVE = "ACTIVE",
     ON_HOLD = "ON_HOLD",
     COMPLETED = "COMPLETED",
-    OVER_DUE = "OVER_DUE"
+    CANCELLED = "CANCELLED"
 }
 
 export type Project = {
@@ -16,6 +16,10 @@ export type Project = {
     status: ProjectStatus;
     currency: string;
     budget: number;
+    
+    estimatedKloc: number | null;
+    calculatedEffort: number | null;
+    calculatedCost: number | null;
     
     startDate: Date | null;
     dueDate: Date | null;

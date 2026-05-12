@@ -29,7 +29,7 @@ export async function getProjectMembersAction({ projectId }: { projectId: string
                             where: { projectId },
                             select: { 
                                 id: true, 
-                                progress: true 
+                                column: { select: { category: true } } 
                             }
                         }
                     }
@@ -45,7 +45,7 @@ export async function getProjectMembersAction({ projectId }: { projectId: string
             const totalTasks = tasks.length;
             
             const completedTasks = tasks.filter(t => 
-                t.progress >= 90
+                t.column?.category === "DONE"
             ).length;
 
             return {

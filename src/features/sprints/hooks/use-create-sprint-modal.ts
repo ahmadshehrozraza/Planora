@@ -1,18 +1,17 @@
-import { useQueryState, parseAsBoolean } from "nuqs";
+import { create } from "zustand";
 
-export const useCreateSprintModal = () => {
-    const [ isOpen, setIsOpen ] = useQueryState(
-        "create-sprint",
-        parseAsBoolean.withDefault(false).withOptions({ clearOnDefault: true})
-    )
+interface CreateSprintModalState {
+    isOpen: boolean;
+    projectId?: string;
+    setIsOpen: (isOpen: boolean) => void;
+    open: (projectId?: string) => void;
+    close: () => void;
+}
 
-    const open = () => setIsOpen(true);
-    const close = () => setIsOpen(false);
-
-    return {
-        isOpen,
-        open,
-        close,
-        setIsOpen,
-    };
-};
+export const useCreateSprintModal = create<CreateSprintModalState>((set) => ({
+    isOpen: false,
+    projectId: undefined,
+    setIsOpen: (isOpen) => set({ isOpen }),
+    open: (projectId) => set({ isOpen: true, projectId }),
+    close: () => set({ isOpen: false, projectId: undefined }),
+}));

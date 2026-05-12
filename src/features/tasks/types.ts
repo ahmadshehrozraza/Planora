@@ -1,13 +1,22 @@
 export enum TaskType {
-    TASK = "TASK",
     FEATURE = "FEATURE",
-    DOCUMENTATION = "DOCUMENTATION"
+    TASK = "TASK",
+    BUG = "BUG",
+    SPIKE = "SPIKE",
+    DOCS = "DOCS"
 }
 
 export enum TaskPriority {
     LOW = "LOW",
     MEDIUM = "MEDIUM",
-    HIGH = "HIGH"
+    HIGH = "HIGH",
+    URGENT = "URGENT"
+}
+
+export enum ColumnCategory {
+    TODO = "TODO",
+    IN_PROGRESS = "IN_PROGRESS",
+    DONE = "DONE"
 }
 
 export type CustomColumnData = {
@@ -15,6 +24,7 @@ export type CustomColumnData = {
     name: string;
     position: number;
     projectId: string;
+    category?: ColumnCategory;
 }
 
 export type TagData = {
@@ -36,8 +46,8 @@ export type Task = {
     startDate: Date | null;
     dueDate: Date | null;
     assigneeId: string | null;
-    taskType: string;
-    priority: string;
+    taskType: TaskType;
+    priority: TaskPriority;
     effortPoints: number;
     blockedBy?: Partial<Task>[];
     blocking?: Partial<Task>[];

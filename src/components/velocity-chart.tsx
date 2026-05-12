@@ -33,7 +33,7 @@ export const VelocityChart = ({
         <p>No velocity data available.</p>
       </Card>
     )
- }
+  }
 
   return (
     <Card className="shadow-sm border-border">

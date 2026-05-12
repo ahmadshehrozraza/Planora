@@ -64,10 +64,6 @@ const CustomTooltip = ({ task }: { task: GanttTaskType }) => {
                     <span>Duration:</span>
                     <span className="font-medium">{duration || 1} day(s)</span>
                 </div>
-                <div className="flex justify-between">
-                    <span>Progress:</span>
-                    <span className="font-medium">{task.progress}%</span>
-                </div>
             </div>
         </div>
     );
@@ -125,7 +121,7 @@ export const DataGantt = ({ tasks, events = [] }: DataGanttProps) => {
                 indexNum: taskCounter++,
                 sprintName: task.sprint?.name || "-",
                 type: "task" as const,
-                progress: task.progress || 0,
+                progress: task.column?.category === "DONE" ? 100 : (task.column?.category === "IN_PROGRESS" ? 50 : 0),
                 dependencies: taskDependencies,
                 isDisabled: false,
                 styles: {

@@ -46,7 +46,7 @@ export async function getProjects({ workspaceId }: { workspaceId: string }) {
             where: whereClause,
             include: {
                 tasks: {
-                    select: { progress: true, column: { select: { name: true } } } 
+                    select: { effortPoints: true, column: { select: { name: true, category: true } } } 
                 },
                 sprints: {
                     select: { id: true, status: true }
@@ -60,15 +60,17 @@ export async function getProjects({ workspaceId }: { workspaceId: string }) {
         const projectsWithStats = projects.map((project: any) => {
             const totalTasks = project.tasks?.length || 0;
             const completedTasks = project.tasks?.filter((t: any) => 
-                 t.progress >= 90
+                 t.column?.category === "DONE"
             ).length || 0; 
 
-            const totalProgressSum = project.tasks?.reduce((sum: number, task: any) => sum + (task.progress || 0), 0) || 0;
-            const progress = totalTasks === 0 ? 0 : Math.round(totalProgressSum / totalTasks);
+            const totalPoints = project.tasks?.reduce((sum: number, task: any) => sum + (task.effortPoints || 0), 0) || 0;
+            const completedPoints = project.tasks?.filter((t: any) => t.column?.category === "DONE").reduce((sum: number, task: any) => sum + (task.effortPoints || 0), 0) || 0;
+            
+            const progress = totalPoints === 0 ? 0 : Math.round((completedPoints / totalPoints) * 100);
 
             const totalSprints = project.sprints?.length || 0;
             const completedSprints = project.sprints?.filter((s: any) => 
-                s.status === "COMPLETED"
+                s.status === "COMPLETED" || s.status === "CLOSED"
             ).length || 0;
 
             const { tasks, sprints, ...projectData } = project;

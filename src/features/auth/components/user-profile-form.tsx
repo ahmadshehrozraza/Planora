@@ -110,12 +110,6 @@ export const UserProfileForm = () => {
       />
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage your profile details and security preferences.
-          </p>
-        </div>
         <Button size="sm" variant="outline" onClick={() => router.back()}>
           <ArrowLeftIcon className="size-4 mr-2" />
           Back to App

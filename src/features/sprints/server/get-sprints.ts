@@ -40,8 +40,16 @@ export async function getSprintsAction(projectId: string) {
 
         const sprints = await prisma.sprint.findMany({
             where: { projectId },
-            include: { tasks: true }, 
-            orderBy: { createdAt: "desc" }
+            include: { 
+                tasks: {
+                    include: {
+                        column: {
+                            select: { name: true, category: true }
+                        }
+                    }
+                } 
+            }, 
+            orderBy: { sprintNumber: "asc" }
         });
 
         return sprints;

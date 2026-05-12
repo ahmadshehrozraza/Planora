@@ -2,14 +2,14 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { bulkUpdateTasksAction } from "../server/bulk-update-tasks";
+import { bulkUpdateTasksOrder } from "../server/bulk-update-tasks";
 
 export const useBulkUpdateTasks = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (tasks: { id: string; columnId: string; position: number }[]) => {
-            const response = await bulkUpdateTasksAction(tasks);
+            const response = await bulkUpdateTasksOrder(tasks);
             if (response?.error) throw new Error(response.error);
             return response;
         },
