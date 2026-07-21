@@ -12,7 +12,6 @@ services:
       POSTGRES_DB: planora
     volumes:
       - planora_pg_data:/var/lib/postgresql/data
-    # 🆕 THE HEALTHCHECK TRICK: DB ko har 5 second baad ping karo taake check ho sake ke wo ready hai
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d planora"]
       interval: 5s
@@ -47,13 +46,11 @@ services:
     dns:
       - 8.8.8.8
       - 1.1.1.1
-    # 🆕 CONDITIONAL DEPENDENCY: Ab app tab tak start nahi hogi jab tak DB 'healthy' na ho jaye!
     depends_on:
       planora-db:
         condition: service_healthy
       planora-ai:
         condition: service_started
-    # 🆕 THE MAGIC COMMAND: DB ready hote hi pehle tables push karega, phir server on karega!
     command: sh -c "npx prisma db push && npm run dev"
     volumes:
       - planora_uploads:/app/public/uploads
