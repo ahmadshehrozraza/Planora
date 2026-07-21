@@ -57,13 +57,16 @@ export const TaskOverview = ({
 
     const { data: permissions } = useGetPermissions(workspaceId, task.projectId);
     const permissionsList: string[] = Array.isArray(permissions) ? permissions : [];
-    const allowed = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_DELETE);
+    
+    const hasAdminPower = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE);
+    
+    const allowed = hasAdminPower || permissionsList.includes(PERMISSIONS.TASK_DELETE);
 
     const isAssignee = Boolean(
         currentUserEmail && task.assignee?.email && task.assignee.email === currentUserEmail
     );
 
-    const canEdit = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || isAssignee;
+    const canEdit = hasAdminPower || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || (isAssignee && permissionsList.includes(PERMISSIONS.TASK_UPDATE_STATUS));
 
     const [showLogs, setShowLogs] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
@@ -243,7 +246,9 @@ export const TaskOverview = ({
                     </div>
                 </div>
                 
-                <Separator className="my-4" />
+                <div className="px-7">
+                    <Separator className="my-4" />
+                </div>
 
                 <div className="flex items-center justify-between mb-4">
                     <p className="text-sm font-semibold text-foreground">
@@ -300,7 +305,7 @@ export const TaskOverview = ({
                                     {taskTags.length > 0 ? (
                                         <div className="flex flex-wrap gap-1.5 mt-1">
                                             {taskTags.map((tag: any) => (
-                                                <Badge variant="custom-tag" tagColor={tag.color}>
+                                                <Badge variant="custom-tag" tagColor={tag.color} key={tag.name}>
                                                     {tag.name}
                                                 </Badge>
                                             ))}
@@ -393,7 +398,6 @@ export const TaskOverview = ({
                                 </OverviewProperty>
                             </div>
                         </div>
-
 
                         {projectRepoUrl && (
                             <div className="flex flex-col gap-y-3 mt-6 border border-border/50 rounded-xl p-4 bg-muted/20">
