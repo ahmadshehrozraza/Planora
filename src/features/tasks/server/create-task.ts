@@ -48,6 +48,7 @@ export async function createTaskAction(values: any) {
             where: { email: session.user.email },
             select: { id: true }
         });
+        
         if (!user) throw new Error("User not found");
 
         const project = await prisma.project.findUnique({

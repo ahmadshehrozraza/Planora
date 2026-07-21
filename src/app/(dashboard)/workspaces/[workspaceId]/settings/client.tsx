@@ -3,7 +3,6 @@
 import { useGetWorkspace } from "@/features/workspaces/api/use-get-workspace";
 import { PageLoader } from "@/components/page-loader";
 import { PageError } from "@/components/page-error";
-import { Settings2 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 import { EditWorkspaceForm } from "@/features/workspaces/components/edit-workspace-form";
@@ -28,14 +27,7 @@ export const WorkspaceSettingsClient = ({ workspaceId }: WorkspaceSettingsClient
 
   return (
     <div className="w-full px-4 lg:px-6 flex flex-col gap-y-6 pb-10 mt-4">
-      <div className="border-b pb-4 mb-2 w-full">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Settings2 className="size-6" /> Workspace Configuration
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">Manage workspace details, access controls, and administrative settings in one place.</p>
-      </div>
-
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion type="multiple" defaultValue={["general", "roles", "danger"]} className="w-full">
         <AccordionItem value="general" className="border rounded-lg bg-card px-4 shadow-sm mb-4 w-full">
           <AccordionTrigger className="hover:no-underline font-semibold text-lg py-4 w-full text-left">
             General Details

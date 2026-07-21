@@ -92,35 +92,35 @@ export const ProjectIdClient = () => {
       <div className="w-full flex flex-col min-h-screen bg-background">
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full flex flex-col flex-1">
 
-          <div className="px-4 sm:px-6 py-3 bg-card border-b border-border sticky top-0 z-20 shadow-sm w-full overflow-x-auto no-scrollbar">
-            <TabsList className="h-10 bg-muted/40 p-1 w-max border border-border justify-start rounded-lg">
-              <TabsTrigger value="overview" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Overview</TabsTrigger>
-              <TabsTrigger value="tasks" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Tasks</TabsTrigger>
-              <TabsTrigger value="sprints" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Sprints</TabsTrigger>
-              
-              {canViewRisks && (
-                <TabsTrigger value="risks" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">
-                  Risks
-                </TabsTrigger>
-              )}
-              
-              <TabsTrigger value="files" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Files</TabsTrigger>
-              <TabsTrigger value="cpm" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">CPM</TabsTrigger>
-              
-              {canViewAnalytics && (
-                <TabsTrigger value="projectAnalytics" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Analytics</TabsTrigger>
-              )}
-              {canManageMembers && (
-                <TabsTrigger value="projectMembers" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Members</TabsTrigger>
-              )}
-              {canUpdateProject && (
-                <TabsTrigger value="projectSettings" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Settings</TabsTrigger>
-              )}
-              {canUpdateProject && (
-                <TabsTrigger value="projectLogs" className="px-4 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-md">Logs</TabsTrigger>
-              )}
-            </TabsList>
-          </div>
+         <div className="px-4 sm:px-6 py-3 bg-card border-b border-border sticky top-0 z-20 shadow-sm w-full overflow-x-auto no-scrollbar">
+  <TabsList className="h-10 bg-muted/40 p-1 w-max border border-border justify-start rounded-lg">
+    <TabsTrigger value="overview" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Overview</TabsTrigger>
+    <TabsTrigger value="tasks" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Tasks</TabsTrigger>
+    <TabsTrigger value="sprints" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Sprints</TabsTrigger>
+    
+    {canViewRisks && (
+      <TabsTrigger value="risks" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">
+        Risks
+      </TabsTrigger>
+    )}
+    
+    <TabsTrigger value="files" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Files</TabsTrigger>
+    <TabsTrigger value="cpm" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">CPM</TabsTrigger>
+    
+    {canViewAnalytics && (
+      <TabsTrigger value="projectAnalytics" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Analytics</TabsTrigger>
+    )}
+    {canManageMembers && (
+      <TabsTrigger value="projectMembers" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Members</TabsTrigger>
+    )}
+    {canUpdateProject && (
+      <TabsTrigger value="projectSettings" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Settings</TabsTrigger>
+    )}
+    {canUpdateProject && (
+      <TabsTrigger value="projectLogs" className="px-4 text-xs sm:text-sm text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md">Logs</TabsTrigger>
+    )}
+  </TabsList>
+</div>
 
           <div className="flex-1 w-full relative">
             <TabsContent value="overview" className="m-0 border-none outline-none h-full w-full">
@@ -168,7 +168,7 @@ export const ProjectIdClient = () => {
             <TabsContent value="projectSettings" className="m-0 p-4 lg:p-6 w-full">
               <div className="flex flex-col gap-y-6 w-full">
                 
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion type="multiple" defaultValue={["estimations", "general", "columns", "tags", "roles"]} className="w-full">
                   <AccordionItem value="estimations" className="border-2 border-blue-500/20 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 px-4 shadow-sm mb-4 w-full">
                     <AccordionTrigger className="hover:no-underline font-semibold text-lg py-4 text-blue-700 dark:text-blue-400">
                       AI Planning & COCOMO Estimations
