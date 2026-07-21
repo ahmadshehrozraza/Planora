@@ -47,8 +47,10 @@ export const TaskActions = ({
         (currentUserEmail && assigneeEmail && assigneeEmail === currentUserEmail)
     );
 
-    const canEdit = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || isAssignee;
-    const canDelete = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE) || permissionsList.includes(PERMISSIONS.TASK_DELETE);
+    const hasAdminPower = permissionsList.includes(PERMISSIONS.WORKSPACE_DELETE);
+
+    const canEdit = hasAdminPower || permissionsList.includes(PERMISSIONS.TASK_UPDATE_FULL) || (isAssignee && permissionsList.includes(PERMISSIONS.TASK_UPDATE_STATUS));
+    const canDelete = hasAdminPower || permissionsList.includes(PERMISSIONS.TASK_DELETE);
 
     const { open } = useEditTaskModal();
 
@@ -86,7 +88,7 @@ export const TaskActions = ({
                     {children}
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent  align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem
                     onClick={onOpenTask}
                     className="font-medium p-[10px]"
