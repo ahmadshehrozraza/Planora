@@ -1,0 +1,69 @@
+services:
+  # 1. Local PostgreSQL Database Container
+  planora-db:
+    image: postgres:16-alpine
+    container_name: planora-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: planora
+      POSTGRES_DB: planora
+    volumes:
+      - planora_pg_data:/var/lib/postgresql/data
+    # 🆕 THE HEALTHCHECK TRICK: DB ko har 5 second baad ping karo taake check ho sake ke wo ready hai
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d planora"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - planora-network
+
+  # 2. Python AI Engine Sub-service
+  planora-ai:
+    build: 
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: planora-ai-engine
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - planora-network
+
+  # 3. Next.js Full-stack Web Application
+  planora-web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: planora-nextjs
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    # 🆕 CONDITIONAL DEPENDENCY: Ab app tab tak start nahi hogi jab tak DB 'healthy' na ho jaye!
+    depends_on:
+      planora-db:
+        condition: service_healthy
+      planora-ai:
+        condition: service_started
+    # 🆕 THE MAGIC COMMAND: DB ready hote hi pehle tables push karega, phir server on karega!
+    command: sh -c "npx prisma db push && npm run dev"
+    volumes:
+      - planora_uploads:/app/public/uploads
+    networks:
+      - planora-network
+
+networks:
+  planora-network:
+    driver: bridge
+
+volumes:
+  planora_pg_data:
+  planora_uploads:
