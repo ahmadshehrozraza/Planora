@@ -14,7 +14,7 @@ export const {
 } = NextAuth({
     adapter: PrismaAdapter(prisma),
     session: { 
-        strategy: "jwt" 
+        strategy: "jwt",
     },
     providers: [
         Google({
