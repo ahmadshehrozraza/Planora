@@ -31,7 +31,7 @@ export const LandingHero = () => {
           </Button>
         </div>
 
-        <div className="mt-16 mx-auto max-w-5xl rounded-2xl border border-border/50 bg-black shadow-2xl overflow-hidden relative aspect-video ring-1 ring-white/10">
+        {/* <div className="mt-16 mx-auto max-w-5xl rounded-2xl border border-border/50 bg-black shadow-2xl overflow-hidden relative aspect-video ring-1 ring-white/10">
           
           <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-background/20 z-10 pointer-events-none" />
           
@@ -44,7 +44,7 @@ export const LandingHero = () => {
               allowFullScreen
             />
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );
